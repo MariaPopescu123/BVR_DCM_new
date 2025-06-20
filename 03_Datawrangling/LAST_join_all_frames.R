@@ -18,4 +18,10 @@ full_weekly_data <- frame_weeks %>%
   left_join(final_chem, by = c("Year", "Week")) %>%
   left_join(final_schmidt, by = c("Year", "Week"))
 
-write.csv(full_weekly_data, "CSVs/full_weekly_data", row.names = FALSE)
+
+full_weekly_data <- full_weekly_data |>
+  mutate(Date = Date.x)|>
+  select(-Year, -Date.y, -Secchi_m, -sec_K_d)|>
+  relocate(Date, .before = "Week")
+
+write.csv(full_weekly_data, "CSVs/full_weekly_data.csv", row.names = FALSE)

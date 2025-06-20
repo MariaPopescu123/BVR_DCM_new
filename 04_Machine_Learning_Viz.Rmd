@@ -31,13 +31,11 @@ library(future)
 This data frame has predictor values for DCM depth as well as DCM magnitude. 
 Need to split these up for two different analysis
 ```{r}
-full_weekly_data_clean <- full_weekly_data |>
-  select(-Year, -Date.x, -Date.y, -Secchi_m, -sec_K_d)|>
-  relocate(Date, .before = "Week")
+full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
 
 #print(colnames(full_weekly_data_clean))
 
-depth_analysis <- full_weekly_data_clean |>
+depth_analysis <- full_weekly_data |>
   select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
          -max_conc, -totals_mean, -totals_med, -N_at_DCM)
   
