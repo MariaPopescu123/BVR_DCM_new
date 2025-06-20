@@ -2,9 +2,6 @@
 #Water level for Beaverdam 
 
 #need to load this in here
-source("02_Functions/interpolate_variable.R")
-source("02_Functions/data_availability_function.R")
-source("02_Functions/weekly_sum_variables.R")
 
 
 #waterlevel data

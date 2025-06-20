@@ -56,3 +56,4 @@ final_chem <- frame_weeks|>
   left_join(chem_weekly_sum, by = c("Week", "Year"))|>
   select(-WaterLevel_m)
 
+write.csv(final_chem, "CSVs/final_chem.csv", row.names = FALSE)

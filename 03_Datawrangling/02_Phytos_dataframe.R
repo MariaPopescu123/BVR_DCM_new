@@ -122,7 +122,7 @@ DCM_metrics_filtered <- DCM_metrics |>
 #and then if yes 
 
 #join waterlevel because this will be important for peak metrics
-water_level <- read.csv("water_level.csv") |>
+water_level <- read.csv("CSVs/water_level.csv") |>
   mutate(Date = as_date(Date)) |>
   select(Week, Year, WaterLevel_m) |>
   group_by(Week, Year) |>
@@ -391,6 +391,9 @@ final_phytos <- final_DCM_metrics|>
 frame_weeks <- final_phytos|>
   distinct(Year, Week)|>
   left_join(water_level, by = c("Week", "Year"))
+
+write.csv(frame_weeks, "CSVs/frame_weeks.csv", row.names = FALSE)
+write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #metrics for each variable that needs to be calculated 
 #depth_var_max
 #depth_var_min

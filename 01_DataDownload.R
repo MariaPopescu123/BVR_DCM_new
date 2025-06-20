@@ -4,6 +4,10 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes, splines)
 
+source("02_Functions/interpolate_variable.R")
+source("02_Functions/data_availability_function.R")
+source("02_Functions/weekly_sum_variables.R")
+
 #### Loading Data  #### 04July2025
 
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r

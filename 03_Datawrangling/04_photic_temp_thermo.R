@@ -3,10 +3,11 @@
 # 2. temperature dataframe
 # 3. thermocline
 
-
 #need to have run the DataDownload first
 
 #### secchi PZ  ####
+
+#need to load in frame weeks 
 
 {
   
@@ -49,6 +50,8 @@
   
   
   # Adding Secchi
+  frame_weeks <- read.csv("CSVs/frame_weeks.csv")
+  
   weekly_secchi <- frame_weeks|> #RF frame w metals and secchi
     left_join(secchi_interpolated, by = c("Year", "Week"))
   
@@ -61,8 +64,11 @@
     group_by(Year, Week)|>
     mutate(PZ = if_else(PZ > WaterLevel_m, WaterLevel_m, PZ))
 }
+
 library(ISOweek)
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
+
+write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
 
 ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
   geom_line(aes(group = factor(year(Date)))) +
@@ -242,3 +248,5 @@ just_thermocline <- just_thermocline|>
 final_photic_thermo <- photic_zone_frame|>
   left_join(just_thermocline, by = c("Week", "Year"))|>
   select(-WaterLevel_m)
+
+write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)

@@ -1,13 +1,14 @@
-#join phytos_
+#joining all the dataframes together from the data wrangling file
 
-frame_weeks #has the dates that we have phyto data for plus water level, everything can be joined to this
+#read in csvs
+frame_weeks <- read.csv("CSVs/frame_weeks.csv")
+final_phytos <- read.csv("CSVs/final_phytos.csv")
+final_metals <- read.csv("CSVs/final_metals.csv")
+final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")
+final_buoyancy <- read.csv("CSVs/final_chem.csv")
+final_chem <- read.csv("CSVs/final_chem.csv")
+final_schmidt <- read.csv("CSVs/final_schmidt.csv")
 
-final_RF_frame <- final_phytos #this is the frame after running 01_water_level and 02_Phytos_dataframe
-#join
-final_metals #from script 03
-final_photic_thermo
-final_buoyancy
-final_chem #from 06_nutrients
 
 full_weekly_data <- frame_weeks %>%
   left_join(final_phytos, by = c("Year", "Week")) %>%
@@ -16,3 +17,5 @@ full_weekly_data <- frame_weeks %>%
   left_join(final_buoyancy, by = c("Year", "Week")) %>%
   left_join(final_chem, by = c("Year", "Week")) %>%
   left_join(final_schmidt, by = c("Year", "Week"))
+
+write.csv(full_weekly_data, "CSVs/full_weekly_data", row.names = FALSE)

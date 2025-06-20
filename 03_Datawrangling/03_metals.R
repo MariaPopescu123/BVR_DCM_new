@@ -10,6 +10,8 @@ final_metals <- frame_weeks|> #random forest frame with metals
   left_join(metals_summarised, by = c("Week", "Year"))|>
   select(-WaterLevel_m)
 
+write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
+
 #how much raw metal data do we have?This is just to visualize
 # #variables <- c(
 #   "depth_SFe_mgL_max", "depth_SFe_mgL_min", "SFe_mgL_max_val", "SFe_mgL_min_val", "SFe_mgL_range",

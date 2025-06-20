@@ -46,7 +46,7 @@ new_bath <- weekly_temp_profiles|>
          BathAdj = RoundedDepth + BathDiff)|>
   ungroup()|>
   left_join(BVRbath, by = c("BathAdj" = "Depth_m"))|>
-  select(-RoundedDepth, -WaterLevel_m, -BathDiff, -BathAdj, -buoyancy_freq)
+  select(-RoundedDepth, -WaterLevel_m, -BathDiff, -BathAdj)
 ```
 
 Yay! Now we have different bathymetry for each Date
@@ -69,4 +69,6 @@ final_schmidt <- frame_weeks|>
   select(-WaterLevel_m)
 ```
 
+for some reason I can't write the CSV in markdown, so run this line in your terminal in order to save it as a csv file to be read in later
 
+write.csv(final_schmidt, "CSVs/final_schmidt.csv", row.names = FALSE)
