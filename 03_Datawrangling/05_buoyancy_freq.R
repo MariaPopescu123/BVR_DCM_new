@@ -1,6 +1,8 @@
 # buoyancy_freq
 # CHANGE THIS SO IT'S MAXIMUM BUOYANCY FREQUENCY
 
+temp_depths_cleaned <- read.csv("CSVs/temp_depths_cleaned.csv")
+
 ####Buoyancy Frequency ####
 buoyancy_frame <- temp_depths_cleaned|> #temp_depths_cleaned was loaded in from 04_photic_temp_thermo
   select(Date, buoyancy_freq, Depth_m)|>

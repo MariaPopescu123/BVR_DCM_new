@@ -1,31 +1,14 @@
 ---
-title: "Maching_Learning_viz"
+title: "Test all years"
 author: "Maria Popescu"
-date: "2025-05-30"
+date: "2025-06-20"
 output: html_document
 ---
-This for final machine learning analysis. 
-
-before running this script first run
-01_DataDownload
-03_Datawrangling: then go through all the files within chronologically
-then you can run this script
-
-1. prep data for RandomForest
-2. tune model for RandomForest
-3. run Random Forest
-4. visualize SHAP values
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-load the packages that you need
-```{r}
-library(randomForest)
-library(missForest)
-library(caret)
-library(future)
 ```
 
 This data frame has predictor values for DCM depth as well as DCM magnitude. 
@@ -223,17 +206,3 @@ library(ggbeeswarm)
     ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
     geom_col() +
     labs(x='mean(shap value)', title='mean shap for all samples', y="")
-```
-
-now to look at specific variables and their values
-```{r}
-  #this not showing 
-  filter(df, var=='PZ') %>%
-    ggplot(aes(x=value, y=shap)) + geom_point() +
-    geom_smooth() +
-    labs(title='interaction shap vs PZ', x='DCM_Depth')
-  
-  ggplot(aes(x=value, y=shap)) + geom_point() + 
-    geom_smooth() +
-    labs(title='interaction shap vs rm', x='rm')
-```

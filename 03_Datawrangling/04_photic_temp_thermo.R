@@ -156,6 +156,8 @@ temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
   summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop")|>
   mutate(buoyancy_freq = c(buoyancy.freq(Temp_C, Depth_m), NA))#added for padding for the last value
 
+write.csv(temp_depths_cleaned, "CSVs/temp_depths_cleaned.csv", row.names = FALSE)
+
 temp_weekly_sum <- weekly_sum_variables(temp_depths_cleaned, "Temp_C")
 
 ####Thermocline####

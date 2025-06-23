@@ -5,7 +5,7 @@ frame_weeks <- read.csv("CSVs/frame_weeks.csv")
 final_phytos <- read.csv("CSVs/final_phytos.csv")
 final_metals <- read.csv("CSVs/final_metals.csv")
 final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")
-final_buoyancy <- read.csv("CSVs/final_chem.csv")
+final_buoyancy <- read.csv("CSVs/final_buoyancy.csv")
 final_chem <- read.csv("CSVs/final_chem.csv")
 final_schmidt <- read.csv("CSVs/final_schmidt.csv")
 
