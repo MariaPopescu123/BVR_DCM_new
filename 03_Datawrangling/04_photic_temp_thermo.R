@@ -78,10 +78,15 @@ ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
 #I don't end up using any of these variables, because we don't have consistent data through all years, 
 #but also they are very correlated to other variables that are included
 #####YSI#####
+
+#don't need to run this if you already loaded the data
+#ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
+#updated 2025
+ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
+
 ysi_profiles <- ysi_profiles|>
   mutate(Date = as_date(DateTime))
 
-#come back to remove flags
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
 
 data_availability(ysi_profiles, variables)
@@ -98,10 +103,14 @@ ysi <- ysi_profiles|>
   select(-PAR_umolm2s, -ORP_mV, -Cond_uScm, -pH)|>
   filter(Reservoir == "BVR", Site == 50)|>
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))
-#remove flags
 data_availability(ysi, variables)
 
 #####CTD#####
+
+#unnecessary if you've already loaded in the data from 01_DataDownload
+#ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
+#CTD <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1")
+
 CTDfiltered <- CTD |>
   filter(Reservoir == "BVR", Site == 50) |>
   filter(!if_any(starts_with("Flag"), ~ . == 68)) |>
@@ -126,7 +135,7 @@ CTDtemp<- CTDfiltered|>
 
 ysitemp<- ysi%>%
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2017, 2018, 2020))|>
+  filter(Year %in% c(2017, 2018, 2020, 2021))|>
   select(Date, Year, Week, Temp_C, Depth_m)
 
 #coalesce 
@@ -154,7 +163,58 @@ temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
   filter(!is.na(Temp_C)) |>
   group_by(Date, Depth_m) |>
   summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop")|>
-  mutate(buoyancy_freq = c(buoyancy.freq(Temp_C, Depth_m), NA))#added for padding for the last value
+  mutate(Reservoir = "BVR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
+
+variables <- c("Temp_C")
+
+temp_depths_interp <- interpolate_variable(temp_depths_cleaned, variables)
+
+#CRAZY POINTS DEF NOT REAL, JUST REMOVE
+#2021-08-04 
+#2021-08-11
+#2021-08-18
+
+temp_depths_cleaned <- temp_depths_interp|> #remove the weirdos
+  filter(!(Date == as.Date("2021-08-04") & Depth_m > 9 & Depth_m <= 10))|>
+  filter(!(Date == as.Date("2021-08-11") & Depth_m > 9 & Depth_m <= 10))|>
+  filter(!(Date == as.Date("2021-08-18") & Depth_m > 9 & Depth_m <= 10))
+ 
+ 
+looking <- temp_depths_cleaned|>
+  filter(Date %in% c("2021-08-04"))
+
+#look at the daily casts
+for (yr in years) {
+  
+  # Filter data for the year
+  test <- temp_depths_cleaned |>
+    filter(year(Date) == yr)
+  
+  # Skip if there's no data
+  if (nrow(test) == 0) next
+  
+  # Create plot
+  plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
+    geom_path() +
+    geom_point(size = 0.8, alpha = 0.8) +  # Small points at each observation
+    # Light blue grid lines for every whole meter
+    geom_hline(yintercept = seq(0, max(test$Depth_m, na.rm = TRUE), by = 1), 
+               color = "lightblue", linetype = "dotted", linewidth = 0.3) +
+    # Vertical lines for concentrations
+    scale_y_reverse(breaks = seq(0, max(test$Depth_m, na.rm = TRUE), by = 1)) +
+    theme_bw() +
+    facet_wrap(vars(Date)) +
+    xlab("Temp") +
+    ylab("Depth (m)") +
+    ggtitle(paste(yr, "Temp Profiles"))
+  
+  # Save plot
+  ggsave(filename = paste0("Figs/Daily_interp_Casts/", yr, "_raw_casts.png"),
+         plot = plot_casts,
+         width = 12,
+         height = 10,
+         dpi = 300)
+}
 
 write.csv(temp_depths_cleaned, "CSVs/temp_depths_cleaned.csv", row.names = FALSE)
 
@@ -182,10 +242,46 @@ just_thermocline <- temp_depths_cleaned |>
       index = FALSE, 
       mixed.cutoff = 0.25 * max_depth  # Use 25% of max depth for mixed layer
     )
+    # RECALCULATE INCORRECT THERMOCLINES
+    if (!is.na(thermocline_depth) && thermocline_depth <= 0.5) {
+      .x_filtered <- .x |> filter(Depth_m > 0.5)
+      
+      if (nrow(.x_filtered) >= 2) {
+        thermocline_depth <- tryCatch(
+          thermo.depth(
+            .x_filtered$Temp_C, 
+            .x_filtered$Depth_m, 
+            Smin = .5, 
+            seasonal = TRUE, 
+            index = FALSE, 
+            #mixed.cutoff = 0.25 * max_depth
+          ),
+          error = function(e) NA_real_
+        )
+      } else {
+        thermocline_depth <- NA_real_  # Not enough data to recalculate
+      }
+    }
+    #again still not capturing alot in 2018 and 2020
+    if (!is.na(thermocline_depth) && thermocline_depth <= 0.5) {
+      if (nrow(.x) >= 2) {
+        thermocline_depth <- tryCatch(
+          thermo.depth(
+            .x$Temp_C, 
+            .x$Depth_m, 
+            Smin = .05, 
+            seasonal = TRUE, 
+            index = FALSE, 
+            #mixed.cutoff = 0.25 * max_depth
+          ),
+          error = function(e) NA_real_
+        )
+      } else {
+        thermocline_depth <- NA_real_  # Not enough data to recalculate
+      }
+    }
     
-    # Apply cutoff: Remove thermocline depths deeper than 40% of max depth
-    #    thermocline_depth <- ifelse(thermocline_depth > 0.6 * max_depth, NA, thermocline_depth)
-    #    thermocline_depth <- ifelse(thermocline_depth < 0.25 * max_depth, NA, thermocline_depth)
+    thermocline_depth <- ifelse(thermocline_depth < 0.15 * max_depth, NA, thermocline_depth)
     
     # Ensure Date is a single value and return the summarised dataframe
     tibble(Date = .x$Date[1], thermocline_depth = thermocline_depth)
@@ -240,8 +336,6 @@ for (yr in years) {
          height = 10,
          dpi = 300)
 }
-
-#need to recalculate some of them will come back later for now just add to main dataframe
 
 just_thermocline <- just_thermocline|>
   group_by(Week, Year)|>

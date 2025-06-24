@@ -5,6 +5,7 @@ temp_depths_cleaned <- read.csv("CSVs/temp_depths_cleaned.csv")
 
 ####Buoyancy Frequency ####
 buoyancy_frame <- temp_depths_cleaned|> #temp_depths_cleaned was loaded in from 04_photic_temp_thermo
+  mutate(buoyancy_freq = c(buoyancy.freq(Temp_C, Depth_m), NA))|>#added for padding for the last value
   select(Date, buoyancy_freq, Depth_m)|>
   mutate(Week = week(Date), 
          Year = year(Date))
