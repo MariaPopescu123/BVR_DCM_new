@@ -8,6 +8,8 @@ final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")
 final_buoyancy <- read.csv("CSVs/final_buoyancy.csv")
 final_chem <- read.csv("CSVs/final_chem.csv")
 final_schmidt <- read.csv("CSVs/final_schmidt.csv")
+final_metdata <- read.csv("CSVs/final_metdata.csv")
+
 
 
 full_weekly_data <- frame_weeks %>%
@@ -16,7 +18,8 @@ full_weekly_data <- frame_weeks %>%
   left_join(final_photic_thermo, by = c("Year", "Week")) %>%
   left_join(final_buoyancy, by = c("Year", "Week")) %>%
   left_join(final_chem, by = c("Year", "Week")) %>%
-  left_join(final_schmidt, by = c("Year", "Week"))
+  left_join(final_schmidt, by = c("Year", "Week"))|>
+  left_join(final_metdata, by = c("Year", "Week"))
 
 
 full_weekly_data <- full_weekly_data |>

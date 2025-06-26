@@ -1,8 +1,9 @@
 #Phytoplankton metrics and visualization
 
+current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/8/0359840d24028e6522f8998bd41b544e")
 
 #adding columns with total_conc max and the depth at which it occurs
-phytos <- phytos_df %>% 
+phytos <- current_df %>% 
   filter(Reservoir == "BVR", Site == 50)%>%
   mutate(Date  = as_date(DateTime)) |> 
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
@@ -13,7 +14,8 @@ phytos <- phytos_df %>%
   mutate(Year = year(Date))|>
   mutate(DOY = yday(Date))
 
-#write.csv(phytos, "phytos.csv", row.names = FALSE)
+write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
+phytos <- read.csv("CSVs/phytos.csv")
 
 ####flora instrument data availability####
 
@@ -274,7 +276,7 @@ label_data <- boxplot_Data %>%
   summarise(n = n())  # Calculate the number of data points per year
 
 # Plot with labels for the number of data points
-ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
+last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
   geom_boxplot() +
   geom_point(aes(color = max_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
   scale_color_gradientn(
@@ -290,6 +292,15 @@ ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   geom_text(data = label_data, aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)), 
             vjust = -0.5)  # Add labels at the top of each column
+
+ggsave(
+  filename = "DCM_depths_boxplot.png",
+  plot = last_plot(),
+  path = "Figs/Phytos_viz",
+  width = 10,   # width in inches
+  height = 5,   # height in inches
+  dpi = 300     # optional: high resolution
+)
 
 ####boxplot width of DCM####
 
