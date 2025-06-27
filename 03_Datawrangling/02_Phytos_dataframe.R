@@ -96,7 +96,7 @@ for (yr in years) {
     ggtitle(paste(yr, "raw casts"))
   
   # Save plot
-  ggsave(filename = paste0("Figs/", yr, "_raw_casts.png"),
+  ggsave(filename = paste0("Figs/raw_flora_casts/", yr, "_raw_casts.png"),
          plot = plot_casts,
          width = 12,
          height = 10,
@@ -215,7 +215,7 @@ for (yr in years) {
               color = "black", hjust = 1.1, size = 3)
   
   # Save plot
-  ggsave(filename = paste0("Figs/", yr, "_raw_casts.png"),
+  ggsave(filename = paste0("Figs/raw_flora_casts/", yr, "_raw_casts.png"),
          plot = plot_casts,
          width = 12,
          height = 10,

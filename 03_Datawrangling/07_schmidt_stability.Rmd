@@ -67,6 +67,18 @@ schmidt_frame <- new_bath|>
 final_schmidt <- frame_weeks|>
   left_join(schmidt_frame, by = c("Week", "Year"))|>
   select(-WaterLevel_m)
+
+
+ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))) +
+  geom_point() +
+  geom_line() +  # Optional: connect points by year
+  labs(
+    x = "Week of Year",
+    y = "Schmidt Stability (J/m²)",
+    color = "Year"
+  ) +
+  theme_minimal()
+
 ```
 
 for some reason I can't write the CSV in markdown, so run this line in your terminal in order to save it as a csv file to be read in later

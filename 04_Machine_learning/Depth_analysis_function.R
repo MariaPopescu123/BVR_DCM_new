@@ -1,9 +1,3 @@
----
-title: "Maching_Learning_viz"
-author: "Maria Popescu"
-date: "2025-05-30"
-output: html_document
----
 This for final machine learning analysis. 
 
 before running this script first run
@@ -15,6 +9,16 @@ then you can run this script
 2. tune model for RandomForest
 3. run Random Forest
 4. visualize SHAP values
+
+
+
+#writing a function that will
+
+#1. run a test random forest for a specific year
+#2. select the best parameters and then run an actual random forest
+#3. print out how many observations
+#4. visualize variable importance
+#5. visualize SHAP values
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -32,17 +36,16 @@ library(here)
 This data frame has predictor values for DCM depth as well as DCM magnitude. 
 Need to split these up for two different analysis
 
+Tidy up the frame for depth analysis
 ```{r}
-full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
+#full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
 
 #print(colnames(full_weekly_data_clean))
 depth_analysis <- full_weekly_data |>
   select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
-         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)
-```
+         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)|>
+  filter(year(Date) == 2023)
 
-Tidy up the frame for depth analysis
-```{r}
 # Remove non-numeric columns (excluding Date, Depth_m, Year, etc.)
 non_numeric_columns <- sapply(depth_analysis, function(x) !is.numeric(x) & !is.factor(x))
 final_no_non_numeric <- depth_analysis |>
@@ -60,68 +63,22 @@ final_data_no_na <- final_no_non_numeric %>%
 RF_depth_analysis <- final_data_no_na %>%
   na.omit()
 
-write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
-```
+#write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
 
 
-check to see how much is actually going into the analysis
-```{r}
+#check to see how much is actually going into the analysis
+
 test<-depth_analysis |>
-    select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
+  select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
 
 RF_frame_w_dates <- test %>%
   na.omit()
- 
+
 RF_frame_w_dates %>%
   count(year(Date)) %>%
   print() 
-  
+
 ```
-
-
-
-
-can remove this after, want to see if I can make a PCA
-IDK about this
-
-```{r}
-# Standardize your data
-df <- scale(RF_depth_analysis)
-
-# Run PCA
-pca_result <- prcomp(df, center = TRUE, scale. = TRUE)
-
-# Summary of PCA
-summary(pca_result)
-
-# Increase plot size and decrease font size
-par(cex = 0.7, mar = c(5, 4, 2, 2))  # cex = font size, mar = margins
-
-# Scree plot
-plot(pca_result, main = "Scree Plot", cex.main = 0.9)
-
-# Save as PNG
-png(here("Figs", "pca_biplot.png"), width = 1200, height = 1000, res = 150)
-
-# Set smaller font size
-par(cex = 0.6)
-
-# Plot
-biplot(pca_result, main = "PCA Biplot")
-
-# Close the graphics device
-dev.off()
-
-library(factoextra)
-
-# Nice plot with auto-labeled axes
-fviz_pca_biplot(pca_result,
-                label = "var",     # show variable names only
-                addEllipses = TRUE,
-                repel = TRUE)
-```
-
-
 
 Grid search. We do not have enough data to split into training and test set. 
 ```{r}
@@ -146,9 +103,9 @@ for (tree_num in c(100, 200, 300, 500)) {
         importance = TRUE
       )
       
-preds <- predict(model_rf, RF_depth_analysis)
-obs <- RF_depth_analysis$DCM_depth
-rsq_test <- 1 - sum((obs - preds)^2) / sum((obs - mean(obs))^2)
+      preds <- predict(model_rf, RF_depth_analysis)
+      obs <- RF_depth_analysis$DCM_depth
+      rsq_test <- 1 - sum((obs - preds)^2) / sum((obs - mean(obs))^2)
       mse_test <- mean(model_rf$mse)
       
       # Store results
@@ -175,18 +132,19 @@ depth_RF_tuning_scores <- depth_RF_tuning_scores |>
 print(depth_RF_tuning_scores)
 
 #this gives the best score
+
 ```  
 
 Now to run the actual model
 ```{r}
 
 test_model_rf <- randomForest(DCM_depth ~ .,
-                                data = RF_depth_analysis,
-                                ntree = 500,
-                                node_size = 6,
-                                mtry = 20,
-                                importance = TRUE)
-  
+                              data = RF_depth_analysis,
+                              ntree = 100,
+                              node_size = 2,
+                              mtry = 10,
+                              importance = TRUE)
+
 importance(test_model_rf)
 ```
 
@@ -194,7 +152,7 @@ Prep to visualize
 ```{r}
 importance_df <- as.data.frame(importance(test_model_rf))
 importance_df <- rownames_to_column(importance_df, var = "Variable") # Convert row names to a column
-  
+
 filtered_importance_df <- importance_df %>%
   filter(!is.na(`%IncMSE`), `%IncMSE` > 0)# Filter for valid and positive %IncMSE
 
@@ -207,62 +165,62 @@ visualize
 ```{r}
 # Create the plot
 ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
-    geom_point(color = "blue", size = 3) +
-    labs(
-      title = "Variable Importance based on % IncMSE 2014-2023",
-      x = "% IncMSE",
-      y = "Variables"
-    ) +
-    theme_minimal()
+  geom_point(color = "blue", size = 3) +
+  labs(
+    title = "Variable Importance based on % IncMSE 2023",
+    x = "% IncMSE",
+    y = "Variables"
+  ) +
+  theme_minimal()
 ```
 
 #SHAP
 SHAP: SHAP values (SHapley Additive exPlanations) are a way to explain machine learning model predictions by showing how much each feature contributes to a particular prediction.
 ```{r}
-  library(fastshap)
-  X = data.matrix(select(RF_depth_analysis, -DCM_depth))
+library(fastshap)
+X = data.matrix(select(RF_depth_analysis, -DCM_depth))
 
-  shap_values = fastshap::explain(test_model_rf, X=X, nsim=100, pred_wrapper=function(x,newdata){predict(x,newdata)})
-  dim(shap_values)
-  head(shap_values)
-  
-  preds = predict(test_model_rf, X)
-  base_value = mean(preds)
-  base_value
-  cat(
-    "shap+base_value:\t",sum(shap_values[1,]) + base_value,
-    "\n     prediction:\t", preds[1]
+shap_values = fastshap::explain(test_model_rf, X=X, nsim=100, pred_wrapper=function(x,newdata){predict(x,newdata)})
+dim(shap_values)
+head(shap_values)
+
+preds = predict(test_model_rf, X)
+base_value = mean(preds)
+base_value
+cat(
+  "shap+base_value:\t",sum(shap_values[1,]) + base_value,
+  "\n     prediction:\t", preds[1]
+)
+
+as_tibble(X) %>% rownames_to_column('row_id') %>%
+  pivot_longer(names_to='var', values_to='value', -row_id) -> vars
+as_tibble(shap_values) %>% rownames_to_column('row_id') %>%
+  pivot_longer(names_to='var', values_to='shap', -row_id) -> shaps
+df = inner_join(vars, shaps, by=c('row_id', 'var'))
+head(df)
+
+# Check structure of relevant columns
+str(df)
+
+# Optional: Convert to atomic vectors just in case
+df <- df %>%
+  mutate(
+    shap = as.numeric(shap),
+    value = as.character(value),  # or as.numeric if needed
+    var = as.character(var)
   )
 
-  as_tibble(X) %>% rownames_to_column('row_id') %>%
-    pivot_longer(names_to='var', values_to='value', -row_id) -> vars
-  as_tibble(shap_values) %>% rownames_to_column('row_id') %>%
-    pivot_longer(names_to='var', values_to='shap', -row_id) -> shaps
-  df = inner_join(vars, shaps, by=c('row_id', 'var'))
-  head(df)
-  
-  # Check structure of relevant columns
-  str(df)
-  
-  # Optional: Convert to atomic vectors just in case
-  df <- df %>%
-    mutate(
-      shap = as.numeric(shap),
-      value = as.character(value),  # or as.numeric if needed
-      var = as.character(var)
-    )
-  
-  # Now run plot
-  df %>%
-    filter(row_id == 1) %>%
-    ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
-    geom_col() +
-    guides(fill = 'none') +
-    labs(y = "", title = "SHAP values for X[1,]")
-  
+# Now run plot
+df %>%
+  filter(row_id == 1) %>%
+  ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
+  geom_col() +
+  guides(fill = 'none') +
+  labs(y = "", title = "SHAP values for X[1,]")
+
 
 library(ggbeeswarm)
-  df %>%
+df %>%
   mutate(value = as.numeric(value)) %>%
   group_by(var) %>%
   mutate(nv = scale(value)) %>%
@@ -270,32 +228,31 @@ library(ggbeeswarm)
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
   scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
   labs(
-    title = 'Distribution of SHAP values for all samples 2014-2024',
+    title = 'Distribution of SHAP values for all samples 2023',
     y = '',
     color = 'z-scaled values'
   )
-    group_by(df, var) %>% 
-    summarize(mean=mean(abs(shap))) %>%
-    ggplot(aes(x=mean, y=fct_reorder(var, mean))) + 
-    geom_col() +
-    labs(x='mean(|shap value|)', title='mean absolute shap for all samples', y="")
-  
-  group_by(df, var, sign=factor(sign(shap))) %>%
-    summarize(mean=mean(shap)) %>%
-    ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
-    geom_col() +
-    labs(x='mean(shap value)', title='mean shap for all samples 2014-2023', y="")
+group_by(df, var) %>% 
+  summarize(mean=mean(abs(shap))) %>%
+  ggplot(aes(x=mean, y=fct_reorder(var, mean))) + 
+  geom_col() +
+  labs(x='mean(|shap value|)', title='mean absolute shap for all samples', y="")
+
+group_by(df, var, sign=factor(sign(shap))) %>%
+  summarize(mean=mean(shap)) %>%
+  ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
+  geom_col() +
+  labs(x='mean(shap value)', title='mean shap for all samples 2023-2023', y="")
 ```
 
-now to look at specific variables and their values
-```{r}
+
 library(ggplot2)
 library(dplyr)
 library(scales)
 library(here)
 
 # Define the list of variables
-vars_to_plot <- c('PZ', 'WaterLevel_m', 'thermocline_depth', 'schmidt_stability', 'depth_TFe_mgL_min', 'WindSpeed_Weekly_Average_m_s_lagged')
+vars_to_plot <- c('PZ', 'WaterLevel_m', 'thermocline_depth', 'schmidt_stability', 'depth_TFe_mgL_min')
 
 # Loop and save each plot
 for (v in vars_to_plot) {
@@ -316,7 +273,7 @@ for (v in vars_to_plot) {
   
   # Print inline for RMarkdown rendering
   print(p)
-
+  
   # Save to file
   ggsave(
     filename = here::here("Figs/xai_plots", paste0("shap_", v, ".png")),
@@ -326,4 +283,3 @@ for (v in vars_to_plot) {
     dpi = 300
   )
 }
-```
