@@ -7,30 +7,35 @@
 #this script is messy, old, and incorrect but I am keeping it here, because 
 #I want to refer to it when I make a new correlation matrix
 
-#final dataframe----
-Final_RF_frame <- RF_frame_msltbc |>
-  mutate(Date = coalesce(Date.x, Date.y))|>
-  select(-Date.x, -Date.y, -Secchi_m, -sec_K_d)|>
-  relocate(Date, .before = "Year")|>
-  rename(buoyancy_freq = N_at_DCM)
+# 
+full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
+
+#print(colnames(full_weekly_data_clean))
+depth_analysis <- full_weekly_data |>
+  select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
+         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week, -Date.x)
+
+magnitude_analysis <- full_weekly_data|>
+  select(-starts_with("depth_"), -Week, -totals_mean, -totals_med, -Date.x)
 
 #####correlation function----
 
+#for depth analysis
 correlations <- function(year1, year2) {
-  DCM_final_cor <- Final_RF_frame |>
+  DCM_final_cor <- depth_analysis |>
     filter(year(Date) >= {{year1}}, year(Date) <= {{year2}}) |>
-    filter(month(Date) > 4, month(Date) < 10) |>
-    filter(max_conc > 20)
+    filter(month(Date) > 4, month(Date) < 10)
   
-  drivers_cor <- cor(DCM_final_cor[,c(4:65)],
+  drivers_cor <- cor(DCM_final_cor[,c(2:37)],
                      method = "spearman", use = "pairwise.complete.obs")
  
   list(drivers_cor = drivers_cor, DCM_final_cor = DCM_final_cor)
 
 }
 
-#cutoff 0.7
-results <- correlations(2014, 2024)
+# correlation for all years for depth analysis
+
+{results <- correlations(2014, 2023)
 final_data_cor_results <- results$drivers_cor
 final_data_cor_results[lower.tri(final_data_cor_results)] = ""
 final_data_cor <- results$DCM_final_cor
@@ -46,7 +51,7 @@ final_data_cor_long <- as.data.frame(as.table(final_data_cor_results)) |>
 final_data_cor_long$Freq <- as.numeric(as.character(final_data_cor_long$Freq))
 
 significant_correlations <- final_data_cor_long |> # Filter correlations based on the cutoff of 0.65
-  filter(abs(Freq) >= 0.65) |>  # Apply cutoff for correlation
+  filter(abs(Freq) >= 0.5) |>  # Apply cutoff for correlation
   arrange(desc(abs(Freq)))# Sort by absolute correlation values
 
 colnames(significant_correlations) <- c("Variable1", "Variable2", "Correlation") # Rename columns for clarity
@@ -68,6 +73,114 @@ ggplot(significant_correlations, aes(x = Correlation, y = reorder(Combined, Corr
   theme_minimal() +  # Use a minimal theme
   theme(axis.text.y = element_text(size = 10),  # Adjust y-axis text size
         plot.title = element_text(hjust = 0.5))  # Center the title
+}
+
+####DEPTH ANALYSIS CORRELATIONS AMDIST VARIABLES####
+
+correlations <- function(year1, year2, cutoff = 0.6) {
+  # Filter your data
+  DCM_final_cor <- depth_analysis |>
+    filter(year(Date) >= year1, year(Date) <= year2) |>
+    filter(month(Date) > 4, month(Date) < 10)
+  
+  # Keep only numeric columns
+  numeric_data <- DCM_final_cor[, sapply(DCM_final_cor, is.numeric)]
+  
+  # Calculate Spearman correlation
+  cor_matrix <- cor(numeric_data, method = "spearman", use = "pairwise.complete.obs")
+  
+  # Remove redundant pairs (lower triangle and diagonal)
+  cor_matrix[lower.tri(cor_matrix, diag = TRUE)] <- NA
+  
+  # Convert to long format
+  cor_long <- as.data.frame(as.table(cor_matrix)) |>
+    filter(!is.na(Freq)) |>              # Remove NAs from lower triangle and diag
+    filter(abs(Freq) >= cutoff) |>       # Apply correlation cutoff
+    arrange(desc(abs(Freq)))             # Sort by correlation magnitude
+  
+  # Rename columns
+  colnames(cor_long) <- c("Variable1", "Variable2", "Correlation")
+  
+  return(cor_long)
+}
+
+# Run the function
+significant_correlations <- correlations(2014, 2023, cutoff = 0.6)
+
+# View or export the result
+print(significant_correlations)
+# write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
+
+# Optional: visualize with a barplot of top pairs
+ggplot(significant_correlations, aes(x = Correlation, y = reorder(paste(Variable1, "vs", Variable2), Correlation))) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  geom_text(aes(label = round(Correlation, 2)),
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 3.5) +
+  labs(title = "Highly Correlated Variable Pairs (|r| ≥ 0.6), 2014–2023",
+       x = "Spearman Correlation",
+       y = "Variable Pair") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 9),
+        plot.title = element_text(hjust = 0.5))
+
+####MAGNITUDE ANALYSIS CORRELATIONS AMIDST VARIABLES####
+
+correlations <- function(year1, year2, cutoff = 0.6) {
+  # Filter your data
+  DCM_final_cor <- magnitude_analysis |>
+    filter(year(Date) >= year1, year(Date) <= year2) |>
+    filter(month(Date) > 4, month(Date) < 10)
+  
+  # Keep only numeric columns
+  numeric_data <- DCM_final_cor[, sapply(DCM_final_cor, is.numeric)]
+  
+  # Calculate Spearman correlation
+  cor_matrix <- cor(numeric_data, method = "spearman", use = "pairwise.complete.obs")
+  
+  # Remove redundant pairs (lower triangle and diagonal)
+  cor_matrix[lower.tri(cor_matrix, diag = TRUE)] <- NA
+  
+  # Convert to long format
+  cor_long <- as.data.frame(as.table(cor_matrix)) |>
+    filter(!is.na(Freq)) |>              # Remove NAs from lower triangle and diag
+    filter(abs(Freq) >= cutoff) |>       # Apply correlation cutoff
+    arrange(desc(abs(Freq)))             # Sort by correlation magnitude
+  
+  # Rename columns
+  colnames(cor_long) <- c("Variable1", "Variable2", "Correlation")
+  
+  return(cor_long)
+}
+
+# Run the function
+significant_correlations <- correlations(2014, 2023, cutoff = 0.6)
+
+# View or export the result
+print(significant_correlations)
+# write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
+
+# Optional: visualize with a barplot of top pairs
+ggplot(significant_correlations, aes(x = Correlation, y = reorder(paste(Variable1, "vs", Variable2), Correlation))) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  geom_text(aes(label = round(Correlation, 2)),
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 3.5) +
+  labs(title = "Highly Correlated Variable Pairs (|r| ≥ 0.6), 2014–2023",
+       x = "Spearman Correlation",
+       y = "Variable Pair") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 9),
+        plot.title = element_text(hjust = 0.5))
+
+
+
+
+
+
+
+
+
 
 #####correlations across years,max day each year####
 

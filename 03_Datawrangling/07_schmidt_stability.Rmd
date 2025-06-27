@@ -29,8 +29,7 @@ weekly_temp_profiles <- temp_depths_cleaned |>
   group_by(Date, RoundedDepth) |>
   slice_min(abs(Depth_m - RoundedDepth), with_ties = FALSE) |>  # Select depth closest to that rounded meter
   ungroup()|>
-  left_join(water_level, by = c("Week", "Year"))|>
-  select(-buoyancy_freq)
+  left_join(water_level, by = c("Week", "Year"))
 ```
 
 Need to make correction for different water levels and bathymetry.
@@ -57,6 +56,7 @@ Lower Schmidt stability → less energy needed → weaker or no stratification
 ```{r}
 schmidt_frame <- new_bath|>
   group_by(Date)|>
+  filter(!is.na(Temp_C))|>
   mutate(schmidt_stability = schmidt.stability(Temp_C, Depth_m, SA_m2, Depth_m))|>
   ungroup()|>
   group_by(Year, Week)|>

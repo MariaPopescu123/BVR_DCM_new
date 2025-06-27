@@ -58,6 +58,18 @@ RF_magnitude_analysis <- final_data_no_na %>%
   na.omit()
 
 write.csv(RF_magnitude_analysis, here("CSVs", "RF_magnitude_analysis.csv"), row.names = FALSE)
+
+#see how much is actualyl going in
+test<-magnitude_analysis |>
+    select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
+
+RF_frame_w_dates <- test %>%
+  na.omit()
+ 
+RF_frame_w_dates %>%
+  count(year(Date)) %>%
+  print() 
+  
 ```
 
 can remove this after, want to see if I can make a PCA
@@ -125,9 +137,11 @@ for (tree_num in c(100, 200, 300, 500)) {
         importance = TRUE
       )
       
-      rsq_test <- mean(model_rf$rsq)
-      mse_test <- mean(model_rf$mse)
-      
+preds <- predict(model_rf, RF_magnitude_analysis)
+obs <- RF_magnitude_analysis$max_conc
+rsq_test <- 1 - sum((obs - preds)^2) / sum((obs - mean(obs))^2)
+mse_test <- mean(model_rf$mse)
+    
       # Store results
       results[[i]] <- data.frame(
         Trees = tree_num,
@@ -159,8 +173,8 @@ Now to run the actual model
 
 test_model_rf <- randomForest(max_conc ~ .,
                                 data = RF_magnitude_analysis,
-                                ntree = 500,
-                                node_size = 6,
+                                ntree = 200,
+                                node_size = 2,
                                 mtry = 20,
                                 importance = TRUE)
   
@@ -247,7 +261,7 @@ library(ggbeeswarm)
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
   scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
   labs(
-    title = 'Distribution of SHAP values for all samples 2014-2024',
+    title = 'Distribution of SHAP values for all samples 2014-2023',
     y = '',
     color = 'z-scaled values'
   )

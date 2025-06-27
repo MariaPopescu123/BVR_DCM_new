@@ -147,6 +147,8 @@ temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Dep
   filter(Depth_m > 0.09)|>
   select(-Temp_C.y, -Temp_C.x)
 
+data_availability(temp_depths_coalesced, variables)
+
 #variables <- ("Temp_C")
 #temp_depths_coalesced_summarised <- weekly_sum_variables(temp_depths_coalesced, variables)
 
@@ -173,11 +175,14 @@ temp_depths_interp <- interpolate_variable(temp_depths_cleaned, variables)
 #2021-08-04 
 #2021-08-11
 #2021-08-18
+#2022 waterlevel
 
 temp_depths_cleaned <- temp_depths_interp|> #remove the weirdos
   filter(!(Date == as.Date("2021-08-04") & Depth_m > 9 & Depth_m <= 10))|>
   filter(!(Date == as.Date("2021-08-11") & Depth_m > 9 & Depth_m <= 10))|>
-  filter(!(Date == as.Date("2021-08-18") & Depth_m > 9 & Depth_m <= 10))
+  filter(!(Date == as.Date("2021-08-18") & Depth_m > 9 & Depth_m <= 10))|>
+  filter(!(Date >= as.Date("2022-07-06") & Date <= as.Date("2022-12-14") & Depth_m >= 7.5))
+
  
  
 looking <- temp_depths_cleaned|>
@@ -346,3 +351,4 @@ final_photic_thermo <- photic_zone_frame|>
   select(-WaterLevel_m)
 
 write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
+
