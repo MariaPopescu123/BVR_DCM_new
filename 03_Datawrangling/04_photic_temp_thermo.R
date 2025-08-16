@@ -130,7 +130,7 @@ data_availability(CTDfiltered, variables)
 
 CTDtemp<- CTDfiltered|>
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2014, 2015, 2016, 2019, 2022, 2023, 2024))|> #remove flags
+  filter(Year %in% c(2014, 2015, 2016, 2019, 2021, 2022, 2023, 2024))|> #remove flags
   select(Date, Year, Week, Temp_C, Depth_m)
 
 ysitemp<- ysi%>%
