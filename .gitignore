@@ -21,3 +21,5 @@ ysi_profiles.csv
 *.csv
 phytos_for_heatmaps
 *.RDataTmp2
+*.RDataTmp
+*.Rproj.user/
