@@ -11,10 +11,7 @@ before running this script first run
 03_Datawrangling: then go through all the files within chronologically
 then you can run this script
 
-1. prep data for RandomForest
-2. tune model for RandomForest
-3. run Random Forest
-4. visualize SHAP values
+1. now we have determined what the most important drivers are from the Depth_analysis.Rmd. Water level and photic zone are the most important drivers, I will use 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -39,7 +36,7 @@ full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
 depth_analysis <- full_weekly_data |>
   #select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
    #      -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)|>
-  select(Date, DCM_depth, PZ, WaterLevel_m, depth_TFe_mgL_min, depth_TFe_mgL_max, schmidt_stability, avg_airtemp_lagged, Precip_avg_lagged, PAR_umolm2s_Weekly_Avg_lagged, depth_np_ratio_min)
+  select(Date, DCM_depth, PZ, WaterLevel_m)
 ```
 
 Split into training and testing
@@ -58,46 +55,71 @@ train_index <- 1:floor(0.7 * nrow(RF_depth_analysis))
 train_data <- RF_depth_analysis[train_index, ]
 test_data  <- RF_depth_analysis[-train_index, ]
 ```
-
-
-
-Tidy up the frame for depth analysis
+tidy up so we don't have NAs for train data or test data while keeping the columns the same
 ```{r}
-# Remove non-numeric columns (excluding Date, Depth_m, Year, etc.)
-non_numeric_columns <- sapply(depth_analysis, function(x) !is.numeric(x) & !is.factor(x))
-final_no_non_numeric <- depth_analysis |>
-  select(-which(non_numeric_columns)) 
-
-# Replace Inf and NaN with NA in all numeric columns
-final_no_non_numeric <- final_no_non_numeric %>%
-  mutate(across(where(is.numeric), ~ ifelse(is.infinite(.) | is.nan(.), NA, .)))
-
-# Remove columns with more than 75% NA values
-final_data_no_na <- final_no_non_numeric %>%
-  select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
-
-# Remove remaining rows with any NA values
-RF_depth_analysis <- final_data_no_na %>%
+# --- Clean train_data ---
+train_data <- train_data %>%
+  select(where(is.numeric)) %>%   # keep only numeric predictors + target
+  mutate(across(everything(), ~ ifelse(is.infinite(.) | is.nan(.), NA, .))) %>%
+  select(where(~ mean(is.na(.)) <= 0.25)) %>%
   na.omit()
 
-write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
-```
+# --- Clean test_data using same columns as train_data ---
+test_dates <- test_data$Date
+test_obs   <- test_data$DCM_depth
 
-
-check to see how much is actually going into the analysis
-```{r}
-test<-depth_analysis |>
-    select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
-
-RF_frame_w_dates <- test %>%
+test_data_clean <- test_data %>%
+  select(all_of(colnames(train_data))) %>%
   na.omit()
- 
-RF_frame_w_dates %>%
-  count(year(Date)) %>%
-  print() 
-  
 ```
+time-series CV
+```{r}
+control <- trainControl(method = "timeslice",
+                        initialWindow = floor(0.7 * nrow(train_data)),
+                        horizon = floor(0.3 * nrow(train_data)),
+                        fixedWindow = TRUE,
+                        savePredictions = "final")
 
+tune_grid <- expand.grid(mtry = c(3, 6, 9, 12))
 
+rf_caret <- train(
+  DCM_depth ~ .,
+  data = train_data,
+  method = "rf",
+  metric = "RMSE",
+  trControl = control,
+  tuneGrid = tune_grid,
+  ntree = 500
+)
 
+print(rf_caret)
+```
+```{r}
+# Predict on test set
+preds <- predict(rf_caret$finalModel, newdata = test_data)
+
+# Use variability across trees to estimate uncertainty
+all_tree_preds <- predict(rf_caret$finalModel, newdata = test_data, predict.all = TRUE)
+pred_matrix <- all_tree_preds$individual
+pred_mean <- rowMeans(pred_matrix)
+pred_sd   <- apply(pred_matrix, 1, sd)
+
+plot_df <- data.frame(
+  Date = test_data$Date,
+  Observed = test_data$DCM_depth,
+  Predicted = pred_mean,
+  Lower = pred_mean - 1.96 * pred_sd,
+  Upper = pred_mean + 1.96 * pred_sd
+)
+
+library(ggplot2)
+ggplot(plot_df, aes(x = Date)) +
+  geom_line(aes(y = Observed, color = "Observed"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1, linetype = "dashed") +
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), fill = "blue", alpha = 0.2) +
+  labs(title = "Random Forest Forecast with Uncertainty",
+       y = "DCM Depth",
+       color = "") +
+  theme_minimal()
+```
 
