@@ -37,8 +37,9 @@ full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
 
 #print(colnames(full_weekly_data_clean))
 depth_analysis <- full_weekly_data |>
-  select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
-         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)
+  #select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
+   #      -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)|>
+  select(Date, DCM_depth, PZ, WaterLevel_m, depth_TFe_mgL_min, depth_TFe_mgL_max, schmidt_stability, avg_airtemp_lagged, Precip_avg_lagged, PAR_umolm2s_Weekly_Avg_lagged, depth_np_ratio_min)
 ```
 
 Tidy up the frame for depth analysis
@@ -182,9 +183,9 @@ Now to run the actual model
 
 test_model_rf <- randomForest(DCM_depth ~ .,
                                 data = RF_depth_analysis,
-                                ntree = 500,
-                                node_size = 6,
-                                mtry = 20,
+                                ntree = 100,
+                                node_size = 2,
+                                mtry = 6,
                                 importance = TRUE)
   
 importance(test_model_rf)
@@ -204,87 +205,159 @@ mse_test<- mean((model_rf$mse))
 Need to at some point run VIF will come back to this
 
 visualize
-```{r}
-# Create the plot
-ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
-    geom_point(color = "blue", size = 3) +
-    labs(
-      title = "Variable Importance based on % IncMSE 2014-2023",
-      x = "% IncMSE",
-      y = "Variables"
-    ) +
-    theme_minimal()
+```{r save-plot, eval=TRUE}
+var_importance_depth_plot <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
+  geom_point(color = "blue", size = 3) +
+  labs(
+    title = "Variable Importance for Depth Prediction 2014–2023",
+    x = "% IncMSE",
+    y = "Variables"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05)), limits = c(0, NA)) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.title = element_text(size = 25, hjust = .5),  # Left-align title
+    plot.title.position = "plot",  # Positions the title relative to the entire plot area
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16),
+    plot.margin = margin(t = 10, r = 20, b = 10, l = 5)  # Reduce left margin if needed
+  )
+
+# Save to a relative directory
+ggsave("var_importance_depth_plot.png", plot = var_importance_depth_plot, width = 10, height = 4, dpi = 600)
+
+print(var_importance_depth_plot)
 ```
 
 #SHAP
 SHAP: SHAP values (SHapley Additive exPlanations) are a way to explain machine learning model predictions by showing how much each feature contributes to a particular prediction.
 ```{r}
-  library(fastshap)
-  X = data.matrix(select(RF_depth_analysis, -DCM_depth))
+library(fastshap)
+library(tidyverse)
+library(ggbeeswarm)
+library(viridis)
+library(forcats)
 
-  shap_values = fastshap::explain(test_model_rf, X=X, nsim=100, pred_wrapper=function(x,newdata){predict(x,newdata)})
-  dim(shap_values)
-  head(shap_values)
-  
-  preds = predict(test_model_rf, X)
-  base_value = mean(preds)
-  base_value
-  cat(
-    "shap+base_value:\t",sum(shap_values[1,]) + base_value,
-    "\n     prediction:\t", preds[1]
+# Prepare X matrix for shap
+X <- data.matrix(select(RF_depth_analysis, -DCM_depth))
+
+# Calculate SHAP values
+shap_values <- fastshap::explain(
+  test_model_rf, X = X, nsim = 100,
+  pred_wrapper = function(x, newdata) predict(x, newdata)
+)
+
+# Predicted values and base value
+preds <- predict(test_model_rf, X)
+base_value <- mean(preds)
+
+cat("shap + base_value:\t", sum(shap_values[1,]) + base_value,
+    "\n     prediction:\t", preds[1], "\n")
+
+# Prepare tidy df with feature values and shap values
+vars <- as_tibble(X) %>%
+  rownames_to_column('row_id') %>%
+  pivot_longer(-row_id, names_to = 'var', values_to = 'value')
+
+shaps <- as_tibble(shap_values) %>%
+  rownames_to_column('row_id') %>%
+  pivot_longer(-row_id, names_to = 'var', values_to = 'shap')
+
+df <- inner_join(vars, shaps, by = c('row_id', 'var'))
+
+# Clean up types
+df <- df %>%
+  mutate(
+    shap = as.numeric(shap),
+    value = as.character(value),  # or as.numeric(value) if appropriate
+    var = as.character(var)
   )
 
-  as_tibble(X) %>% rownames_to_column('row_id') %>%
-    pivot_longer(names_to='var', values_to='value', -row_id) -> vars
-  as_tibble(shap_values) %>% rownames_to_column('row_id') %>%
-    pivot_longer(names_to='var', values_to='shap', -row_id) -> shaps
-  df = inner_join(vars, shaps, by=c('row_id', 'var'))
-  head(df)
-  
-  # Check structure of relevant columns
-  str(df)
-  
-  # Optional: Convert to atomic vectors just in case
-  df <- df %>%
-    mutate(
-      shap = as.numeric(shap),
-      value = as.character(value),  # or as.numeric if needed
-      var = as.character(var)
-    )
-  
-  # Now run plot
-  df %>%
-    filter(row_id == 1) %>%
-    ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
-    geom_col() +
-    guides(fill = 'none') +
-    labs(y = "", title = "SHAP values for X[1,]")
-  
+# Variable ordering for plots
+ordered_vars <- filtered_importance_df %>%
+  arrange(desc(`%IncMSE`)) %>%
+  pull(Variable) %>%
+  rev()
 
-library(ggbeeswarm)
-  df %>%
-  mutate(value = as.numeric(value)) %>%
+# Plot 0: SHAP values for row 1 (the one you liked the most)
+plot_shap_1 <- df %>%
+  filter(row_id == 1) %>%
+  ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
+  geom_col() +
+  guides(fill = 'none') +
+  labs(y = "", title = "SHAP values for X[1,]") +
+  theme_minimal(base_size = 16)
+
+# Plot 1: Distribution of SHAP values with z-scaled coloring
+plot_dist <- df %>%
+  filter(var %in% ordered_vars) %>%
+  mutate(
+    value = as.numeric(value),
+    var = factor(var, levels = ordered_vars)) %>%
   group_by(var) %>%
-  mutate(nv = scale(value)) %>%
+mutate(nv = scale(value))%>%
+  ungroup()%>%
   ggplot(aes(x = shap, y = var, color = nv)) +
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
   scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
   labs(
-    title = 'Distribution of SHAP values for all samples 2014-2024',
+    title = 'Distribution of SHAP values for Depth Prediction',
     y = '',
     color = 'z-scaled values'
+  ) +
+theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.title = element_text(size = 25, hjust = .5),  # Left-align title
+    plot.title.position = "plot",  # Positions the title relative to the entire plot area
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14),     # <-- Increase legend text size
+    legend.title = element_text(size = 16),
+    plot.margin = margin(t = 10, r = 20, b = 10, l = 5)  # Reduce left margin if needed
   )
-    group_by(df, var) %>% 
-    summarize(mean=mean(abs(shap))) %>%
-    ggplot(aes(x=mean, y=fct_reorder(var, mean))) + 
-    geom_col() +
-    labs(x='mean(|shap value|)', title='mean absolute shap for all samples', y="")
-  
-  group_by(df, var, sign=factor(sign(shap))) %>%
-    summarize(mean=mean(shap)) %>%
-    ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
-    geom_col() +
-    labs(x='mean(shap value)', title='mean shap for all samples 2014-2023', y="")
+# Plot 2: Mean absolute SHAP value
+# plot_mean_abs <- df %>%
+#   group_by(var) %>%
+#   summarize(mean = mean(abs(shap), na.rm = TRUE)) %>%
+#   ggplot(aes(x = mean, y = fct_reorder(var, mean))) +
+#   geom_col(fill = "steelblue") +
+#   labs(
+#     x = 'mean(|SHAP value|)',
+#     title = 'Mean absolute SHAP for all samples',
+#     y = ''
+#   ) +
+#   theme_minimal(base_size = 16)
+
+# # Plot 3: Mean SHAP by sign
+# plot_mean_sign <- df %>%
+#   group_by(var, sign = factor(sign(shap))) %>%
+#   summarize(mean = mean(shap, na.rm = TRUE)) %>%
+#   ggplot(aes(x = mean, y = fct_reorder(var, mean), fill = sign)) +
+#   geom_col() +
+#   scale_fill_manual(values = c("-1" = "red", "0" = "gray", "1" = "green")) +
+#   labs(
+#     x = 'mean(SHAP value)',
+#     title = 'Mean SHAP for all samples 2014–2023',
+#     y = '',
+#     fill = 'Sign'
+#   ) +
+#   theme_minimal(base_size = 16)
+
+# Now you can save plots separately like this:
+#dir.create("Figs", showWarnings = FALSE)
+
+#ggsave("shap_values_row1.png", plot_shap_1, width = 8, height = 4, dpi = 600, bg = "white")
+ggsave("depth_shap_distribution.png", plot_dist, width = 10, height = 4, dpi = 600, bg = "white")
+#ggsave("mean_abs_shap.png", plot_mean_abs, width = 10, height = 6, dpi = 600, bg = "white")
+#ggsave("mean_shap_by_sign.png", plot_mean_sign, width = 10, height = 6, dpi = 600, bg = "white")
+
+#print(plot_shap_1)
+print(plot_dist)
+#print(plot_mean_abs)
+#print(plot_mean_sign))
+
 ```
 
 now to look at specific variables and their values

@@ -100,20 +100,59 @@ water_level <- expanded_dates|>
   left_join(water_levelscoalesced, by = c("Year", "DOY"))|>
   filter(!is.na(WaterLevel_m))
 
-ggplot(water_level, aes(x = Date, y = WaterLevel_m)) +
-  geom_line(color = "#2C3E50", size = .8) +  # Use a sophisticated dark blue-gray color
-  theme_minimal(base_size = 14) +  # Increase base font size for readability
+final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")
+
+final_photic_thermo <- final_photic_thermo|>
+  mutate(Date = as.Date(Date))
+
+#plot both PZ and water level on the same one
+wtrlvl_photic <- ggplot(water_level, aes(x = Date, y = WaterLevel_m)) +
+  geom_line(color = "#2C3E50", size = .8) +  # Water level line
+  geom_line(data = final_photic_thermo,
+            aes(x = Date, y = PZ, group = Year),
+            color = "green", size = 0.8) +  # PZ line, broken by year
+  scale_y_reverse() +  # Invert y-axis
+  theme_minimal(base_size = 14) +
   theme(
-    panel.grid.major = element_line(color = "gray80", size = 0.3),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines for a cleaner look
-    axis.title = element_text(face = "bold"),  # Bold axis titles
-    axis.text = element_text(color = "black"),  # Dark axis text for contrast
-    plot.title = element_text(face = "bold", size = 16, hjust = 0.5)  # Centered bold title
+    panel.grid.major = element_line(color = "gray80", size = 0.3),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5)
   ) +
   labs(
-    title = "Water Level Over Time",
+    title = "Water Level and Photic Zone (PZ) Over Time",
     x = "Date",
-    y = "Water Level (m)"
+    y = "Water Level and Photic Zone (m)"
   )
+
+ggsave("Figs/water_level_photic_zone.png", wtrlvl_photic, width = 10, height = 4, dpi = 600, bg = "white")
+
+wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
+  geom_line(size = 1) +  # Optional: connect points by year
+  labs(
+    title = "Water Level 2014-2023",
+    x = "Week of Year",
+    y = "Water Level (m)",
+    color = "Year"
+  ) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.title = element_text(size = 25, hjust = .5),  # Left-align title
+    plot.title.position = "plot",  # Positions the title relative to the entire plot area
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 20),
+    legend.text = element_text(size = 18),     # <-- Increase legend text size
+    legend.title = element_text(size = 18),
+    axis.line = element_line(color = "black"),  # both x and y axes
+  )
+
+print(wtrlvl_by_year)
+
+
+ggsave("Figs/WaterLevel_colored_by_year.png", wtrlvl_by_year, width = 8, height = 5, dpi = 600, bg = "white")
+
+
 
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)

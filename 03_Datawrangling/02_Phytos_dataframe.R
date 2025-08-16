@@ -412,3 +412,6 @@ write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #var_min_val
 #var_mean
 #var_range (max-main)
+
+
+####visualize casts raw for specific date####
