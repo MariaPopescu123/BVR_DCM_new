@@ -5,6 +5,9 @@
 options(timeout = 300)
 metdata <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/389/8/d4c74bbb3b86ea293e5c52136347fbb0")
 
+#met data for 2013->
+
+
 # Visualizing metdata####
 metdata0 <- metdata|>
  mutate(Date = as_date(DateTime))|>
