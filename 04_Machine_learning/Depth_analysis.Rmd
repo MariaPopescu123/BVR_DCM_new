@@ -61,16 +61,16 @@ final_data_no_na <- final_no_non_numeric %>%
 RF_depth_analysis <- final_data_no_na %>%
   na.omit()
 
-write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
+#write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
 ```
 
 
 check to see how much is actually going into the analysis
 ```{r}
-test<-depth_analysis |>
+check<-depth_analysis |>
     select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
 
-RF_frame_w_dates <- test %>%
+RF_frame_w_dates <- check %>%
   na.omit()
  
 RF_frame_w_dates %>%
@@ -78,51 +78,6 @@ RF_frame_w_dates %>%
   print() 
   
 ```
-
-
-
-
-can remove this after, want to see if I can make a PCA
-IDK about this
-
-```{r}
-# Standardize your data
-df <- scale(RF_depth_analysis)
-
-# Run PCA
-pca_result <- prcomp(df, center = TRUE, scale. = TRUE)
-
-# Summary of PCA
-summary(pca_result)
-
-# Increase plot size and decrease font size
-par(cex = 0.7, mar = c(5, 4, 2, 2))  # cex = font size, mar = margins
-
-# Scree plot
-plot(pca_result, main = "Scree Plot", cex.main = 0.9)
-
-# Save as PNG
-png(here("Figs", "pca_biplot.png"), width = 1200, height = 1000, res = 150)
-
-# Set smaller font size
-par(cex = 0.6)
-
-# Plot
-biplot(pca_result, main = "PCA Biplot")
-
-# Close the graphics device
-dev.off()
-
-library(factoextra)
-
-# Nice plot with auto-labeled axes
-fviz_pca_biplot(pca_result,
-                label = "var",     # show variable names only
-                addEllipses = TRUE,
-                repel = TRUE)
-```
-
-
 
 Grid search. We do not have enough data to split into training and test set. 
 ```{r}
@@ -136,7 +91,7 @@ i <- 1
 
 for (tree_num in c(100, 200, 300, 500)) {
   for (node_size in c(2, 4, 6, 8)) {
-    for (mt in c(3, 6, 9, 10, 20)) {
+    for (mt in c(3,4,5,6,7,8,9)) {
       
       model_rf <- randomForest(
         DCM_depth ~ ., 
@@ -181,13 +136,18 @@ print(depth_RF_tuning_scores)
 Now to run the actual model
 ```{r}
 
-test_model_rf <- randomForest(DCM_depth ~ .,
-                                data = RF_depth_analysis,
-                                ntree = 100,
-                                node_size = 2,
-                                mtry = 6,
-                                importance = TRUE)
-  
+best_params <- depth_RF_tuning_scores[1, ]
+test_model_rf <- randomForest(
+  DCM_depth ~ .,
+  data = RF_depth_analysis,
+  ntree = best_params$Trees,
+  nodesize = best_params$Node.size, 
+  mtry = best_params$mtry,
+  importance = TRUE
+)
+library(randomForest)
+detach("package:ranger", unload=TRUE)  
+# Now this will work
 importance(test_model_rf)
 ```
 
