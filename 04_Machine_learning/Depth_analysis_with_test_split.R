@@ -54,6 +54,18 @@ test_data  <- RF_depth_analysis[-train_index, ]
 train_model_data <- train_data
 test_model_data  <- test_data
 
+#---------------------------------
+#subsampling the training data
+#---------------------------------
+#this actually won't work because the thing I am trying to predict has to be categorical. 
+#trainup <- upSample(x = train_model_data[,-ncol(train_model_data)],
+#                     y = train_model_data$DCM_depth)
+
+# Install smotefamily from CRAN
+install.packages("smotefamily")
+library(smotefamily)
+
+
 # -------------------------------
 # 3. Grid search / tuning on training set
 # -------------------------------

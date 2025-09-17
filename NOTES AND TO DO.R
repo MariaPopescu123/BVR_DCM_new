@@ -21,8 +21,7 @@ Use less nutrient data and more met data
 # Inflow discharge (log)	Inflow	m3 s−1	4.4–7.8	5.9 ± 0.6
 # Outflow discharge (log)	Outflow	m3 s−1	1.0–7.3	6.0 ± 0.7
 # Discharge difference (log)	Q.Diff	m3 s−1	−1.1–3.8	−0.1 ± 0.5
-The flow discharge data were all on a logarithmic scale to reduce
-the variance of raw data for facilitating modeling.
+cannot do this. we do not have the data
 
 #meteorological
 #sunshine duration (Sun.0, Sun.3, Sun. 7, Sun.14, Sun.30) the day of, 3 days prior, etc. 
@@ -31,6 +30,8 @@ the variance of raw data for facilitating modeling.
 #update data to include 2024 data
 
 #fix the way the nutrients are input (total nitrogen vs. total phosphorus)
+
+chlorophyll as a predictor
 
 categorical variables
 

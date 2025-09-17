@@ -27,6 +27,11 @@ library(missForest)
 library(caret)
 library(future)
 library(here)
+
+pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
+               gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
+               reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes, splines)
+
 ```
 
 This data frame has predictor values for DCM depth as well as DCM magnitude. 
@@ -36,10 +41,11 @@ Need to split these up for two different analysis
 full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
 
 #print(colnames(full_weekly_data_clean))
-depth_analysis <- full_weekly_data |>
+depth_analysis <- full_weekly_data %>%
+  dplyr::select(Date, DCM_depth, PZ, WaterLevel_m, depth_TFe_mgL_min, depth_TFe_mgL_max, schmidt_stability, avg_airtemp_lagged, Precip_avg_lagged, PAR_umolm2s_Weekly_Avg_lagged, depth_np_ratio_min)
   #select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
    #      -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)|>
-  select(Date, DCM_depth, PZ, WaterLevel_m, depth_TFe_mgL_min, depth_TFe_mgL_max, schmidt_stability, avg_airtemp_lagged, Precip_avg_lagged, PAR_umolm2s_Weekly_Avg_lagged, depth_np_ratio_min)
+  
 ```
 
 Tidy up the frame for depth analysis
@@ -146,7 +152,7 @@ test_model_rf <- randomForest(
   importance = TRUE
 )
 library(randomForest)
-detach("package:ranger", unload=TRUE)  
+#detach("package:ranger", unload=TRUE)  
 # Now this will work
 importance(test_model_rf)
 ```
@@ -162,6 +168,7 @@ filtered_importance_df <- importance_df %>%
 rsq_test<- mean((model_rf$rsq))
 mse_test<- mean((model_rf$mse))
 ```  
+
 Need to at some point run VIF will come back to this
 
 visualize
