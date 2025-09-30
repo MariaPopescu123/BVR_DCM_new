@@ -1,6 +1,9 @@
 #Phytoplankton metrics and visualization
 #published 2025
-current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/9/f246b36c591a888cc70ebc87a5abbcb7")
+#current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/9/f246b36c591a888cc70ebc87a5abbcb7")
+
+#THIS IS IN STAGING RIGHT NOW: 
+current_df <- read.csv("https://pasta-s.lternet.edu/package/data/eml/edi/1304/1/f246b36c591a888cc70ebc87a5abbcb7")
 
 #published 2024
 #current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/8/0359840d24028e6522f8998bd41b544e")
@@ -12,6 +15,8 @@ phytos <- current_df %>%
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
   filter(!(CastID == 592))|> #filter out weird drop in 2017
   filter(!(CastID == 395))|> #weird drop in 2016
+  filter(!CastID %in% c(467, 814, 856, 920, 1149, 788)) |> #make sure to remove these for heatmaps too
+  #filter(!CastID == 793)|> #this was here because in the version that is currently published (9/30/2025) this cast is blank, but in the version that is in staging as of 9/30/2025, this cast is fixed 
   #filter(Flag_TotalConc_ugL != 2,Flag_TotalConc_ugL != 3)|> #2 is instrument malfunction and #3 is low transmission value
   mutate(Week = week(Date))|>
   mutate(Year = year(Date))|>
@@ -114,7 +119,7 @@ for (yr in years) {
 #casts to remove: 467, 814, 856, 920, 1149 
 
 DCM_metrics_filtered <- DCM_metrics |>
-  filter(!CastID %in% c(467, 814, 856, 920, 1149)) |>
+  filter(!CastID %in% c(467, 814, 856, 920, 1149, 788)) |> #make sure to remove these for heatmaps too
   mutate(CastID = case_when(
     CastID == 485 ~ 484,  # Change 485 to 484
     CastID == 492 ~ 493,  # Combine 492 and 493
@@ -396,7 +401,9 @@ boxplot_Data <- final_DCM_metrics |>
   filter(max_conc > 20) |>
   mutate(DayOfYear = yday(Date))|>
   filter(DayOfYear>133, DayOfYear<286) |>
-  mutate(Year = year(Date), Month = month(Date))
+  mutate(Year = year(Date), Month = month(Date))|>
+  group_by(Year, CastID)|>
+  summarise(max_conc = mean(max_conc))
 
 ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
   geom_boxplot() +
@@ -406,6 +413,15 @@ ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
   ylim(0, 385) +  # Set the y-axis limits, reversing the range
   labs(x = "Year", y = "Peak Magnitude", color = "totals ugL") +  # Label the legend
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(
+  filename = "Peak_Magnitidues_2014_2024_boxplot.png",
+  plot = last_plot(),
+  path = "Figs/Phytos_viz",
+  width = 10,   # width in inches
+  height = 5,   # height in inches
+  dpi = 300     # optional: high resolution
+)
 
 #For heatmaps go to "Extra Helpful Scripts/DCMBVRheatmaps"
 

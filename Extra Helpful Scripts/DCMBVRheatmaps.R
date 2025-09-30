@@ -163,7 +163,7 @@ print(p1)
   
   ####why is there a weird dip in 2018####
   phytos2018 <- phytos|>
-    filter(year(Date) == 2018, month(Date)>06, month(Date)<10)|>
+    filter(year(Date) == 2018, month(Date)>08, month(Date)<10)|>
     select(Reservoir, DateTime, CastID, Depth_m, TotalConc_ugL, Flag_TotalConc_ugL)
   
   write.csv(phytos2018, "CSVs/phytos2018.csv")
