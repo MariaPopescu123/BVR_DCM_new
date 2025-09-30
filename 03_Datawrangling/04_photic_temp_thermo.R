@@ -90,10 +90,11 @@ ysi_profiles <- ysi_profiles|>
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
 
 data_availability(ysi_profiles, variables)
+
 # Generate the plot
 #plot <- data_availability(ysi_profiles, variables)  
 # Save the plot with specific dimensions
-#ggsave("raw_ysi_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
+ggsave("Figs/Data_availability/raw_ysi_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
 
 #removing PAR, ORP, cond, and pH due to limited data availability
 #keeping temp because YSI has the most temp
@@ -122,7 +123,10 @@ CTDfiltered <- CTD |>
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", 
                "pH", "Temp_C")
-data_availability(CTDfiltered, variables)
+CTDdata <- data_availability(CTDfiltered, variables)
+
+ggsave("Figs/Data_availability/CTDdata_availability.png", plot = CTDdata, width = 20, height = 15, dpi = 300)
+
 
 #can't use many of the variables because not enough data for every year
 #can use Temp from CTD for 2014, 2015, 2016, 2019, 2022, 2023, and 2024
@@ -130,14 +134,13 @@ data_availability(CTDfiltered, variables)
 
 CTDtemp<- CTDfiltered|>
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2014, 2015, 2016, 2019, 2021, 2022, 2023, 2024))|> #remove flags
+  filter(Year %in% c(2014, 2015, 2016,2019,2021, 2022, 2023, 2024))|> #remove flags
   select(Date, Year, Week, Temp_C, Depth_m)
 
 ysitemp<- ysi%>%
   mutate(Year = year(Date), Week = week(Date))|>
   filter(Year %in% c(2017, 2018, 2020, 2021))|>
   select(Date, Year, Week, Temp_C, Depth_m)
-
 #coalesce 
 
 temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Depth_m", "Week"))|>
@@ -146,6 +149,23 @@ temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Dep
   ungroup()|>
   filter(Depth_m > 0.09)|>
   select(-Temp_C.y, -Temp_C.x)
+
+data_availability(temp_depths_coalesced, variables)
+
+####2019 fix####
+#the beginning of 2019 is missing from within the season so I am grabbing from ysi data
+#before 160
+ysitemp2019_clean <- ysi |>
+  mutate(Date = as_date(Date),
+         Year = year(Date),
+         Week = week(Date),
+         DOY = yday(Date)) |>
+  filter(Year == 2019, DOY < 170) |>
+  select(Date, Year, Week, Depth_m, Temp_C)
+
+# append into coalesced dataframe
+temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
+  arrange(Date, Depth_m)
 
 data_availability(temp_depths_coalesced, variables)
 
@@ -166,6 +186,9 @@ temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
   group_by(Date, Depth_m) |>
   summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop")|>
   mutate(Reservoir = "BVR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
+
+#join the first half of 2019 from ysi data to 
+
 
 variables <- c("Temp_C")
 

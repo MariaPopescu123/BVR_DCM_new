@@ -1,4 +1,9 @@
 #### metals  ####
+# metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
+#updated 2025
+metalsdf <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
+#removed flags for 68 as per Cece's advice
+
 metalsdf <- metalsdf|>
   mutate(Date = as.Date(DateTime))
 
