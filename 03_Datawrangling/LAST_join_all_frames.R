@@ -34,4 +34,6 @@ variables <- c("DCM_depth", "max_conc")
 final_phytos<- final_phytos|>
   mutate(Date = ymd(paste0(Year, "-01-01")) + weeks(Week - 1))
 phyto_availability <- data_availability(final_phytos, variables)
+print(phyto_availability)
 ggsave("Figs/Data_availability/phyto_availability.png", phyto_availability, width = 10, height = 12, dpi = 300)
+

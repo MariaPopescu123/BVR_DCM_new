@@ -3,7 +3,7 @@
 
 #need to load this in here
 
-
+#Updated to incude 2024
 #waterlevel data
 wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 
 

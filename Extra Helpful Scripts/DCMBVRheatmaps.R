@@ -148,20 +148,26 @@ print(p1)
   b8 <- flora_heatmap(fp_data = phytos, year = 2021, site = 50, z = "TotalConc_ugL", unitz = "ug/L", max_legend_value = max(phytos$TotalConc_ugL))
   b9 <- flora_heatmap(fp_data = phytos, year = 2022, site = 50, z = "TotalConc_ugL", unitz = "ug/L", max_legend_value = max(phytos$TotalConc_ugL))
   b10 <- flora_heatmap(fp_data = phytos, year = 2023, site = 50, z = "TotalConc_ugL", unitz = "ug/L", max_legend_value = max(phytos$TotalConc_ugL))
- 
   b11 <- flora_heatmap(fp_data = phytos, year = 2024, site = 50, z = "TotalConc_ugL", unitz = "ug/L", max_legend_value = max(phytos$TotalConc_ugL))
   
   
   phytos_maps <- plot_grid(
-    b1, b2, b3, b4, b5,
-    b6, b7, b8, b9, b10, 
+    b2, b3, b4, b5, b6, 
+    b7, b8, b9, b10, b11,
     ncol = 5
   )
   
   print(phytos_maps)
   
-  ggsave("Figs/heatmaps/BVR_totalphytos_heatmaps.png", phytos_maps, width = 20, height = 7, dpi = 300)
+  ggsave("Figs/Phytos_viz/BVR_totalphytos_heatmaps.png", phytos_maps, width = 20, height = 7, dpi = 300)
   
+  ####why is there a weird dip in 2018####
+  phytos2018 <- phytos|>
+    filter(year(Date) == 2018, month(Date)>06, month(Date)<10)|>
+    select(Reservoir, DateTime, CastID, Depth_m, TotalConc_ugL, Flag_TotalConc_ugL)
+  
+  write.csv(phytos2018, "CSVs/phytos2018.csv")
+
   #now to see what else is present in 2019 specifically
   p1 <- flora_heatmap(fp_data = phytos, year = 2019, site = 50, z = "TotalConc_ugL", unitz = "ug/L", max_legend_value = max(phytos$TotalConc_ugL))
   p2 <- flora_heatmap(fp_data = phytos, year = 2019, site = 50, z = "BrownAlgae_ugL", unitz = "ug/L", max_legend_value = max(phytos$TotalConc_ugL))

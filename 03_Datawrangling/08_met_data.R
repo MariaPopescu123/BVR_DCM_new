@@ -85,7 +85,7 @@ metplots <- function(yearz, variable, maxx = NULL){
 
 
 ####viz precip####
-years <- 2015:2023
+years <- 2015:2024
 precip_plots <- lapply(years, function(y) metplots(y, precip_weekly))
 precips <- do.call(plot_grid, c(precip_plots, ncol = 3))
 precips <- precips + theme(plot.background = element_rect(fill = "white", color = NA))

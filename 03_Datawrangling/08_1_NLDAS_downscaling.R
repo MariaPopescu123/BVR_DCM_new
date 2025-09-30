@@ -4,10 +4,13 @@
 
 #1 bring in EDI met data and summarise it for weekly averages
 #2 bring in NLDAS met data and summarise it for weekly averages
-#3 downscale NLDAS data to obtain the rest of 2015 values
-#4 join the full dataset together
-#5 create lagged variables
-#6 export the data as a csv for use in mmachine learning 
+#3 regression lm for NLDAS and EDI
+#4 Downscale
+#5 Merge full dataset
+#6 create lagged variables
+#7 visualize 2015 to check new data 
+#8 Plot all years
+#9 export the data as a csv for use in machine learning 
 
 pacman::p_load(tidyverse, lubridate, RColorBrewer, dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
@@ -17,9 +20,7 @@ pacman::p_load(tidyverse, lubridate, RColorBrewer, dplyr, tidyr, ggplot2, ggthem
 options(timeout = 300)
 EDImet <- read.csv( "https://pasta.lternet.edu/package/data/eml/edi/389/9/62647ecf8525cdfc069b8aaee14c0478")
 
-#summarise to get weekly values 
-##### Weekly values ####
-
+#Weekly values
 EDImet_0 <- EDImet |>
   mutate(Date = as_date(DateTime))|>
   mutate(Year = year(DateTime),
@@ -34,7 +35,7 @@ EDImet_0 <- EDImet |>
   )
 ####2 NLDAS met data####
 
-#Heather Wander generated data####
+#Heather Wander generated data
 #for full repository https://github.com/hlwander/interannual_zoops/tree/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89
 #heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
 #NLDAS <- read.csv(heathergeneratedNLDAS)
@@ -125,7 +126,7 @@ joined_data_2015 <- (p1 / p2 / p3) + plot_layout(heights = c(1,1,1))
 ggsave("Figs/metdata/joined_data_2015.png", joined_data_2015)
 
 
-####8. plot all years for each variable
+####8. Plot all years for each variable####
 # 1. Precipitation plot
 p1 <- ggplot(full_met, aes(x = Week, y = precip_weekly, color = factor(Year), group = Year)) +
   geom_line() +
@@ -148,7 +149,7 @@ combined_plot <- (p1 | p2) / (p3)
 print(combined_plot)
 ggsave("Figs/metdata/NLDAS.png", combined_plot, width = 12, height = 8, dpi = 300)
 
-####9. Visualize met variable availability####
+####9. Export as CSV####
 variables <- c("precip_weekly","weekly_airtempavg","WindSpeed_Weekly_Average_m_s")
 data_availability(full_met, variables)
 
