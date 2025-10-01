@@ -1,3 +1,6 @@
+#chemistry package updated 2025: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
+chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
+
 
 #### Nutrients  ####
 
@@ -5,7 +8,6 @@ chemistry_filtered <- chemistry |> #loaded in from DataDownload
   filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime), 
          DateTime = as.POSIXct(DateTime))|>
-  filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
   mutate(
     TN_ugL = if_else(Flag_TN_ugL == 9, NA_real_, TN_ugL),
     TP_ugL = if_else(Flag_TP_ugL == 9, NA_real_, TP_ugL),
@@ -22,7 +24,7 @@ variables <- c("TN_ugL", "TP_ugL", "NH4_ugL", "NO3NO2_ugL",
 #raw data availability 
 plot <- data_availability(chemistry_filtered, variables)
 
-ggsave("raw_chem_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
+ggsave("Figs/Data_availability/raw_chem_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
 
 #### NP ratio  ####
 

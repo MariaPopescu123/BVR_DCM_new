@@ -13,10 +13,10 @@ full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
 #print(colnames(full_weekly_data_clean))
 depth_analysis <- full_weekly_data |>
   select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
-         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week, -Date.x)
+         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week, -Date.x, -Date.x.x, -Date.y.y)
 
 magnitude_analysis <- full_weekly_data|>
-  select(-starts_with("depth_"), -Week, -totals_mean, -totals_med, -Date.x)
+  select(-starts_with("depth_"), -Week, -totals_mean, -totals_med, -Date.x, -Date.y.y, -Date.x.x)
 
 #####correlation function----
 
@@ -35,7 +35,7 @@ correlations <- function(year1, year2) {
 
 # correlation for all years for depth analysis
 
-{results <- correlations(2014, 2023)
+{results <- correlations(2015, 2024)
 final_data_cor_results <- results$drivers_cor
 final_data_cor_results[lower.tri(final_data_cor_results)] = ""
 final_data_cor <- results$DCM_final_cor
@@ -74,6 +74,8 @@ ggplot(significant_correlations, aes(x = Correlation, y = reorder(Combined, Corr
   theme(axis.text.y = element_text(size = 10),  # Adjust y-axis text size
         plot.title = element_text(hjust = 0.5))  # Center the title
 }
+
+
 
 ####DEPTH ANALYSIS CORRELATIONS AMDIST VARIABLES####
 

@@ -34,8 +34,10 @@ secchiframe <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/3
 #updated 2025
 ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
 
-#data from here https://portal.edirepository.org/nis/mapbrowse?packageid=edi.199.12
-chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/12/a33a5283120c56e90ea414e76d5b7ddb")
+##chemistry: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
+#updated 2025
+chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
+
 
 #meteorological data from FCR https://portal.edirepository.org/nis/mapbrowse?packageid=edi.389.8
 #options(timeout = 300)
