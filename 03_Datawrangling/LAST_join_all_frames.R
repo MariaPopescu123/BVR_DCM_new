@@ -21,11 +21,21 @@ full_weekly_data <- frame_weeks %>%
   left_join(final_schmidt, by = c("Year", "Week"))|>
   left_join(final_metdata, by = c("Year", "Week"))
 
-
 full_weekly_data <- full_weekly_data |>
-  mutate(Date = Date.x)|>
-  select(-Year, -Date.y, -Secchi_m, -sec_K_d)|>
-  relocate(Date, .before = "Week")
+  mutate(Date = Date.x) |>
+  select(-Year, -Date.y, -Secchi_m, -sec_K_d) |>
+  relocate(Date, .before = "Week") |>
+  rename(
+    AirTemp_Avg   = weekly_airtempavg,
+    WindSpeed_Avg = WindSpeed_Weekly_Average_m_s,
+    Precip_Avg    = precip_weekly
+  ) |>
+  relocate(wind_lag1, wind_lag2, .after = WindSpeed_Avg) |>
+  relocate(precip_lag1, precip_lag2, .after = Precip_Avg) |>
+  relocate(airtemp_lag1, airtemp_lag2, .after = AirTemp_Avg)
+
+  
+  
 
 write.csv(full_weekly_data, "CSVs/full_weekly_data.csv", row.names = FALSE)
 
