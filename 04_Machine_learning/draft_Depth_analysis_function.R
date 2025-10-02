@@ -1,17 +1,3 @@
-This for final machine learning analysis. 
-
-before running this script first run
-01_DataDownload
-03_Datawrangling: then go through all the files within chronologically
-then you can run this script
-
-1. prep data for RandomForest
-2. tune model for RandomForest
-3. run Random Forest
-4. visualize SHAP values
-
-
-
 #writing a function that will
 
 #1. run a test random forest for a specific year
@@ -20,35 +6,25 @@ then you can run this script
 #4. visualize variable importance
 #5. visualize SHAP values
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-load the packages that you need
-```{r}
 library(randomForest)
 library(missForest)
 library(caret)
 library(future)
 library(here)
-```
+library(fastshap)
 
-This data frame has predictor values for DCM depth as well as DCM magnitude. 
-Need to split these up for two different analysis
 
-Tidy up the frame for depth analysis
-```{r}
-#full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
+var_importance_shap_plots <- function(dataframe, XYear){
 
-#print(colnames(full_weekly_data_clean))
-depth_analysis <- full_weekly_data |>
-  select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
-         -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)|>
-  filter(year(Date) == 2023)
+depth_analysis <-  read.csv("CSVs/depth_analysis_revised.csv")
+
+ys_depth_analysis <- depth_analysis|>
+  filter(year(Date) == XYear)
 
 # Remove non-numeric columns (excluding Date, Depth_m, Year, etc.)
-non_numeric_columns <- sapply(depth_analysis, function(x) !is.numeric(x) & !is.factor(x))
-final_no_non_numeric <- depth_analysis |>
+non_numeric_columns <- sapply(ys_depth_analysis, function(x) !is.numeric(x) & !is.factor(x))
+final_no_non_numeric <- ys_depth_analysis |>
   select(-which(non_numeric_columns)) 
 
 # Replace Inf and NaN with NA in all numeric columns
@@ -78,10 +54,7 @@ RF_frame_w_dates %>%
   count(year(Date)) %>%
   print() 
 
-```
 
-Grid search. We do not have enough data to split into training and test set. 
-```{r}
 set.seed(123)
 
 # Initialize empty list to store results
@@ -133,10 +106,9 @@ print(depth_RF_tuning_scores)
 
 #this gives the best score
 
-```  
 
-Now to run the actual model
-```{r}
+# Now to run the actual model
+
 
 test_model_rf <- randomForest(DCM_depth ~ .,
                               data = RF_depth_analysis,
@@ -146,10 +118,10 @@ test_model_rf <- randomForest(DCM_depth ~ .,
                               importance = TRUE)
 
 importance(test_model_rf)
-```
 
-Prep to visualize
-```{r}
+
+#Prep to visualize
+
 importance_df <- as.data.frame(importance(test_model_rf))
 importance_df <- rownames_to_column(importance_df, var = "Variable") # Convert row names to a column
 
@@ -158,26 +130,29 @@ filtered_importance_df <- importance_df %>%
 
 rsq_test<- mean((model_rf$rsq))
 mse_test<- mean((model_rf$mse))
-```  
-Need to at some point run VIF will come back to this
 
-visualize
-```{r}
+
 # Create the plot
 ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
   geom_point(color = "blue", size = 3) +
   labs(
-    title = "Variable Importance based on % IncMSE 2023",
+    title = paste0("Variable Importance based on % IncMSE ", XYear),
     x = "% IncMSE",
     y = "Variables"
   ) +
   theme_minimal()
-```
+
+ggsave(
+  filename = paste0("Figs/", XYear, "_depth_var_importance.png"),
+  plot = plot_dist,
+  width = 10,
+  height = 4,
+  dpi = 600,
+  bg = "white"
+)
 
 #SHAP
-SHAP: SHAP values (SHapley Additive exPlanations) are a way to explain machine learning model predictions by showing how much each feature contributes to a particular prediction.
-```{r}
-library(fastshap)
+#SHAP: SHAP values (SHapley Additive exPlanations) are a way to explain machine learning model predictions by showing how much each feature contributes to a particular prediction.
 X = data.matrix(select(RF_depth_analysis, -DCM_depth))
 
 shap_values = fastshap::explain(test_model_rf, X=X, nsim=100, pred_wrapper=function(x,newdata){predict(x,newdata)})
@@ -228,10 +203,11 @@ df %>%
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
   scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
   labs(
-    title = 'Distribution of SHAP values for all samples 2023',
+    title = paste('Distribution of SHAP values for all samples', XYear),
     y = '',
     color = 'z-scaled values'
   )
+
 group_by(df, var) %>% 
   summarize(mean=mean(abs(shap))) %>%
   ggplot(aes(x=mean, y=fct_reorder(var, mean))) + 
@@ -243,7 +219,6 @@ group_by(df, var, sign=factor(sign(shap))) %>%
   ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
   geom_col() +
   labs(x='mean(shap value)', title='mean shap for all samples 2023-2023', y="")
-```
 
 
 library(ggplot2)

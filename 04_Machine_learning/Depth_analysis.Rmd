@@ -34,18 +34,11 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
 
 ```
 
-This data frame has predictor values for DCM depth as well as DCM magnitude. 
-Need to split these up for two different analysis
+This will not run in markdown. Run in your console. 
 
 ```{r}
-full_weekly_data <- read.csv(here("CSVs", "full_weekly_data.csv"))
-
-#print(colnames(full_weekly_data_clean))
-depth_analysis <- full_weekly_data %>%
-  dplyr::select(Date, DCM_depth, PZ, WaterLevel_m, depth_TFe_mgL_min, depth_TFe_mgL_max, schmidt_stability, avg_airtemp_lagged, Precip_avg_lagged, PAR_umolm2s_Weekly_Avg_lagged, depth_np_ratio_min)
-  #select(-ends_with("max_val"), -ends_with("min_val"), -ends_with("range"), 
-   #      -max_conc, -totals_mean, -totals_med, -N_at_DCM, -Week)|>
-  
+depth_analysis <- read.csv("CSVs/depth_analysis_revised.csv")|>
+  filter(year(Date) >2014, year(Date) <2025)
 ```
 
 Tidy up the frame for depth analysis
@@ -167,6 +160,8 @@ filtered_importance_df <- importance_df %>%
 
 rsq_test<- mean((model_rf$rsq))
 mse_test<- mean((model_rf$mse))
+print(rsq_test)
+print(mse_test)
 ```  
 
 Need to at some point run VIF will come back to this
@@ -176,7 +171,7 @@ visualize
 var_importance_depth_plot <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
   geom_point(color = "blue", size = 3) +
   labs(
-    title = "Variable Importance for Depth Prediction 2014–2023",
+    title = "Variable Importance for Depth Prediction 2015–2024",
     x = "% IncMSE",
     y = "Variables"
   ) +
@@ -188,13 +183,11 @@ var_importance_depth_plot <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y
     plot.title.position = "plot",  # Positions the title relative to the entire plot area
     axis.title = element_text(size = 18),
     axis.text = element_text(size = 16),
-    plot.margin = margin(t = 10, r = 20, b = 10, l = 5)  # Reduce left margin if needed
+    plot.margin = ggplot2::margin(t = 10, r = 20, b = 10, l = 5) # <- force ggplot2 margin
   )
 
 # Save to a relative directory
-ggsave("var_importance_depth_plot.png", plot = var_importance_depth_plot, width = 10, height = 4, dpi = 600)
-
-print(var_importance_depth_plot)
+ggsave("Figs/var_importance_depth_plot.png", plot = var_importance_depth_plot, width = 10, height = 4, dpi = 600)
 ```
 
 #SHAP
@@ -269,7 +262,7 @@ mutate(nv = scale(value))%>%
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
   scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
   labs(
-    title = 'Distribution of SHAP values for Depth Prediction',
+    title = 'Distribution of SHAP values for Depth Prediction 2015-2024',
     y = '',
     color = 'z-scaled values'
   ) +
@@ -282,7 +275,7 @@ theme(
     axis.text = element_text(size = 16),
     legend.text = element_text(size = 14),     # <-- Increase legend text size
     legend.title = element_text(size = 16),
-    plot.margin = margin(t = 10, r = 20, b = 10, l = 5)  # Reduce left margin if needed
+    plot.margin = ggplot2::margin(t = 10, r = 20, b = 10, l = 5)  # Reduce left margin if needed
   )
 # Plot 2: Mean absolute SHAP value
 # plot_mean_abs <- df %>%
@@ -316,7 +309,7 @@ theme(
 #dir.create("Figs", showWarnings = FALSE)
 
 #ggsave("shap_values_row1.png", plot_shap_1, width = 8, height = 4, dpi = 600, bg = "white")
-ggsave("depth_shap_distribution.png", plot_dist, width = 10, height = 4, dpi = 600, bg = "white")
+ggsave("Figs/depth_shap_distribution.png", plot_dist, width = 10, height = 4, dpi = 600, bg = "white")
 #ggsave("mean_abs_shap.png", plot_mean_abs, width = 10, height = 6, dpi = 600, bg = "white")
 #ggsave("mean_shap_by_sign.png", plot_mean_sign, width = 10, height = 6, dpi = 600, bg = "white")
 

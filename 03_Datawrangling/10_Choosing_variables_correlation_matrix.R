@@ -110,14 +110,14 @@ chem_depth_corr <- depth_analysis |>
     depth_mean_np_ratio
   )
 plot_correlation_matrix(
-  metals_depth_corr,
+  chem_depth_corr,
   "Figs/DCM_Depth_Correlations/Chem_depth_corr_Matrix.png",
   title = "Chem Depth Variables Correlation Matrix Heatmap"
 )
 
 #####Met Data#####
 met_depth_corr <- depth_analysis |>
-  select(
+  select(Date, DCM_depth,
     "Precip_Avg", "precip_lag1", "precip_lag2",
     "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
     "WindSpeed_Avg", "wind_lag1", "wind_lag2"
@@ -127,9 +127,10 @@ plot_correlation_matrix(
   "Figs/DCM_Depth_Correlations/Met_depth_corr_Matrix.png",
   title = "Met Depth Variables Correlation Matrix Heatmap"
 )
+
 #####Physics#####
 physics_depth_corr <- depth_analysis |>
-  select(thermocline_depth, schmidt_stability
+  select(Date, DCM_depth, thermocline_depth, schmidt_stability
   )
 plot_correlation_matrix(
   physics_depth_corr,
@@ -137,16 +138,101 @@ plot_correlation_matrix(
   title = "Physics Depth Variables Correlation Matrix Heatmap"
 )
 
+
 #####Phytos#####
 #may do this
 
+
+####chosen variables####
+
+depth_analysis_revised <- depth_analysis |>
+  select(Date, DCM_depth,
+         WaterLevel_m,
+         PZ,
+         depth_SFe_mgL_max,
+         depth_TFe_mgL_min,
+         depth_SMn_mgL_min,
+         depth_TN_ugL_max,
+         depth_TP_ugL_max,
+         depth_np_ratio_max,
+         thermocline_depth,
+         schmidt_stability,
+         precip_lag1,
+         precip_lag2,
+         airtemp_lag1,
+         airtemp_lag2,
+         wind_lag1,
+         wind_lag2)
+
+write.csv(depth_analysis_revised, "CSVs/depth_analysis_revised.csv", row.names = FALSE)
+
+
+
+#####BOTH Met Data##### these are variables for both DCM depth and DCM magnitude
+met_depth_corr <- full_weekly_data |>
+  select(Date, DCM_depth, max_conc,
+         "Precip_Avg", "precip_lag1", "precip_lag2",
+         "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
+         "WindSpeed_Avg", "wind_lag1", "wind_lag2"
+  )
+plot_correlation_matrix(
+  met_depth_corr,
+  "Figs/DCM_Depth_Correlations/Met_depth_corr_Matrix.png",
+  title = "Met Depth Variables Correlation Matrix Heatmap"
+)
 
 
 #### CM magnitude analysis####
 #prep dataframe
 magnitude_analysis <- full_weekly_data |>
-  select(-starts_with("depth_"), -Week, -totals_mean, -totals_med, -Date.x, -Date.y.y, -Date.x.x)
+  select(-starts_with("depth_"), -Week, -totals_mean,
+         -totals_med, -Date.x, -Date.y.y, -Date.x.x)
 write.csv(magnitude_analysis, "CSVs/magnitude_analysis_frame.csv", row.names = FALSE)
 #correlation matrix
 plot_correlation_matrix(magnitude_analysis, "Figs/DCM_Magnitude_Correlations/DCM_Magnitude_Correlation_Matrix.png", 
                         title = "DCM Magnitude Variables Correlation Matrix Heatmap")
+
+#####Metals#####
+metals_magnitude_analysis <- magnitude_analysis |>
+  select(Date, max_conc,
+         SFe_mgL_max_val, SFe_mgL_min_val, SFe_mgL_range,
+         TFe_mgL_max_val, TFe_mgL_min_val, TFe_mgL_range,
+         SMn_mgL_max_val, SMn_mgL_min_val, SMn_mgL_range)
+#correlation matrix
+plot_correlation_matrix(metals_magnitude_analysis,
+                        "Figs/DCM_Magnitude_Correlations/METALS_magnitude_Correlation_Matrix.png", 
+                        title = "METALS Magnitude Variables Correlation Matrix Heatmap")
+
+
+#####Chemistry#####
+CHEM_magnitude_analysis <- magnitude_analysis |>
+  select(Date, max_conc,
+         TN_ugL_max_val, TN_ugL_min_val, TN_ugL_range,
+         TP_ugL_max_val, TP_ugL_min_val, TP_ugL_range,
+         NH4_ugL_max_val, NH4_ugL_min_val, NH4_ugL_range,
+         NO3NO2_ugL_max_val, NO3NO2_ugL_min_val, NO3NO2_ugL_range,
+         DIC_mgL_max_val, DIC_mgL_min_val, DIC_mgL_range,
+         np_ratio_max_val, np_ratio_min_val, np_ratio_range)
+#correlation matrix
+plot_correlation_matrix(CHEM_magnitude_analysis,
+                        "Figs/DCM_Magnitude_Correlations/CHEM_magnitude_Correlation_Matrix.png", 
+                        title = "CHEM Magnitude Variables Correlation Matrix Heatmap")
+#####Physics#####
+physics_magnitude_analysis <- magnitude_analysis |>
+  select(Date, max_conc,
+         N_at_DCM, schmidt_stability, thermocline_depth)
+#correlation matrix
+plot_correlation_matrix(physics_magnitude_analysis,
+                        "Figs/DCM_Magnitude_Correlations/physics_magnitude_Correlation_Matrix.png", 
+                        title = "Physics Magnitude Variables Correlation Matrix Heatmap")
+
+
+#####Phytos#####
+
+####chosen variables####
+magnitude_analysis_revised <- magnitude_analysis |>
+  select(Date, max_conc, WaterLevel_m,PZ, N_at_DCM, schmidt_stability, thermocline_depth,
+         TFe_mgL_max_val, SMn_mgL_max_val,
+         precip_lag1, precip_lag2, airtemp_lag2,
+         WindSpeed_Avg, wind_lag1, wind_lag2)
+write.csv(magnitude_analysis_revised, "CSVs/magnitude_analysis_revised.csv", row.names = FALSE)
