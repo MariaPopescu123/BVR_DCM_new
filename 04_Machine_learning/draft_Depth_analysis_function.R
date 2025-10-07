@@ -1,5 +1,7 @@
 #writing a function that will
 
+#before running the function, I want to be able to edit the dataframe
+
 #1. run a test random forest for a specific year
 #2. select the best parameters and then run an actual random forest
 #3. print out how many observations
@@ -13,14 +15,23 @@ library(caret)
 library(future)
 library(here)
 library(fastshap)
+library(ggbeeswarm)
 
 
-var_importance_shap_plots <- function(dataframe, XYear){
 
-depth_analysis <-  read.csv("CSVs/depth_analysis_revised.csv")
+var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars){
+
+   # Xdataframe <- read.csv("CSVs/depth_analysis_frame.csv") #remove this once
+   # XYear <- 2014
+   # XYear2 <- 2024
+  
+whichvars <- whichvars
+depth_analysis <-  Xdataframe
+XYear <- XYear
+XYear2 <- XYear2
 
 ys_depth_analysis <- depth_analysis|>
-  filter(year(Date) == XYear)
+  filter(year(Date) >= XYear, year(Date) <= XYear2)
 
 # Remove non-numeric columns (excluding Date, Depth_m, Year, etc.)
 non_numeric_columns <- sapply(ys_depth_analysis, function(x) !is.numeric(x) & !is.factor(x))
@@ -42,17 +53,18 @@ RF_depth_analysis <- final_data_no_na %>%
 #write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
 
 
-#check to see how much is actually going into the analysis
-
-test<-depth_analysis |>
-  select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
-
-RF_frame_w_dates <- test %>%
-  na.omit()
-
-RF_frame_w_dates %>%
-  count(year(Date)) %>%
-  print() 
+####check to see how much is actually going into the analysis####
+# 
+# test<-ys_depth_analysis |>
+#   select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
+# 
+# RF_frame_w_dates <- test %>%
+#   na.omit()
+# 
+# RF_frame_w_dates %>%
+#   mutate(Date = as.Date(as.character(.data$Date), format = "%Y-%m-%d"))%>%
+# count(year(Date)) %>%
+#   print() 
 
 
 set.seed(123)
@@ -65,7 +77,7 @@ i <- 1
 
 for (tree_num in c(100, 200, 300, 500)) {
   for (node_size in c(2, 4, 6, 8)) {
-    for (mt in c(3, 6, 9, 10, 20)) {
+    for (mt in seq(3, (ncol(RF_depth_analysis) / 2), by = 1)) {
       
       model_rf <- randomForest(
         DCM_depth ~ ., 
@@ -109,12 +121,13 @@ print(depth_RF_tuning_scores)
 
 # Now to run the actual model
 
+best_params <- depth_RF_tuning_scores[1, ]
 
 test_model_rf <- randomForest(DCM_depth ~ .,
                               data = RF_depth_analysis,
-                              ntree = 100,
-                              node_size = 2,
-                              mtry = 10,
+                              ntree = best_params$Trees,
+                              nodesize = best_params$Node.size, 
+                              mtry = best_params$mtry,
                               importance = TRUE)
 
 importance(test_model_rf)
@@ -133,18 +146,18 @@ mse_test<- mean((model_rf$mse))
 
 
 # Create the plot
-ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
+this <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
   geom_point(color = "blue", size = 3) +
   labs(
-    title = paste0("Variable Importance based on % IncMSE ", XYear),
+    title = paste0("Variable Importance based on % IncMSE ", XYear, "-", XYear2," ", whichvars),
     x = "% IncMSE",
     y = "Variables"
   ) +
   theme_minimal()
 
 ggsave(
-  filename = paste0("Figs/", XYear, "_depth_var_importance.png"),
-  plot = plot_dist,
+  filename = paste0("Figs/MachineLearning/Depth/", XYear, "-", XYear2,"_", whichvars, "_depth_var_importance.png"),
+  plot = this ,
   width = 10,
   height = 4,
   dpi = 600,
@@ -186,16 +199,15 @@ df <- df %>%
   )
 
 # Now run plot
-df %>%
-  filter(row_id == 1) %>%
-  ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
-  geom_col() +
-  guides(fill = 'none') +
-  labs(y = "", title = "SHAP values for X[1,]")
+# df %>%
+#   filter(row_id == 1) %>%
+#   ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
+#   geom_col() +
+#   guides(fill = 'none') +
+#   labs(y = "", title = "SHAP values for X[1,]")
+# 
 
-
-library(ggbeeswarm)
-df %>%
+p <- df %>%
   mutate(value = as.numeric(value)) %>%
   group_by(var) %>%
   mutate(nv = scale(value)) %>%
@@ -203,58 +215,96 @@ df %>%
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
   scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
   labs(
-    title = paste('Distribution of SHAP values for all samples', XYear),
+    title = paste('Distribution of SHAP values', XYear, "-", XYear2),
     y = '',
     color = 'z-scaled values'
   )
 
-group_by(df, var) %>% 
-  summarize(mean=mean(abs(shap))) %>%
-  ggplot(aes(x=mean, y=fct_reorder(var, mean))) + 
-  geom_col() +
-  labs(x='mean(|shap value|)', title='mean absolute shap for all samples', y="")
+# Now save the plot
+ggsave(
+  filename = paste0("Figs/MachineLearning/Depth/", XYear, "-", XYear2,"_",whichvars, "_SHAP.png"),
+  plot = p,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
 
-group_by(df, var, sign=factor(sign(shap))) %>%
-  summarize(mean=mean(shap)) %>%
-  ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
-  geom_col() +
-  labs(x='mean(shap value)', title='mean shap for all samples 2023-2023', y="")
+# 
+# group_by(df, var) %>% 
+#   summarize(mean=mean(abs(shap))) %>%
+#   ggplot(aes(x=mean, y=fct_reorder(var, mean))) + 
+#   geom_col() +
+#   labs(x='mean(|shap value|)', title='mean absolute shap for all samples', y="")
+
+# group_by(df, var, sign=factor(sign(shap))) %>%
+#   summarize(mean=mean(shap)) %>%
+#   ggplot(aes(x=mean, y=fct_reorder(var, mean), fill=sign)) + 
+#   geom_col() +
+#   labs(x='mean(shap value)', title=paste('mean shap',XYear,'-',XYear2, y=""))
 
 
-library(ggplot2)
-library(dplyr)
-library(scales)
-library(here)
-
-# Define the list of variables
-vars_to_plot <- c('PZ', 'WaterLevel_m', 'thermocline_depth', 'schmidt_stability', 'depth_TFe_mgL_min')
-
-# Loop and save each plot
-for (v in vars_to_plot) {
-  
-  # Create plot
-  p <- df %>%
-    filter(var == v) %>%
-    mutate(value = as.numeric(value)) %>%
-    ggplot(aes(x = value, y = shap)) +
-    geom_point() +
-    geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
-    scale_x_continuous(breaks = pretty_breaks(n = 6)) +
-    labs(
-      title = paste0('2013–2023 Interaction: SHAP vs ', v),
-      x = v,
-      y = "SHAP value"
-    )
-  
-  # Print inline for RMarkdown rendering
-  print(p)
-  
-  # Save to file
-  ggsave(
-    filename = here::here("Figs/xai_plots", paste0("shap_", v, ".png")),
-    plot = p,
-    width = 6,
-    height = 4,
-    dpi = 300
-  )
+# library(ggplot2)
+# library(dplyr)
+# library(scales)
+# library(here)
+# 
+# # Define the list of variables
+# vars_to_plot <- c('PZ', 'WaterLevel_m', 'thermocline_depth', 'schmidt_stability', 'depth_TFe_mgL_min')
+# 
+# # Loop and save each plot
+# for (v in vars_to_plot) {
+# 
+#   # Create plot
+#   p <- df %>%
+#     filter(var == v) %>%
+#     mutate(value = as.numeric(value)) %>%
+#     ggplot(aes(x = value, y = shap)) +
+#     geom_point() +
+#     geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+#     scale_x_continuous(breaks = pretty_breaks(n = 6)) +
+#     labs(
+#       title = paste0('2013–2023 Interaction: SHAP vs ', v),
+#       x = v,
+#       y = "SHAP value"
+#     )
+# 
+#   # Print inline for RMarkdown rendering
+#   print(p)
+# 
+#   # Save to file
+   # ggsave(
+   #   filename = here::here("Figs/xai_plots", paste0("shap_", v, ".png")),
+   #   plot = p,
+   #   width = 6,
+   #   height = 4,
+   #   dpi = 300
+   # )
 }
+
+#test
+
+#this runs all the variables in depth_analysis
+var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "ALL VARIABLES")
+  
+#all variables for one year
+var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2021, "ALL VARS excl 2022")
+
+#selected variables
+selected_depth_analysis <- depth_analysis |>
+  select(
+    Date, DCM_depth,
+    PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
+    depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
+    wind_lag1, airtemp_lag2, precip_lag1
+  )
+
+var_importance_shap_plots(Xdataframe = selected_depth_analysis, 2015, 2024, "selected variables")
+
+
+#To determine weather lags
+met_lags <- depth_analysis |>
+  select(Date, DCM_depth,
+         Precip_Avg, precip_lag1, precip_lag2,
+         AirTemp_Avg, airtemp_lag1, airtemp_lag2,
+         WindSpeed_Avg, wind_lag1, wind_lag2)
+var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS")

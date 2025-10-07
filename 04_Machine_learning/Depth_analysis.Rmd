@@ -37,7 +37,7 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
 This will not run in markdown. Run in your console. 
 
 ```{r}
-depth_analysis <- read.csv("CSVs/depth_analysis_revised.csv")|>
+depth_analysis <- read.csv("CSVs/depth_analysis_frame.csv")|>
   filter(year(Date) >2014, year(Date) <2025)
 ```
 
@@ -187,7 +187,7 @@ var_importance_depth_plot <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y
   )
 
 # Save to a relative directory
-ggsave("Figs/var_importance_depth_plot.png", plot = var_importance_depth_plot, width = 10, height = 4, dpi = 600)
+ggsave("Figs/var_importance_depth_plot_all_variables.png", plot = var_importance_depth_plot, width = 10, height = 7, dpi = 600)
 ```
 
 #SHAP
@@ -309,7 +309,7 @@ theme(
 #dir.create("Figs", showWarnings = FALSE)
 
 #ggsave("shap_values_row1.png", plot_shap_1, width = 8, height = 4, dpi = 600, bg = "white")
-ggsave("Figs/depth_shap_distribution.png", plot_dist, width = 10, height = 4, dpi = 600, bg = "white")
+ggsave("Figs/ALL VARIABLES_depth_shap_distribution.png", plot_dist, width = 10, height = 8, dpi = 600, bg = "white")
 #ggsave("mean_abs_shap.png", plot_mean_abs, width = 10, height = 6, dpi = 600, bg = "white")
 #ggsave("mean_shap_by_sign.png", plot_mean_sign, width = 10, height = 6, dpi = 600, bg = "white")
 
