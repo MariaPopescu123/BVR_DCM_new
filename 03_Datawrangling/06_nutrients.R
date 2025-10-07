@@ -11,14 +11,15 @@ chemistry_filtered <- chemistry |> #loaded in from DataDownload
   mutate(
     TN_ugL = if_else(Flag_TN_ugL == 9, NA_real_, TN_ugL),
     TP_ugL = if_else(Flag_TP_ugL == 9, NA_real_, TP_ugL),
+    SRP_ugL = if_else(Flag_TP_ugL == 9, NA_real_, SRP_ugL),
     NH4_ugL = if_else(Flag_NH4_ugL == 9, NA_real_, NH4_ugL),
     NO3NO2_ugL = if_else(Flag_NO3NO2_ugL == 9, NA_real_, NO3NO2_ugL),
     DIC_mgL = if_else(Flag_DIC_mgL == 9, NA_real_, DIC_mgL)
   ) |>
-  select(Date, Depth_m, TN_ugL, TP_ugL, NH4_ugL, NO3NO2_ugL, DIC_mgL)
+  select(Date, Depth_m, TN_ugL, TP_ugL, NH4_ugL, NO3NO2_ugL, DIC_mgL, SRP_ugL)
 
 
-variables <- c("TN_ugL", "TP_ugL", "NH4_ugL", "NO3NO2_ugL", 
+variables <- c("TN_ugL", "TP_ugL","SRP_ugL", "NH4_ugL", "NO3NO2_ugL", 
                "DIC_mgL")
 
 #raw data availability 
@@ -48,7 +49,7 @@ chemistry_filtered_np <- chemistry_filtered %>%
   mutate(np_ratio = calculate_np_ratio(TN_ugL,TP_ugL))|>
   relocate(np_ratio, .before = TN_ugL)
 
-variables <- c("TN_ugL", "TP_ugL", "NH4_ugL", "NO3NO2_ugL", 
+variables <- c("TN_ugL", "TP_ugL","SRP_ugL", "NH4_ugL", "NO3NO2_ugL", 
                "DIC_mgL", "np_ratio")
 
 chem_weekly_sum <- weekly_sum_variables(chemistry_filtered_np, variables)
