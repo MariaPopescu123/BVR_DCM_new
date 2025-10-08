@@ -7,6 +7,8 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
 source("02_Functions/interpolate_variable.R")
 source("02_Functions/data_availability_function.R")
 source("02_Functions/weekly_sum_variables.R")
+source("02_Functions/depth_var_importance_shap_plots.R")#function for running RandomForest and visualizing variable importance and shap values
+
 
 #### Loading Data  #### 04July2025
 

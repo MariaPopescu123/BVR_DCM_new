@@ -18,8 +18,7 @@ library(fastshap)
 library(ggbeeswarm)
 
 
-
-var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars){
+depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars){
 
    # Xdataframe <- read.csv("CSVs/depth_analysis_frame.csv") #remove this once
    # XYear <- 2014
@@ -144,7 +143,7 @@ filtered_importance_df <- importance_df %>%
 rsq_test<- mean((model_rf$rsq))
 mse_test<- mean((model_rf$mse))
 
-
+####variable importance plot####
 # Create the plot
 this <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
   geom_point(color = "blue", size = 3) +
@@ -156,7 +155,8 @@ this <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, 
   theme_minimal()
 
 ggsave(
-  filename = paste0("Figs/MachineLearning/Depth/", XYear, "-", XYear2,"_", whichvars, "_depth_var_importance.png"),
+  filename = here::here("Figs", "MachineLearning", "Depth",
+                        paste0(XYear, "-", XYear2, "_", whichvars, "_depth_var_importance.png")),
   plot = this ,
   width = 10,
   height = 4,
@@ -190,7 +190,7 @@ head(df)
 # Check structure of relevant columns
 str(df)
 
-# Optional: Convert to atomic vectors just in case
+# Convert to atomic vectors just in case
 df <- df %>%
   mutate(
     shap = as.numeric(shap),
@@ -198,31 +198,42 @@ df <- df %>%
     var = as.character(var)
   )
 
-# Now run plot
-# df %>%
-#   filter(row_id == 1) %>%
-#   ggplot(aes(x = shap, y = fct_reorder(paste0(var, "=", value), shap), fill = factor(sign(shap)))) +
-#   geom_col() +
-#   guides(fill = 'none') +
-#   labs(y = "", title = "SHAP values for X[1,]")
-# 
+####SHAP plot####
 
 p <- df %>%
   mutate(value = as.numeric(value)) %>%
   group_by(var) %>%
-  mutate(nv = scale(value)) %>%
-  ggplot(aes(x = shap, y = var, color = nv)) +
+  mutate(
+    nv = scale(value),
+    mean_abs_shap = mean(abs(shap), na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  ggplot(aes(
+    x = shap,
+    y = fct_reorder(var, mean_abs_shap, .desc = FALSE),  # reverse order
+    color = nv
+  )) +
   geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
-  scale_color_viridis_c(option = 'H', limits = c(-3, 3), oob = scales::oob_squish) +
+  scale_color_viridis_c(
+    option = 'H',
+    limits = c(-3, 3),
+    oob = scales::oob_squish
+  ) +
   labs(
-    title = paste('Distribution of SHAP values', XYear, "-", XYear2),
+    title = paste('Distribution of SHAP values', XYear, "-", XYear2," ",whichvars),
     y = '',
     color = 'z-scaled values'
+  ) +
+  theme_classic(base_size = 14) +   # white background
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
+    plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
 # Now save the plot
 ggsave(
-  filename = paste0("Figs/MachineLearning/Depth/", XYear, "-", XYear2,"_",whichvars, "_SHAP.png"),
+  filename = here::here("Figs", "MachineLearning", "Depth",
+                        paste0(XYear, "-", XYear2, "_", whichvars, "_SHAP.png")),
   plot = p,
   width = 8,
   height = 6,
@@ -281,13 +292,14 @@ ggsave(
    # )
 }
 
-#test
+####testing the function now####
 
 #this runs all the variables in depth_analysis
-var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "ALL VARIABLES")
+depth_analysis <- read.csv("CSVs/depth_analysis_frame.csv")
+depth_var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "TEST ALL VARIABLES")
   
 #all variables for one year
-var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2021, "ALL VARS excl 2022")
+depth_var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2021, "ALL VARS excl 2022")
 
 #selected variables
 selected_depth_analysis <- depth_analysis |>
@@ -298,7 +310,7 @@ selected_depth_analysis <- depth_analysis |>
     wind_lag1, airtemp_lag2, precip_lag1
   )
 
-var_importance_shap_plots(Xdataframe = selected_depth_analysis, 2015, 2024, "selected variables")
+depth_var_importance_shap_plots(Xdataframe = selected_depth_analysis, 2015, 2024, "selected variables")
 
 
 #To determine weather lags
