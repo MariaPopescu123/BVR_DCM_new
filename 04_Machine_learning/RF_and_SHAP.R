@@ -9,16 +9,46 @@
 #save_dir = either "Depth" or "Magnitude"
 
 ####Depth Analysis####
-
+-------------------------------------------------------------------------------------
 #to inform decisions on which variables will go into the final model
 #####ALL VARS####
 depth_analysis <- read.csv("CSVs/depth_analysis_frame.csv")
 var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "TEST ALL VARIABLES","DCM_depth", "Depth")
 
-####EXCL 2021#### 
-depth_var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2021, "ALL VARS excl 2022", "DCM_depth", "Depth")
+#####all vars individual years#####
+-------------------------------------------------------------------------------------
+all_plots <- list()
 
-#Selected variables All Years
+for (i in 2015:2024) {
+  p <- var_importance_shap_plots(
+    Xdataframe = depth_analysis,
+    XYear = i,
+    XYear2 = i,
+    whichvars = "all variables",
+    response_var = "DCM_depth",
+    save_dir = "Depth"
+  )
+  all_plots[[as.character(i)]] <- p
+}
+
+# Combine all 10 plots in a grid (e.g., 2 rows x 5 columns)
+combined_all <- wrap_plots(all_plots, ncol = 1)
+
+# View in RStudio
+combined_all
+
+# Save all together
+ggsave(
+  here::here("Figs", "MachineLearning", "Depth", "AllYears_Combined_ALL_VARIABLES.png"),
+  plot = combined_all,
+  width = 12,
+  height = 30,
+  dpi = 600,
+  bg = "white"
+)
+
+#####Selected variables All Years####
+----------------------------------------------------------------------------------
 selected_depth_analysis <- depth_analysis |>
   select(
     Date, DCM_depth,
@@ -27,9 +57,27 @@ selected_depth_analysis <- depth_analysis |>
     wind_lag1, airtemp_lag2, precip_lag1
   )
 
-depth_var_importance_shap_plots(Xdataframe = selected_depth_analysis, 2015, 2024, "selected variables")
+depth_var_importance_shap_plots(Xdataframe = selected_depth_analysis, 2015, 2024, "selected vars","DCM_depth", "Depth")
 
-####
+#####Selected variables individual years#####
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #To determine weather lags
 met_lags <- depth_analysis |>

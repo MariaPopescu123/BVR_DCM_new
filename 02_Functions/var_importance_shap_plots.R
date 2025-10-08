@@ -257,7 +257,7 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     width = 12, height = 5, dpi = 600, bg = "white"
   )
   
-
+return(combined_plot)
   # 
   # group_by(df, var) %>% 
   #   summarize(mean=mean(abs(shap))) %>%
