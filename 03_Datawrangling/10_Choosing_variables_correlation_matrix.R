@@ -188,7 +188,7 @@ plot_correlation_matrix(
 #### CM magnitude analysis####
 #prep dataframe
 magnitude_analysis <- full_weekly_data |>
-  select(-starts_with("depth_"), -Week, -totals_mean,
+  select(-starts_with("depth_"), -Week, -totals_mean, -DCM_depth,
          -totals_med, -Date.x, -Date.y.y, -Date.x.x)
 write.csv(magnitude_analysis, "CSVs/magnitude_analysis_frame.csv", row.names = FALSE)
 #correlation matrix
@@ -235,7 +235,7 @@ plot_correlation_matrix(physics_magnitude_analysis,
 ####chosen variables####
 magnitude_analysis_revised <- magnitude_analysis |>
   select(Date, max_conc, WaterLevel_m,PZ, N_at_DCM, schmidt_stability, thermocline_depth,
-         TFe_mgL_max_val, SMn_mgL_max_val,
+         TFe_mgL_max_val, SMn_mgL_max_val,SRP_ugL_min_val, NH4_ugL_max_val,NO3NO2_ugL_max_val, 
          precip_lag1, precip_lag2, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
 write.csv(magnitude_analysis_revised, "CSVs/magnitude_analysis_revised.csv", row.names = FALSE)
