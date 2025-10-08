@@ -17,20 +17,28 @@ library(here)
 library(fastshap)
 library(ggbeeswarm)
 
+#xdataframe: either magnitude_analysis or depth_analysis
+#XYear (range of dates you want to look at, if you want just one year then put same date for both)
+#XYear2
+#whichvars (this label helps name the file and title so that I can keep straight what I did differently)
+#response_var (either DCM_depth or max_conc)
+#save_dir = either "Depth" or "Magnitude"
 
-depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars){
+var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, response_var, save_dir){
   
   whichvars <- whichvars
-  depth_analysis <-  Xdataframe
+  prep_analysis <-  Xdataframe
   XYear <- XYear
   XYear2 <- XYear2
+  response_var <- response_var
+  save_dir <- save_dir
   
-  ys_depth_analysis <- depth_analysis|>
+  ys_prep_analysis <- prep_analysis|>
     filter(year(Date) >= XYear, year(Date) <= XYear2)
   
   # Remove non-numeric columns (excluding Date, Depth_m, Year, etc.)
-  non_numeric_columns <- sapply(ys_depth_analysis, function(x) !is.numeric(x) & !is.factor(x))
-  final_no_non_numeric <- ys_depth_analysis |>
+  non_numeric_columns <- sapply(ys_prep_analysis, function(x) !is.numeric(x) & !is.factor(x))
+  final_no_non_numeric <- ys_prep_analysis |>
     select(-which(non_numeric_columns)) 
   
   # Replace Inf and NaN with NA in all numeric columns
@@ -42,25 +50,21 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
     select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
   
   # Remove remaining rows with any NA values
-  RF_depth_analysis <- final_data_no_na %>%
+  RF_prep_analysis <- final_data_no_na %>%
     na.omit()
   
-  #write.csv(RF_depth_analysis, here("CSVs", "RF_depth_analysis.csv"), row.names = FALSE)
+  #write.csv(RF_prep_analysis, here("CSVs", "RF_prep_analysis.csv"), row.names = FALSE)
   
   
   ####check to see how much is actually going into the analysis####
-  # 
-  # test<-ys_depth_analysis |>
-  #   select(where(~ mean(is.na(.)) <= 0.25))  # Keep columns with ≤ 25% NA
-  # 
-  # RF_frame_w_dates <- test %>%
-  #   na.omit()
-  # 
-  # RF_frame_w_dates %>%
-  #   mutate(Date = as.Date(as.character(.data$Date), format = "%Y-%m-%d"))%>%
-  # count(year(Date)) %>%
-  #   print() 
   
+  obs_per_year <- prep_analysis %>%
+    semi_join(ys_prep_analysis,by = names(prep_analysis)[3:7]) %>%  # keep only rows also in ys_prep_analysis
+    mutate(Date = as.Date(Date)) %>%
+    count(Year = year(Date)) %>%
+    arrange(Year)
+  
+  print(obs_per_year)
   
   set.seed(123)
   
@@ -70,21 +74,24 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
   # Counter for indexing
   i <- 1
   
+  rf_formula <- as.formula(paste(response_var, "~ ."))
+  
   for (tree_num in c(100, 200, 300, 500)) {
     for (node_size in c(2, 4, 6, 8)) {
-      for (mt in seq(3, (ncol(RF_depth_analysis) / 2), by = 1)) {
+      for (mt in seq(3, (ncol(RF_prep_analysis) / 2), by = 1)) {
         
         model_rf <- randomForest(
-          DCM_depth ~ ., 
-          data = RF_depth_analysis,
+          rf_formula,
+          data = RF_prep_analysis,
           ntree = tree_num,
           mtry = mt,
           nodesize = node_size,
           importance = TRUE
         )
         
-        preds <- predict(model_rf, RF_depth_analysis)
-        obs <- RF_depth_analysis$DCM_depth
+        
+        preds <- predict(model_rf, RF_prep_analysis)
+        obs <- RF_prep_analysis$response_var
         rsq_test <- 1 - sum((obs - preds)^2) / sum((obs - mean(obs))^2)
         mse_test <- mean(model_rf$mse)
         
@@ -103,23 +110,23 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
   }
   
   # Combine into a single data frame
-  depth_RF_tuning_scores <- do.call(rbind, results)
+  RF_tuning_scores <- do.call(rbind, results)
   
   
-  depth_RF_tuning_scores <- depth_RF_tuning_scores |>
+  RF_tuning_scores <- RF_tuning_scores |>
     arrange(desc(`R.squared`))
   
-  print(depth_RF_tuning_scores)
+  print(RF_tuning_scores)
   
   #this gives the best score
   
   
   # Now to run the actual model
   
-  best_params <- depth_RF_tuning_scores[1, ]
+  best_params <- RF_tuning_scores[1, ]
   
-  test_model_rf <- randomForest(DCM_depth ~ .,
-                                data = RF_depth_analysis,
+  test_model_rf <- randomForest(rf_formula,
+                                data = RF_prep_analysis,
                                 ntree = best_params$Trees,
                                 nodesize = best_params$Node.size, 
                                 mtry = best_params$mtry,
@@ -144,15 +151,16 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
   this <- ggplot(filtered_importance_df, aes(x = `%IncMSE`, y = reorder(Variable, `%IncMSE`))) +
     geom_point(color = "blue", size = 3) +
     labs(
-      title = paste0("Variable Importance based on % IncMSE ", XYear, "-", XYear2," ", whichvars),
+      title = paste0(save_dir," Variable Importance based on % IncMSE \n",
+                     XYear, "-", XYear2," ", whichvars),
       x = "% IncMSE",
       y = "Variables"
     ) +
-    theme_minimal()
+    theme_classic(base_size = 10)
   
   ggsave(
-    filename = here::here("Figs", "MachineLearning", "Depth",
-                          paste0(XYear, "-", XYear2, "_", whichvars, "_depth_var_importance.png")),
+    filename = here::here("Figs", "MachineLearning", save_dir,
+                          paste0(XYear, "-", XYear2, "_", whichvars, "_",save_dir,"_var_importance.png")),
     plot = this ,
     width = 10,
     height = 4,
@@ -162,7 +170,7 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
   
   #SHAP
   #SHAP: SHAP values (SHapley Additive exPlanations) are a way to explain machine learning model predictions by showing how much each feature contributes to a particular prediction.
-  X = data.matrix(select(RF_depth_analysis, -DCM_depth))
+  X = data.matrix(select(RF_prep_analysis, -response_var))
   
   shap_values = fastshap::explain(test_model_rf, X=X, nsim=100, pred_wrapper=function(x,newdata){predict(x,newdata)})
   dim(shap_values)
@@ -216,19 +224,19 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
       oob = scales::oob_squish
     ) +
     labs(
-      title = paste('Distribution of SHAP values', XYear, "-", XYear2," ",whichvars),
+      title = paste(save_dir, 'Distribution of SHAP values\n', XYear, "-", XYear2," ",whichvars),
       y = '',
       color = 'z-scaled values'
     ) +
-    theme_classic(base_size = 14) +   # white background
+    theme_classic(base_size = 10) +   # white background
     theme(
       panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
-      plot.title = element_text(face = "bold", hjust = 0.5)
+      plot.title = element_text(hjust = 0.5)
     )
   
   # Now save the plot
   ggsave(
-    filename = here::here("Figs", "MachineLearning", "Depth",
+    filename = here::here("Figs", "MachineLearning", save_dir,
                           paste0(XYear, "-", XYear2, "_", whichvars, "_SHAP.png")),
     plot = p,
     width = 8,
@@ -236,6 +244,20 @@ depth_var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars
     dpi = 300
   )
   
+  ####combined plots####
+  combined_plot <- this + p + plot_layout(ncol = 2) +
+    plot_annotation(
+      title = paste0("Variable Importance and SHAP Summary: ", response_var, " (", XYear, "-", XYear2, ") ", whichvars)
+    )
+  
+  ggsave(
+    filename = here::here("Figs", "MachineLearning", save_dir,
+                          paste0(XYear, "-", XYear2, "_", whichvars, "_Combined.png")),
+    plot = combined_plot,
+    width = 12, height = 5, dpi = 600, bg = "white"
+  )
+  
+
   # 
   # group_by(df, var) %>% 
   #   summarize(mean=mean(abs(shap))) %>%
