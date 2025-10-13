@@ -157,16 +157,16 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
       y = "Variables"
     ) +
     theme_classic(base_size = 10)
-  
-  ggsave(
-    filename = here::here("Figs", "MachineLearning", save_dir,
-                          paste0(XYear, "-", XYear2, "_", whichvars, "_",save_dir,"_var_importance.png")),
-    plot = this ,
-    width = 10,
-    height = 4,
-    dpi = 600,
-    bg = "white"
-  )
+  ####SAVE VAR IMPORTANCE####
+  # ggsave(
+  #   filename = here::here("Figs", "MachineLearning", save_dir,
+  #                         paste0(XYear, "-", XYear2, "_", whichvars, "_",save_dir,"_var_importance.png")),
+  #   plot = this ,
+  #   width = 10,
+  #   height = 4,
+  #   dpi = 600,
+  #   bg = "white"
+  # )
   
   #SHAP
   #SHAP: SHAP values (SHapley Additive exPlanations) are a way to explain machine learning model predictions by showing how much each feature contributes to a particular prediction.
@@ -203,8 +203,18 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     )
   
   ####SHAP plot####
+  #### SHAP plot (filtered + ordered by %IncMSE) ####
   
-  p <- df %>%
+  # Keep only variables in the importance plot, in the same order
+  ordered_vars <- filtered_importance_df %>%
+    arrange(desc(`%IncMSE`)) %>%
+    pull(Variable)
+  
+  df_filtered <- df %>%
+    filter(var %in% ordered_vars) %>%
+    mutate(var = factor(var, levels = ordered_vars))  # enforce same order
+  
+  p <- df_filtered %>%
     mutate(value = as.numeric(value)) %>%
     group_by(var) %>%
     mutate(
@@ -214,7 +224,7 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     ungroup() %>%
     ggplot(aes(
       x = shap,
-      y = fct_reorder(var, mean_abs_shap, .desc = FALSE),  # reverse order
+      y = var,          # keep variable order from factor
       color = nv
     )) +
     geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
@@ -224,25 +234,27 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
       oob = scales::oob_squish
     ) +
     labs(
-      title = paste(save_dir, 'Distribution of SHAP values\n', XYear, "-", XYear2," ",whichvars),
+      title = paste(save_dir, 'Distribution of SHAP values\n', XYear, "-", XYear2, " ", whichvars),
       y = '',
       color = 'z-scaled values'
     ) +
-    theme_classic(base_size = 10) +   # white background
+    scale_y_discrete(limits = rev)+
+    theme_classic(base_size = 10) +
     theme(
       panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
       plot.title = element_text(hjust = 0.5)
     )
   
-  # Now save the plot
-  ggsave(
-    filename = here::here("Figs", "MachineLearning", save_dir,
-                          paste0(XYear, "-", XYear2, "_", whichvars, "_SHAP.png")),
-    plot = p,
-    width = 8,
-    height = 6,
-    dpi = 300
-  )
+  
+  #####SAVE SHAP#####
+  # ggsave(
+  #   filename = here::here("Figs", "MachineLearning", save_dir,
+  #                         paste0(XYear, "-", XYear2, "_", whichvars, "_SHAP.png")),
+  #   plot = p,
+  #   width = 8,
+  #   height = 6,
+  #   dpi = 300
+  # )
   
   ####combined plots####
   combined_plot <- this + p + plot_layout(ncol = 2) +

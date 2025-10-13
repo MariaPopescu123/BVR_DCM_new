@@ -14,7 +14,7 @@ BVRplatform <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f6
 
 #list of DOY for interpolation purpose
 DOY_list <- 32:334  # DOYs from February 1 to November 30
-years <- unique(year(wtrlvl$Date))
+years <- 2015:2024
 DOY_year_ref <- expand.grid(Year = years, DOY = DOY_list)|>
   arrange(Year, DOY)
 
@@ -131,7 +131,7 @@ ggsave("Figs/water_level_photic_zone.png", wtrlvl_photic, width = 10, height = 4
 wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
   geom_line(size = 1) +  # Optional: connect points by year
   labs(
-    title = "Water Level 2014-2023",
+    title = "Water Level 2014-2024",
     x = "Week of Year",
     y = "Water Level (m)",
     color = "Year"

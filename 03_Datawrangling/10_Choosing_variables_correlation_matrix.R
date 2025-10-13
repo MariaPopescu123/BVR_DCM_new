@@ -75,9 +75,9 @@ plot_correlation_matrix(depth_analysis, "Figs/DCM_Depth_Correlations/DCM_Depth_C
 #####Metals#####
 metals_depth_corr <- depth_analysis |>
   select(Date, DCM_depth,
-    depth_SFe_mgL_max, depth_SFe_mgL_min, depth_mean_SFe_mgL,
-    depth_TFe_mgL_max, depth_TFe_mgL_min, depth_mean_TFe_mgL,
-    depth_SMn_mgL_max, depth_SMn_mgL_min, depth_mean_SMn_mgL
+         depth_SFe_mgL_max, depth_SFe_mgL_min, depth_mean_SFe_mgL,
+         depth_TFe_mgL_max, depth_TFe_mgL_min, depth_mean_TFe_mgL,
+         depth_SMn_mgL_max, depth_SMn_mgL_min, depth_mean_SMn_mgL
   )
 plot_correlation_matrix(
   metals_depth_corr,
@@ -121,9 +121,9 @@ plot_correlation_matrix(
 #####Met Data#####
 met_depth_corr <- depth_analysis |>
   select(Date, DCM_depth,
-    "Precip_Avg", "precip_lag1", "precip_lag2",
-    "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
-    "WindSpeed_Avg", "wind_lag1", "wind_lag2"
+         "Precip_Avg", "precip_lag1", "precip_lag2",
+         "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
+         "WindSpeed_Avg", "wind_lag1", "wind_lag2"
   )
 plot_correlation_matrix(
   met_depth_corr,
