@@ -19,13 +19,13 @@ library(here)
 
 var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, response_var, save_dir) {
   
-  # ----parameters for testing
-  Xdataframe <- selected_depth_analysis
-  XYear <- 2015
-  XYear2 <- 2024
-  whichvars <- "selected vars"
-  response_var <- "DCM_depth"
-  save_dir <- "Depth"
+  # # ----parameters for testing
+  # Xdataframe <- selected_depth_analysis
+  # XYear <- 2015
+  # XYear2 <- 2024
+  # whichvars <- "selected vars"
+  # response_var <- "DCM_depth"
+  # save_dir <- "Depth"
   
   # ---- Filter by year window; keep Year & row id so we can tally after cleaning ----
   df <- Xdataframe %>%

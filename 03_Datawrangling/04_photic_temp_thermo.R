@@ -7,6 +7,7 @@
 
 #### secchi PZ  ####
 
+
 #need to load in frame weeks 
 
 {
@@ -68,7 +69,7 @@
 library(ISOweek)
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
 
-write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
+#write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
 
 ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
   geom_line(aes(group = factor(year(Date)))) +
@@ -85,6 +86,7 @@ ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
 ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
 
 ysi_profiles <- ysi_profiles|>
+  filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime))
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
@@ -94,7 +96,7 @@ data_availability(ysi_profiles, variables)
 # Generate the plot
 #plot <- data_availability(ysi_profiles, variables)  
 # Save the plot with specific dimensions
-ggsave("Figs/Data_availability/raw_ysi_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
+#ggsave("Figs/Data_availability/raw_ysi_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
 
 #removing PAR, ORP, cond, and pH due to limited data availability
 #keeping temp because YSI has the most temp
@@ -102,7 +104,6 @@ ggsave("Figs/Data_availability/raw_ysi_availability.png", plot = plot, width = 2
 variables <- c("DO_mgL","DOsat_percent", "Temp_C")
 ysi <- ysi_profiles|>
   select(-PAR_umolm2s, -ORP_mV, -Cond_uScm, -pH)|>
-  filter(Reservoir == "BVR", Site == 50)|>
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))
 data_availability(ysi, variables)
 
@@ -125,7 +126,7 @@ variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV",
                "pH", "Temp_C")
 CTDdata <- data_availability(CTDfiltered, variables)
 
-ggsave("Figs/Data_availability/CTDdata_availability.png", plot = CTDdata, width = 20, height = 15, dpi = 300)
+#ggsave("Figs/Data_availability/CTDdata_availability.png", plot = CTDdata, width = 20, height = 15, dpi = 300)
 
 
 #can't use many of the variables because not enough data for every year
@@ -150,7 +151,7 @@ temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Dep
   filter(Depth_m > 0.09)|>
   select(-Temp_C.y, -Temp_C.x)
 
-data_availability(temp_depths_coalesced, variables)
+#data_availability(temp_depths_coalesced, variables)
 
 ####2019 fix####
 #the beginning of 2019 is missing from within the season so I am grabbing from ysi data
@@ -167,7 +168,7 @@ ysitemp2019_clean <- ysi |>
 temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
   arrange(Date, Depth_m)
 
-data_availability(temp_depths_coalesced, variables)
+#data_availability(temp_depths_coalesced, variables)
 
 #variables <- ("Temp_C")
 #temp_depths_coalesced_summarised <- weekly_sum_variables(temp_depths_coalesced, variables)
@@ -206,8 +207,6 @@ temp_depths_cleaned <- temp_depths_interp|> #remove the weirdos
   filter(!(Date == as.Date("2021-08-18") & Depth_m > 9 & Depth_m <= 10))|>
   filter(!(Date >= as.Date("2022-07-06") & Date <= as.Date("2022-12-14") & Depth_m >= 7.5))
 
- 
- 
 looking <- temp_depths_cleaned|>
   filter(Date %in% c("2021-08-04"))
 
@@ -373,5 +372,6 @@ final_photic_thermo <- photic_zone_frame|>
   left_join(just_thermocline, by = c("Week", "Year"))|>
   select(-WaterLevel_m)
 
-write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
+variables <- c("PZ")
 
+data_availability(final_photic_thermo, variables)

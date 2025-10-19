@@ -33,12 +33,14 @@ interpolate_variable <- function(data, variable_list) {
            Date = Date_fake)|>
     select(-Date_fake)
   
-  data <- data |> #changing this temporarily 
-    filter(Reservoir == "BVR", Site == 50) |>
-    mutate(Date = as_date(DateTime),
-           Week = week(Date),
-           Year = year(Date),
-           DOY = yday(Date))
+  data <- data %>%
+    filter(Reservoir == "BVR", Site == 50) %>%
+    { if (!"Date" %in% names(.)) mutate(., Date = as_date(DateTime)) else . } %>%
+    mutate(
+      Week = week(Date),
+      Year = year(Date),
+      DOY  = yday(Date)
+    )
   
   interpolated_results <- list()  # Store results for each variable
   

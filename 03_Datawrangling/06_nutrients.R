@@ -24,7 +24,7 @@ variables <- c("TN_ugL", "TP_ugL","SRP_ugL", "NH4_ugL", "NO3NO2_ugL",
 
 #raw data availability 
 plot <- data_availability(chemistry_filtered, variables)
-
+print(plot)
 ggsave("Figs/Data_availability/raw_chem_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
 
 #### NP ratio  ####

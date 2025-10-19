@@ -100,6 +100,7 @@ water_level <- expanded_dates|>
   left_join(water_levelscoalesced, by = c("Year", "DOY"))|>
   filter(!is.na(WaterLevel_m))
 
+#need to remember that for someone copying this repo for the first time. this won't work. need to rearrange
 final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")
 
 final_photic_thermo <- final_photic_thermo|>

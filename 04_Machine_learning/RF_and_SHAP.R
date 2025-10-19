@@ -39,8 +39,8 @@ ggsave(
   bg = "white"
 )
 
-#####Selected variables All Years####
-selected_depth_analysis <- depth_analysis |>
+#--------------Final Variables all years----------------------
+final_depth_analysis <- depth_analysis |>
   select(
     Date, DCM_depth,
     PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
@@ -49,16 +49,16 @@ selected_depth_analysis <- depth_analysis |>
   )
 #write.csv(selected_depth_analysis, "CSVs/selected_depth_analysis.csv", row.names = FALSE)
 
-var_importance_shap_plots(Xdataframe = selected_depth_analysis, 2015, 2024, "selected vars","DCM_depth", "Depth")
+var_importance_shap_plots(Xdataframe = final_depth_analysis, 2015, 2024, "Final","DCM_depth", "Depth")
 
 #####Selected variables individual years#####
 all_plots <- list()
 for (i in 2015:2024) {
   p <- var_importance_shap_plots(
-    Xdataframe = selected_depth_analysis,
+    Xdataframe = final_depth_analysis,
     XYear = i,
     XYear2 = i,
-    whichvars = "selected variables",
+    whichvars = "final",
     response_var = "DCM_depth",
     save_dir = "Depth"
   )
@@ -66,7 +66,7 @@ for (i in 2015:2024) {
 }
 combined_all <- wrap_plots(all_plots, ncol = 1)
 ggsave(
-  here::here("Figs", "MachineLearning", "Depth","all years combined", "AllYears_Combined_selected_variables.png"),
+  here::here("Figs", "MachineLearning", "Depth","all years combined", "AllYears_Combined_Final.png"),
   plot = combined_all,
   width = 12,
   height = 30,
@@ -74,7 +74,22 @@ ggsave(
   bg = "white"
 )
 
+#####Jacknife#####
+#this is for viewing to see how robust the model is across years
+res <- jackknife_incMSE_heatmap(
+  Xdataframe     = final_depth_analysis,
+  year_min       = 2015,
+  year_max       = 2024,
+  response_var   = "DCM_depth",
+  whichvars_label= "Selected variables",
+  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png")
+)
+#if you want to view
+#res$plot
+#res$summary %>% as.data.frame() %>% head()
 
+
+#function
 
 
 
@@ -113,6 +128,7 @@ ggsave(
 
 #------------------------------------------------------------------------------#
 ####Magnitude Analysis####
+
 #####all variables all years#####
 var_importance_shap_plots(magnitude_analysis, 2015, 2024, "all_vars", "max_conc", "Magnitude")
 #individual years
@@ -198,7 +214,7 @@ ggsave(
 )
 
 ####Final Plots####
-final_magnitude_analysis <- magnitude_analysis_revised |>
+final_magnitude_analysis <- magnitude_analysis|>
   select(
     Date,
     max_conc,
@@ -233,7 +249,7 @@ for (i in 2015:2024) {
 }
 combined_all <- wrap_plots(all_plots, ncol = 1)
 ggsave(
-  here::here("Figs", "MachineLearning", "Magnitude","all years combined", "final plot.png"),
+  here::here("Figs", "MachineLearning", "Magnitude","all years combined", "Final.png"),
   plot = combined_all,
   width = 12,
   height = 30,
@@ -241,3 +257,14 @@ ggsave(
   bg = "white"
 )
 
+res <- jackknife_incMSE_heatmap(
+  Xdataframe     = final_magnitude_analysis,
+  year_min       = 2015,
+  year_max       = 2024,
+  response_var   = "max_conc",
+  whichvars_label= "Final",
+  save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png")
+)
+#if you want to view
+#res$plot
+#res$summary %>% as.data.frame() %>% head()
