@@ -11,7 +11,7 @@
 ####Depth Analysis####
 #to inform decisions on which variables will go into the final model
 #####ALL VARS####
-depth_analysis <- read.csv("CSVs/depth_analysis_frame.csv")
+depth_analysis <- read.csv("CSVs/depth_analysis_revised.csv")
 var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "all variables","DCM_depth", "Depth")
 
 #####all vars individual years#####
@@ -43,7 +43,7 @@ ggsave(
 final_depth_analysis <- depth_analysis |>
   select(
     Date, DCM_depth,
-    PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
+    PZ, PZ_prop, thermocline_depth, schmidt_stability, WaterLevel_m,
     depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
     wind_lag1, airtemp_lag2, precip_lag1
   )
@@ -128,6 +128,7 @@ ggsave(
 
 #------------------------------------------------------------------------------#
 ####Magnitude Analysis####
+magnitude_analysis <- read.csv("CSVs/magnitude_analysis_revised.csv")
 
 #####all variables all years#####
 var_importance_shap_plots(magnitude_analysis, 2015, 2024, "all_vars", "max_conc", "Magnitude")
@@ -219,7 +220,7 @@ final_magnitude_analysis <- magnitude_analysis|>
     Date,
     max_conc,
     WaterLevel_m,
-    PZ,
+    PZ, PZ_prop,
     N_at_DCM,
     schmidt_stability,
     thermocline_depth,

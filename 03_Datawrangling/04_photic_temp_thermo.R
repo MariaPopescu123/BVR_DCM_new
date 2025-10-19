@@ -370,8 +370,12 @@ just_thermocline <- just_thermocline|>
 
 final_photic_thermo <- photic_zone_frame|>
   left_join(just_thermocline, by = c("Week", "Year"))|>
+  mutate(PZ_prop = PZ/WaterLevel_m)|>
   select(-WaterLevel_m)
 
 variables <- c("PZ")
 
 data_availability(final_photic_thermo, variables)
+
+write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
+

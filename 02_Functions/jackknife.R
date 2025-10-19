@@ -4,18 +4,18 @@
 
 #Example use of function
 # #-------------------------------------
-res <- jackknife_incMSE_heatmap(
-  Xdataframe     = final_depth_analysis,
-  year_min       = 2015,
-  year_max       = 2024,
-  response_var   = "DCM_depth",
-  whichvars_label= "Selected variables",
-  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png")
-)
-# View the plot
-res$plot
-# See the summarized table (Year, Variable, mean_incMSE, sd_incMSE used for the tiles/labels)
-res$summary %>% as.data.frame() %>% head()
+# res <- jackknife_incMSE_heatmap(
+#   Xdataframe     = final_depth_analysis,
+#   year_min       = 2015,
+#   year_max       = 2024,
+#   response_var   = "DCM_depth",
+#   whichvars_label= "Selected variables",
+#   save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png")
+# )
+# # View the plot
+# res$plot
+# # See the summarized table (Year, Variable, mean_incMSE, sd_incMSE used for the tiles/labels)
+# res$summary %>% as.data.frame() %>% head()
 
 
 

@@ -151,7 +151,7 @@ plot_correlation_matrix(
 depth_analysis_revised <- depth_analysis |>
   select(Date, DCM_depth,
          WaterLevel_m,
-         PZ,
+         PZ, PZ_prop,
          depth_SFe_mgL_max,
          depth_TFe_mgL_min,
          depth_SMn_mgL_min,
@@ -234,7 +234,7 @@ plot_correlation_matrix(physics_magnitude_analysis,
 
 ####chosen variables####
 magnitude_analysis_revised <- magnitude_analysis |>
-  select(Date, max_conc, WaterLevel_m,PZ, N_at_DCM, schmidt_stability, thermocline_depth,
+  select(Date, max_conc, WaterLevel_m,PZ, PZ_prop, N_at_DCM, schmidt_stability, thermocline_depth,
          TFe_mgL_max_val, SMn_mgL_max_val,SRP_ugL_min_val, NH4_ugL_max_val,NO3NO2_ugL_max_val, 
          precip_lag1, precip_lag2, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
