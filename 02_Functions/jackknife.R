@@ -37,22 +37,26 @@ suppressPackageStartupMessages({
 # year_min, year_max : inclusive year range (e.g., 2015, 2024)
 # response_var : name of response column (character)
 # whichvars_label : label for titles
-# tune_grid : list with ntree, mtry candidates, nodesize candidates (optional)
 # save_path : optional file path to ggsave the plot (PNG/PDF based on extension)
 
 jackknife_incMSE_heatmap <- function(
     Xdataframe,
     year_min,
     year_max,
+    var_order = NULL,
     response_var,
     whichvars_label = "",
-    tune_grid = list(
-      ntree    = c(300),
-      mtry     = NULL,           # if NULL, will use 2:floor(p/2) capped at p
-      nodesize = c(2, 5)
-    ),
     save_path = NULL
 ) {
+  #here for testing purposes
+  # Xdataframe    <-  final_magnitude_analysis
+  # year_min       <- 2015
+  # year_max       <- 2024
+  # var_order <- finalmagnitudeRF$var_order
+  # response_var   <- "max_conc"
+  # whichvars_label<- "Final"
+  # save_path <- here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png")
+  # 
   
   # ---------- 0) Prep & cleaning ----------
   df0 <- Xdataframe %>%
@@ -100,42 +104,63 @@ jackknife_incMSE_heatmap <- function(
   }
   
   # helper: tune RF once on provided data; returns best row (ntree/mtry/nodesize)
+  # helper: tune RF once on provided data; returns best row (ntree/mtry/nodesize)
   .tune_once <- function(df_fit) {
     pred_cols <- setdiff(names(df_fit), response_var)
     p <- length(pred_cols)
     y_obs <- df_fit[[response_var]]
     
-    grid <- expand.grid(
-      ntree    = unlist(tune_grid$ntree),
-      mtry     = .mtry_grid(p),
-      nodesize = unlist(tune_grid$nodesize)
-    )
+    # Match var_importance_shap_plots tuning grid
+    grid_trees <- c(100, 200, 300, 500)
+    grid_nodes <- c(2, 4, 6, 8)
+    grid_mtry  <- unique(pmin(seq(1, max(1, floor(p / 2)), by = 1), p))
     
-    best <- NULL
-    best_score <- -Inf
-    
-    for (gi in seq_len(nrow(grid))) {
-      g <- grid[gi, ]
-      fit <- randomForest::randomForest(
-        as.formula(paste(response_var, "~ .")),
-        data       = df_fit,
-        ntree      = g$ntree,
-        mtry       = g$mtry,
-        nodesize   = g$nodesize,
-        importance = TRUE
-      )
-      preds <- predict(fit, df_fit)
-      rsq   <- 1 - sum((y_obs - preds)^2) / sum((y_obs - mean(y_obs))^2)
-      if (rsq > best_score) { best_score <- rsq; best <- g }
+    results <- list()
+    idx <- 1
+    for (nt in grid_trees) {
+      for (ns in grid_nodes) {
+        for (mt in grid_mtry) {
+          fit <- randomForest::randomForest(
+            as.formula(paste(response_var, "~ .")),
+            data       = df_fit,
+            ntree      = nt,
+            mtry       = mt,
+            nodesize   = ns,
+            importance = TRUE
+          )
+          preds <- predict(fit, df_fit)
+          rsq   <- 1 - sum((y_obs - preds)^2) / sum((y_obs - mean(y_obs))^2)
+          mse   <- mean((y_obs - preds)^2)
+          results[[idx]] <- data.frame(
+            Trees = nt, NodeSize = ns, mtry = mt,
+            R2 = rsq, MSE = mse
+          )
+          idx <- idx + 1
+        }
+      }
     }
-    best
+    
+    best <- dplyr::bind_rows(results) %>%
+      dplyr::arrange(dplyr::desc(R2), MSE) %>%
+      dplyr::slice(1)
+    
+    tibble::tibble(
+      ntree    = best$Trees,
+      mtry     = best$mtry,
+      nodesize = best$NodeSize
+    )
   }
   
   # helper: extract %IncMSE safely and return tibble(Variable, `%IncMSE`)
   .imp_df <- function(fit) {
     imp <- as.data.frame(randomForest::importance(fit))
     imp$Variable <- rownames(imp)
-    tibble::as_tibble(imp) %>% dplyr::select(Variable, `%IncMSE`)
+    
+    # Remove variables with NA, empty, or literal "NA" names
+    imp <- imp[!is.na(imp$Variable) & imp$Variable != "" & imp$Variable != "NA", , drop = FALSE]
+    
+    tibble::as_tibble(imp) %>%
+      dplyr::select(Variable, `%IncMSE`)
   }
   
   all_imp_long <- list()
@@ -227,13 +252,14 @@ jackknife_incMSE_heatmap <- function(
       .groups = "drop"
     )
   
-  # Determine a consistent variable order by overall mean across years
-  var_order <- imp_summary %>%
-    dplyr::group_by(Variable) %>%
-    dplyr::summarise(overall_mean = mean(mean_incMSE, na.rm = TRUE), .groups = "drop") %>%
-    dplyr::arrange(dplyr::desc(overall_mean)) %>%
-    dplyr::pull(Variable)
-  
+  # Use provided var_order (if NULL, fall back to computed order)
+  if (is.null(var_order)) {
+    var_order <- imp_summary %>%
+      dplyr::group_by(Variable) %>%
+      dplyr::summarise(overall_mean = mean(mean_incMSE, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::arrange(dplyr::desc(overall_mean)) %>%
+      dplyr::pull(Variable)
+  }
   # y order: most important at top
   imp_summary <- imp_summary %>%
     dplyr::mutate(Variable = factor(Variable, levels = rev(var_order)))
@@ -248,6 +274,8 @@ jackknife_incMSE_heatmap <- function(
                                               paste0(Year, "\n(n=", n, ")"))) %>%
     dplyr::select(Year, Year_label) %>%
     dplyr::arrange(Year)  # 9999 -> last
+  
+  imp_summary <- imp_summary %>% filter(!is.na(Year)) #put this here because of plotting issue
   
   plot_df <- imp_summary %>%
     dplyr::left_join(year_lab, by = "Year") %>%

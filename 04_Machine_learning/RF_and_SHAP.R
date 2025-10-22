@@ -49,7 +49,9 @@ final_depth_analysis <- depth_analysis |>
   )
 #write.csv(selected_depth_analysis, "CSVs/selected_depth_analysis.csv", row.names = FALSE)
 
-var_importance_shap_plots(Xdataframe = final_depth_analysis, 2015, 2024, "Final","DCM_depth", "Depth")
+fulldepthRF <- var_importance_shap_plots(Xdataframe = final_depth_analysis, 2015, 2024, "Final","DCM_depth", "Depth")
+
+#I want this function to also return a list called var_order
 
 #####Selected variables individual years#####
 all_plots <- list()
@@ -62,7 +64,7 @@ for (i in 2015:2024) {
     response_var = "DCM_depth",
     save_dir = "Depth"
   )
-  all_plots[[as.character(i)]] <- p
+  all_plots[[as.character(i)]] <- p[[1]]
 }
 combined_all <- wrap_plots(all_plots, ncol = 1)
 ggsave(
@@ -76,10 +78,11 @@ ggsave(
 
 #####Jacknife#####
 #this is for viewing to see how robust the model is across years
-res <- jackknife_incMSE_heatmap(
+depth_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = final_depth_analysis,
   year_min       = 2015,
   year_max       = 2024,
+  var_order = fulldepthRF$var_order,
   response_var   = "DCM_depth",
   whichvars_label= "Selected variables",
   save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png")
@@ -88,8 +91,6 @@ res <- jackknife_incMSE_heatmap(
 #res$plot
 #res$summary %>% as.data.frame() %>% head()
 
-
-#function
 
 
 
@@ -225,7 +226,7 @@ final_magnitude_analysis <- magnitude_analysis|>
     schmidt_stability,
     thermocline_depth,
     TFe_mgL_max_val,
-    SRP_ugL_min_val,
+    SRP_ugL_max_val,
     NH4_ugL_max_val,
     NO3NO2_ugL_max_val,
     precip_lag1,
@@ -233,7 +234,7 @@ final_magnitude_analysis <- magnitude_analysis|>
     wind_lag1
   )
 
-var_importance_shap_plots(final_magnitude_analysis, 2015, 2024, "final", "max_conc", "Magnitude")
+finalmagnitudeRF <- var_importance_shap_plots(final_magnitude_analysis, 2015, 2024, "final", "max_conc", "Magnitude")
 
 #individual years
 all_plots <- list()
@@ -246,7 +247,7 @@ for (i in 2015:2024) {
     response_var = "max_conc",
     save_dir = "Magnitude"
   )
-  all_plots[[as.character(i)]] <- p
+  all_plots[[as.character(i)]] <- p[[1]]
 }
 combined_all <- wrap_plots(all_plots, ncol = 1)
 ggsave(
@@ -258,10 +259,11 @@ ggsave(
   bg = "white"
 )
 
-res <- jackknife_incMSE_heatmap(
+magnitude_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = final_magnitude_analysis,
   year_min       = 2015,
   year_max       = 2024,
+  var_order = finalmagnitudeRF$var_order,
   response_var   = "max_conc",
   whichvars_label= "Final",
   save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png")

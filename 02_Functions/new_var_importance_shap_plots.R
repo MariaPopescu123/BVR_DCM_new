@@ -241,7 +241,10 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     width = 12, height = 5, dpi = 600, bg = "white"
   )
   
-  return(combined_plot)
+  return(list(
+    plot = combined_plot,
+    var_order = ordered_vars
+  ))
 }
 
 
