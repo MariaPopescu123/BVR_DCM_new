@@ -79,52 +79,80 @@ if (!dir.exists("Figs")) {
 
 # Prepare your data with FacetID
 DCM_metrics <- phytos |>
-  select(Reservoir, Site, Date, Week, CastID, Depth_m, TotalConc_ugL) |>
+  select(
+    Reservoir,
+    Site,
+    Date,
+    Week,
+    CastID,
+    Depth_m,
+    TotalConc_ugL,
+    GreenAlgae_ugL,
+    Bluegreens_ugL,
+    BrownAlgae_ugL,
+    MixedAlgae_ugL
+  ) |>
   group_by(Reservoir, Date, Site) |>
   mutate(FacetID = paste(CastID, Reservoir, Site, Date, "Week", Week, sep = " ")) |>
   ungroup()
 
+
 # Get unique years in the dataset
 years <- unique(year(DCM_metrics$Date))
 
-# Loop over each year
-for (yr in years) {
+types <- c("TotalConc_ugL",
+          "GreenAlgae_ugL",
+          "Bluegreens_ugL",
+          "BrownAlgae_ugL",
+          "MixedAlgae_ugL")
+# Loop over each type
+for (type in types) {
   
-  # Filter data for the year
-  test <- DCM_metrics |>
-    filter(year(Date) == yr)
-  
-  # Skip if there's no data
-  if (nrow(test) == 0) next
-  
-  # Create plot
-  plot_casts <- ggplot(test, aes(x = TotalConc_ugL, y = Depth_m)) +
-    geom_path() +
-    scale_y_reverse() +
-    theme_bw() +
-    facet_wrap(vars(FacetID)) +
-    xlab("micrograms per liter") +
-    ylab("Depth (m)") +
-    ggtitle(paste(yr, "raw casts"))
-  
-  # Save plot
-  ggsave(filename = paste0("Figs/raw_flora_casts/", yr, "_raw_casts.png"),
-         plot = plot_casts,
-         width = 12,
-         height = 10,
-         dpi = 300)
+  # Loop over each year
+  for (yr in years) {
+    
+    # Filter data for the year
+    test <- DCM_metrics |>
+      filter(year(Date) == yr)
+    
+    # Skip if there's no data
+    if (nrow(test) == 0) next
+    
+    # Create plot
+    plot_casts <- ggplot(test, aes_string(x = type, y = "Depth_m")) +
+      geom_path() +
+      scale_y_reverse() +
+      theme_bw() +
+      facet_wrap(vars(FacetID)) +
+      xlab("micrograms per liter") +
+      ylab("Depth (m)") +
+      ggtitle(paste(yr, type, "raw casts"))
+    
+    # Create directory if it doesn't exist
+    dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
+    
+    # Save plot
+    ggsave(
+      filename = paste0("Figs/raw_flora_casts/", type, "_", yr, "_raw_casts.png"),
+      plot = plot_casts,
+      width = 12,
+      height = 10,
+      dpi = 300
+    )
+  }
 }
-
 #notes on casts
 #casts to remove: 467, 814, 856, 920, 1149 
 
 DCM_metrics_filtered <- DCM_metrics |>
   filter(!CastID %in% c(467, 814, 856, 920, 1149, 788)) |> #make sure to remove these for heatmaps too
   mutate(CastID = case_when(
-    CastID == 485 ~ 484,  # Change 485 to 484
+    CastID == 485 ~ 484,  # Change 485 to 484. doing this because these need to be combined
+    CastID == 486 ~ 484,  # Change 485 to 484. doing this because these need to be combined
     CastID == 492 ~ 493,  # Combine 492 and 493
     CastID == 499 ~ 500,  # Combine 499 and 500
     CastID == 603 ~ 604,  # Combine 603 and 604
+    
     TRUE ~ CastID          # Keep other values unchanged
   ))|>
   mutate(DOY = yday(Date), Year = year(Date))|>
@@ -146,13 +174,29 @@ DCM_metrics_filtered <- DCM_metrics_filtered|>
   left_join(water_level, by = c("Week", "Year"))
 
 ####Peak.depth and max_conc####
-DCM_metrics_depth <- DCM_metrics_filtered|>
-  group_by(CastID) %>%
-  mutate(max_conc = max(TotalConc_ugL, na.rm = TRUE))|> #concentration of totals at totals DCM
-  mutate(DCM_depth = ifelse(TotalConc_ugL == max_conc, Depth_m, NA_real_))|>
-  fill(max_conc, .direction = "downup")|>
-  fill(DCM_depth, .direction = "downup")|>
-  ungroup()
+# Define pigment variables to loop over
+pigment_vars <- c("TotalConc_ugL", "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL")
+
+# Start from your filtered data
+DCM_metrics_depth <- DCM_metrics_filtered |> group_by(CastID)
+
+# Loop over each pigment variable
+for (var in pigment_vars) {
+  # Create new column names for max concentration and DCM depth
+  max_col <- paste0(var, "_max_conc")
+  dcm_col <- paste0(var, "_DCM_depth")
+  
+  # Dynamically create columns
+  DCM_metrics_depth <- DCM_metrics_depth |>
+    mutate(
+      !!sym(max_col) := max(.data[[var]], na.rm = TRUE),
+      !!sym(dcm_col) := ifelse(.data[[var]] == max(.data[[var]], na.rm = TRUE), Depth_m, NA_real_)
+    ) |>
+    fill(!!sym(max_col), .direction = "downup") |>
+    fill(!!sym(dcm_col), .direction = "downup")
+}
+# Ungroup after loop
+DCM_metrics_depth <- DCM_metrics_depth |> ungroup()
 
 ####Peak.width####
 #use Totals_mean
@@ -241,6 +285,60 @@ final_DCM_metrics<- final_DCM_metrics|>
   #select(-peak.top, -peak.bottom, -peak.width)|>#can remove this once have peak calculations figured out
   group_by(CastID)|>
   mutate(Q3 = quantile(TotalConc_ugL, 0.75)) #25% of data falls above this value 
+
+#-----max_conc check-----------####
+
+# Pigments to visualize (columns that have *_DCM_depth already computed)
+pigment_vars <- c("TotalConc_ugL", "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL")
+
+# Ensure output dir exists
+dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
+
+for (var in pigment_vars) {
+  dcm_col <- paste0(var, "_DCM_depth")
+  
+  for (yr in years) {
+    # Filter to this year
+    test <- DCM_metrics_depth |>
+      filter(year(Date) == yr)
+    
+    if (nrow(test) == 0) next
+    
+    # Defensive: skip if DCM column is missing
+    if (!dcm_col %in% names(test)) next
+    
+    depth_max <- max(test$Depth_m, na.rm = TRUE)
+    
+    plot_casts <- ggplot(test, aes(x = .data[[var]], y = Depth_m, group = Date)) +
+      geom_path() +
+      # light grid every meter
+      geom_hline(yintercept = seq(0, depth_max, by = 1),
+                 color = "lightblue", linetype = "dotted", linewidth = 0.3) +
+      # DCM depth for this pigment
+      geom_hline(aes(yintercept = .data[[dcm_col]]), color = "red") +
+      # label the DCM depth on the right edge of each facet
+      geom_text(
+        aes(label = round(.data[[dcm_col]], 1), x = Inf, y = .data[[dcm_col]]),
+        color = "black", hjust = 1.1, size = 3
+      ) +
+      scale_y_reverse(breaks = seq(0, depth_max, by = 1)) +
+      theme_bw() +
+      facet_wrap(vars(FacetID)) +
+      xlab("micrograms per liter") +
+      ylab("Depth (m)") +
+      ggtitle(paste(yr, "-", var, "raw casts"))
+    
+    ggsave(
+      filename = paste0("Figs/raw_flora_casts/", var, "_", yr, "_raw_casts.png"),
+      plot = plot_casts,
+      width = 12,
+      height = 10,
+      dpi = 300
+    )
+  }
+}
+
+
 
 ####boxplots depth of DCM####
 
