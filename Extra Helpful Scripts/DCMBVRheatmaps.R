@@ -11,7 +11,6 @@ pacman::p_load(tidyverse, lubridate, akima, reshape2,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes)
 
 
-#need to change these values to reflect Bluegreens not just chla (which it currently is)
 # Chlorophyll data for the line visualizing chl max on heatmaps
 
 chlorophyll_data <- phytos %>%
