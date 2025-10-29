@@ -97,7 +97,7 @@ depth_jackknife <- jackknife_incMSE_heatmap(
 ####weather lags####
 met_lags <- depth_analysis |>
   select(Date, DCM_depth,
-         Precip_Avg, precip_lag1, precip_lag2,
+         Precip_Weekly, precip_lag1, precip_lag2,
          AirTemp_Avg, airtemp_lag1, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
 var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "DCM_depth", "Depth")
@@ -187,7 +187,7 @@ ggsave(
 ####weather lags####
 met_lags <- magnitude_analysis |>
   select(Date, max_conc,
-         Precip_Avg, precip_lag1, precip_lag2,
+         Precip_Weekly, precip_lag1, precip_lag2,
          AirTemp_Avg, airtemp_lag1, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
 var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "max_conc", "Magnitude")

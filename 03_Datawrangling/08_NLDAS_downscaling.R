@@ -27,8 +27,8 @@ EDImet_0 <- EDImet |>
          Week = week(Date)) |>
   group_by(Year, Week) |>
   summarise(
-    Date = min(Date),  
-    precip_weekly = mean(Rain_Total_mm, na.rm = TRUE),
+    Date = min(Date),
+    precip_weekly = sum(Rain_Total_mm, na.rm = TRUE),  #total rainfall per week (mm)
     weekly_airtempavg = mean(AirTemp_C_Average, na.rm = TRUE),
     WindSpeed_Weekly_Average_m_s = mean(WindSpeed_Average_m_s, na.rm = TRUE),
     .groups = "drop"
@@ -40,16 +40,18 @@ EDImet_0 <- EDImet |>
 #heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
 #NLDAS <- read.csv(heathergeneratedNLDAS)
 #write.csv(NLDAS, "CSVs/NLDAS.csv", row.names = FALSE)
+#heather's is given in m per day
+
 NLDAS <- read.csv("CSVs/NLDAS.csv")
 
-NLDAS_0 <- NLDAS|>
-  mutate(Date = as_date(time))|>
-  mutate(Year = year(time),
-         Week = week(time)) |>
-  group_by(Year, Week) |>
+NLDAS_0 <- NLDAS %>%
+  mutate(Date = as_date(time),
+         Year = year(Date),
+         Week = week(Date)) %>%
+  group_by(Year, Week) %>%
   summarise(
-    Date = min(Date),  
-    precip_weekly = mean(Rain, na.rm = TRUE), #average
+    Date = min(Date),
+    precip_weekly = sum(Rain * 1000, na.rm = TRUE),  #convert m → mm, then sum for weekly total
     weekly_airtempavg = mean(AirTemp, na.rm = TRUE),
     WindSpeed_Weekly_Average_m_s = mean(WindSpeed, na.rm = TRUE),
     .groups = "drop"

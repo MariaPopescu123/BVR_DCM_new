@@ -587,4 +587,18 @@ write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #var_min_val
 #var_mean
 #var_range (max-main)
+final_phytos <- final_phytos|>
+  filter(Year>2014)
+
+#kruskal wallis test
+kruskal.test(DCM_depth ~ Year, data = final_phytos)
+pairwise.wilcox.test(final_phytos$DCM_depth, final_phytos$Year, 
+                     p.adjust.method = "BH")  # Benjamini–Hochberg correction
+
+#kruskal wallis test
+kruskal.test(max_conc ~ Year, data = final_phytos)
+pairwise.wilcox.test(final_phytos$max_conc, final_phytos$Year, 
+                     p.adjust.method = "BH")  # Benjamini–Hochberg correction
+
+
 
