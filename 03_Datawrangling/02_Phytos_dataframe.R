@@ -26,41 +26,77 @@ write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
 phytos <- read.csv("CSVs/phytos.csv")
 
 ####flora instrument data availability####
-
-#days on the x axis, years on the y axis
+# 1. Build plotting data
 plot_dat <- phytos %>%
   filter(!is.na(TotalConc_ugL)) %>%
-  mutate(Year = year(Date), 
-         DayOfYear = yday(Date))|> # Extract year and day of the year
+  mutate(
+    Year = year(Date),
+    DayOfYear = yday(Date)
+  ) %>%
   select(Date, Year, Week, DayOfYear, TotalConc_ugL, Depth_m)
 
-# Find the maximum TotalConc_ugL value for each year
+# 2. For each Year, get the row with the max concentration
 max_totals_per_year <- plot_dat %>%
-  group_by(year(Date)) %>%
+  group_by(Year) %>%
   slice(which.max(TotalConc_ugL)) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(
+    label_text = paste0(
+      "Max: ",
+      round(TotalConc_ugL, 1), " µg/L at ",
+      Depth_m, " m"
+    ),
+    label_x = 211  # fixed DayOfYear position for text
+  )
 
-# Main plot
-phytosplot <- # Plot: x-axis is DayOfYear, y-axis is Year, with a line and highlighted points
-  ggplot(plot_dat, aes(x = DayOfYear, y = as.factor(Year), group = Year)) +
-  geom_line() +  # Line for each year
-  geom_point() +  # Data points
-  geom_point(data = max_totals_per_year, aes(x = DayOfYear, y = as.factor(Year)), 
-             color = "red", size = 3) +  # Highlight max points in red
-  geom_text(data = max_totals_per_year, 
-            aes(x = DayOfYear, y = as.factor(Year), 
-                label = paste0("Max: ", round(TotalConc_ugL, 2), " µg/L\nDepth: ", Depth_m, " m")), 
-            vjust = 1.5, hjust = 0.5, color = "black", size = 3) +  # Smaller text and place below the point
+# 3. Make the plot
+phytosplot <- ggplot(plot_dat, aes(x = DayOfYear, y = as.factor(Year), group = Year)) +
+  geom_line() +
+  geom_point(size = 1) +
+  # keep the red point at the true max position for visual reference
+  geom_point(
+    data = max_totals_per_year,
+    aes(x = DayOfYear, y = as.factor(Year)),
+    color = "red",
+    size = 3
+  ) +
+  # add the label at DOY = 211 (not at the point location)
+  geom_text(
+    data = max_totals_per_year,
+    aes(
+      x = label_x,
+      y = as.factor(Year),
+      label = label_text
+    ),
+    vjust = 2,      # push text just below the line
+    hjust = 0.5,
+    size = 3,
+    color = "black"
+  ) +
   theme_bw() +
-  labs(x = "Day of Year", y = "Year", title = "Fluoroprobe Data Availability 2025 Pub") +
-  scale_x_continuous(breaks = seq(1, 365, by = 30), limits = c(1, 365)) +  # Set x-axis limits and breaks
-  theme(panel.grid.minor = element_blank())+  # Optional: remove minor grid lines
-  geom_vline(xintercept = 133, linetype = "dashed", color = "red") +  # Vertical dashed line at DayOfYear 133
-  geom_vline(xintercept = 286, linetype = "dashed", color = "red")  # Vertical dashed line at DayOfYear 286
-print(phytosplot)
+  labs(
+    x = "Day of Year",
+    y = "Year",
+    title = "Fluoroprobe Data Availability 2015-2024"
+  ) +
+  scale_x_continuous(
+    breaks = seq(1, 365, by = 30),
+    limits = c(1, 365)
+  ) +
+  geom_vline(xintercept = c(133, 286), linetype = "dashed", color = "red") +
+  theme(
+    panel.grid.minor = element_blank()
+  )
 
-ggsave("Figs/Data_availability/TotalPhytos2025pub.png",phytosplot)
+#print(phytosplot)
 
+ggsave(
+  "Figs/Data_availability/TotalPhytos2025pub.png",
+  phytosplot,
+  width = 8,
+  height = 6,
+  dpi = 400
+)
 #see that the data is dispersed at random intervals
 ####choosing casts and calculating peaks####
 #1. Look at every cast for every year and remove casts that do not make sense
