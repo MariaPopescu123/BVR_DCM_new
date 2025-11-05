@@ -3,7 +3,7 @@
 #current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/9/f246b36c591a888cc70ebc87a5abbcb7")
 
 #THIS IS IN STAGING RIGHT NOW: 
-current_df <- read.csv("https://pasta-s.lternet.edu/package/data/eml/edi/1304/1/f246b36c591a888cc70ebc87a5abbcb7")
+current_df <- read_csv("https://pasta-s.lternet.edu/package/data/eml/edi/1304/1/f246b36c591a888cc70ebc87a5abbcb7")
 
 #published 2024
 #current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/8/0359840d24028e6522f8998bd41b544e")
@@ -20,7 +20,8 @@ phytos <- current_df %>%
   #filter(Flag_TotalConc_ugL != 2,Flag_TotalConc_ugL != 3)|> #2 is instrument malfunction and #3 is low transmission value
   mutate(Week = week(Date))|>
   mutate(Year = year(Date))|>
-  mutate(DOY = yday(Date))
+  mutate(DOY = yday(Date))|>
+  filter(year(Date) >2014)
 
 write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
 phytos <- read.csv("CSVs/phytos.csv")
@@ -193,11 +194,6 @@ DCM_metrics_filtered <- DCM_metrics |>
   ))|>
   mutate(DOY = yday(Date), Year = year(Date))|>
   filter(DOY > 133, DOY < 285)
-
-#question about how to address casts that don't qualify as a bloom. They won't calculate metrics
-#will RandomForest assume a bloom just didn't happen?
-#does there need to be a component that first predicts whether or not a bloom will happen?
-#and then if yes 
 
 #join waterlevel because this will be important for peak metrics
 water_level <- read.csv("CSVs/water_level.csv") |>
@@ -375,7 +371,6 @@ for (var in pigment_vars) {
 }
 
 
-
 ####boxplots depth of DCM####
 
 #need to use raw data for this to work 
@@ -416,7 +411,9 @@ boxplot_Data <- final_DCM_metrics|>
     DCM_depth = mean(DCM_depth, na.rm = TRUE),
     max_conc = mean(max_conc, na.rm = TRUE),
     .groups = "drop"
-  )
+  )|>
+  filter(max_conc >= 20)|>
+  filter(year(Date) >2014)
 
 label_data <- boxplot_Data %>%
   group_by(Year) %>%
@@ -433,7 +430,7 @@ last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
     limits = c(20, max_legend_value), 
     breaks = c(20, 100, 200, 300, 380)
   ) +  scale_y_reverse(name = "DCM Depth (inverted)") +  # Reverse the y-axis
-  ggtitle(label = "DCM Depths all data points") + #or change this so that it's only displaying points greater than 20ugL
+  ggtitle(label = "DCM Depths") + #or change this so that it's only displaying points greater than 20ugL
   ylim(10, 0) +  # Set the y-axis limits, reversing the range
   labs(x = "Year", y = "DCM Depth", color = "totals ugL") +  # Label the legend
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -443,7 +440,7 @@ last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
 print(last_plot)
 
 ggsave(
-  filename = "DCM_depths_annual_boxplot_all_data_points.png",
+  filename = "DCM_depths_annual_boxplot_greaterthan20.png",
   plot = last_plot(),
   path = "Figs/Phytos_viz",
   width = 10,   # width in inches
@@ -509,6 +506,11 @@ boxplot_Data <- final_DCM_metrics |>
     .groups = "drop"
   )
 
+label_data <- boxplot_Data %>%
+  group_by(Year) %>%
+  summarise(n = n())  # Calculate the number of data points per year
+
+
 summer_conc <- ggplot(boxplot_Data, aes(x = factor(Month, labels = c("June", "July", "August")), 
                          y = max_conc)) +
   geom_boxplot() +
@@ -533,6 +535,8 @@ ggsave(
 
 boxplot_Data <- final_DCM_metrics |>
   filter(max_conc > 20) |>
+  mutate(Date = as.Date(Date))|>
+  filter(year(Date)>2014)|>
   mutate(DayOfYear = yday(Date))|>
   filter(DayOfYear>133, DayOfYear<286) |>
   mutate(Year = year(Date), Month = month(Date))|>
@@ -540,16 +544,26 @@ boxplot_Data <- final_DCM_metrics |>
   summarise(max_conc = mean(max_conc))
 
 ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
-  geom_boxplot() +
+  geom_boxplot(outlier.shape = NA) +                    # ← no black outliers
+  geom_point(aes(color = max_conc),
+             position = position_jitter(width = 0.2), size = 2) +
   geom_point(aes(color = max_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
-  scale_color_gradientn(colours = blue2green2red(60), na.value = "gray", limits = c(NA, max_legend_value)) +  # Apply color gradient to points
-  ggtitle(label = "Peak Magnitudes only displaying totals > 20")+
+  scale_color_gradientn(
+    colours = c("blue","cyan", "green","yellow", "red", "red3"),
+    values = scales::rescale(c(0,40, 75, 100, 200, max_legend_value)),  # Make red hit at 150 µg/L
+    na.value = "gray",
+    limits = c(20, max_legend_value), 
+    breaks = c(20, 100, 200, 300, 380)
+  ) +  
+  ggtitle(label = "Peak Magnitudes")+
   ylim(0, 385) +  # Set the y-axis limits, reversing the range
   labs(x = "Year", y = "Peak Magnitude", color = "totals ugL") +  # Label the legend
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  geom_text(data = label_data, aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)), 
+            vjust = -0.5)  # Add labels at the top of each column
 
 ggsave(
-  filename = "Peak_Magnitidues_2014_2024_boxplot.png",
+  filename = "Peak_Magnitidues_2015_2024_boxplot.png",
   plot = last_plot(),
   path = "Figs/Phytos_viz",
   width = 10,   # width in inches

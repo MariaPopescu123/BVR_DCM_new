@@ -145,7 +145,6 @@ plot_correlation_matrix(
 #####Phytos#####
 #may do this
 
-
 ####chosen variables####
 depth_analysis <- read.csv("CSVs/depth_analysis_frame.csv")
 
@@ -160,14 +159,10 @@ depth_analysis_revised <- depth_analysis |>
          thermocline_depth,
          schmidt_stability,
          precip_lag1,
-         precip_lag2,
-         airtemp_lag1,
          airtemp_lag2,
-         wind_lag1,
-         wind_lag2)
+         wind_lag1)
 
 write.csv(depth_analysis_revised, "CSVs/depth_analysis_revised.csv", row.names = FALSE)
-
 
 
 #####BOTH Met Data##### these are variables for both DCM depth and DCM magnitude
@@ -238,8 +233,7 @@ magnitude_analysis <- read.csv("CSVs/magnitude_analysis_frame.csv")
 magnitude_analysis_revised <- magnitude_analysis |>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,
          TFe_mgL_max_val,SRP_ugL_max_val, NH4_ugL_max_val, 
-         precip_lag1, precip_lag2, airtemp_lag2,
-         WindSpeed_Avg, wind_lag1, wind_lag2)
+         precip_lag1, airtemp_lag2, wind_lag1)
 write.csv(magnitude_analysis_revised, "CSVs/magnitude_analysis_revised.csv", row.names = FALSE)
 
 ####visualize chosen variables####
