@@ -1,26 +1,5 @@
-#trying to make the plot that visualizes the #incMSE for each variable within each year
+# trying to make the plot that visualizes the %IncMSE for each variable within each year
 
-
-
-#Example use of function
-# #-------------------------------------
-# res <- jackknife_incMSE_heatmap(
-#   Xdataframe     = final_depth_analysis,
-#   year_min       = 2015,
-#   year_max       = 2024,
-#   response_var   = "DCM_depth",
-#   whichvars_label= "Selected variables",
-#   save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png")
-# )
-# # View the plot
-# res$plot
-# # See the summarized table (Year, Variable, mean_incMSE, sd_incMSE used for the tiles/labels)
-# res$summary %>% as.data.frame() %>% head()
-
-
-
-#function
-#--------------------------------
 suppressPackageStartupMessages({
   library(dplyr)
   library(tidyr)
@@ -29,279 +8,243 @@ suppressPackageStartupMessages({
   library(tibble)
   library(randomForest)
   library(scales)
+  library(forcats)
 })
 
-# Jackknife %IncMSE heatmap across years
-# -----------------------------------------------------------
-# Xdataframe : data.frame with a Date column and predictors + response
-# year_min, year_max : inclusive year range (e.g., 2015, 2024)
-# response_var : name of response column (character)
-# whichvars_label : label for titles
-# save_path : optional file path to ggsave the plot (PNG/PDF based on extension)
-
 jackknife_incMSE_heatmap <- function(
-    Xdataframe,
-    year_min,
-    year_max,
-    var_order = NULL,
-    response_var,
-    whichvars_label = "",
-    save_path = NULL
+    Xdataframe, year_min, year_max,
+    var_order = NULL, response_var,
+    whichvars_label = "", save_path = NULL,
+    seed_base = 20240601,
+    variable_labels = NULL
 ) {
-  #here for testing purposes
-  # Xdataframe    <-  final_magnitude_analysis
-  # year_min       <- 2015
-  # year_max       <- 2024
-  # var_order <- finalmagnitudeRF$var_order
-  # response_var   <- "max_conc"
-  # whichvars_label<- "Final"
-  # save_path <- here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png")
-  # 
   
   # ---------- 0) Prep & cleaning ----------
   df0 <- Xdataframe %>%
     mutate(Date = as.Date(.data$Date),
            Year = lubridate::year(.data$Date)) %>%
-    dplyr::filter(.data$Year >= year_min, .data$Year <= year_max)
+    arrange(Year, Date) %>%
+    filter(.data$Year >= year_min, .data$Year <= year_max)
   
   if (!response_var %in% names(df0)) stop("response_var not found in dataframe.")
   
-  # Keep numeric/factor predictors (drop Date)
   keep_cols <- df0 %>%
-    dplyr::select(-Date) %>%
-    dplyr::select(where(~ is.numeric(.x) || is.factor(.x))) %>%
+    select(-Date) %>%
+    select(where(~ is.numeric(.x) || is.factor(.x))) %>%
     names()
   
-  # Build modeling frame: Year, response, predictors
   model_df <- df0 %>%
-    dplyr::select(Year, dplyr::all_of(response_var), dplyr::any_of(setdiff(keep_cols, response_var))) %>%
-    dplyr::mutate(dplyr::across(where(is.numeric), ~ ifelse(is.infinite(.x) | is.nan(.x), NA, .x)))
+    select(Year, dplyr::all_of(response_var), dplyr::any_of(setdiff(keep_cols, response_var))) %>%
+    mutate(across(where(is.numeric), ~ ifelse(is.infinite(.x) | is.nan(.x), NA, .x)))
   
-  # Drop columns with >25% NA (keep Year and response)
   na_frac <- sapply(model_df, function(x) mean(is.na(x)))
   drop_cols <- setdiff(names(na_frac)[na_frac > 0.25], c("Year", response_var))
-  model_df <- model_df %>% dplyr::select(-dplyr::any_of(drop_cols))
+  model_df <- model_df %>% select(-any_of(drop_cols)) %>% tidyr::drop_na()
   
-  # Drop any remaining NA rows
-  model_df <- tidyr::drop_na(model_df)
-  
-  # Early exit if not enough predictors
   pred_cols_all <- setdiff(names(model_df), c("Year", response_var))
   if (length(pred_cols_all) < 2L) stop("Not enough predictors after cleaning.")
   
-  # Count n per year (used in x-axis labels)
-  n_per_year <- model_df %>%
-    dplyr::count(Year, name = "n") %>%
-    dplyr::arrange(Year)
+  n_per_year <- model_df %>% count(Year, name = "n") %>% arrange(Year)
   
-  # helper: build tuning grid given p
-  .mtry_grid <- function(p) {
-    if (is.null(tune_grid$mtry)) {
-      unique(pmin(seq(2, max(2, floor(p/2))), p))
-    } else {
-      unique(pmin(unlist(tune_grid$mtry), p))
-    }
-  }
-  
-  # helper: tune RF once on provided data; returns best row (ntree/mtry/nodesize)
-  # helper: tune RF once on provided data; returns best row (ntree/mtry/nodesize)
-  .tune_once <- function(df_fit) {
+  # ---------- helpers ----------
+  .tune_once <- function(df_fit, seed) {
+    set.seed(seed)
     pred_cols <- setdiff(names(df_fit), response_var)
     p <- length(pred_cols)
     y_obs <- df_fit[[response_var]]
     
-    # Match var_importance_shap_plots tuning grid
     grid_trees <- c(100, 200, 300, 500)
     grid_nodes <- c(2, 4, 6, 8)
     grid_mtry  <- unique(pmin(seq(1, max(1, floor(p / 2)), by = 1), p))
     
-    results <- list()
+    results <- vector("list", length(grid_trees) * length(grid_nodes) * length(grid_mtry))
     idx <- 1
     for (nt in grid_trees) {
       for (ns in grid_nodes) {
         for (mt in grid_mtry) {
+          set.seed(seed + nt*1e6 + ns*1e3 + mt)
           fit <- randomForest::randomForest(
             as.formula(paste(response_var, "~ .")),
-            data       = df_fit,
-            ntree      = nt,
-            mtry       = mt,
-            nodesize   = ns,
-            importance = TRUE
+            data = df_fit, ntree = nt, mtry = mt, nodesize = ns, importance = TRUE
           )
           preds <- predict(fit, df_fit)
-          rsq   <- 1 - sum((y_obs - preds)^2) / sum((y_obs - mean(y_obs))^2)
-          mse   <- mean((y_obs - preds)^2)
-          results[[idx]] <- data.frame(
-            Trees = nt, NodeSize = ns, mtry = mt,
-            R2 = rsq, MSE = mse
-          )
+          rsq <- 1 - sum((y_obs - preds)^2) / sum((y_obs - mean(y_obs))^2)
+          mse <- mean((y_obs - preds)^2)
+          results[[idx]] <- data.frame(Trees = nt, NodeSize = ns, mtry = mt, R2 = rsq, MSE = mse)
           idx <- idx + 1
         }
       }
     }
-    
     best <- dplyr::bind_rows(results) %>%
-      dplyr::arrange(dplyr::desc(R2), MSE) %>%
-      dplyr::slice(1)
-    
-    tibble::tibble(
-      ntree    = best$Trees,
-      mtry     = best$mtry,
-      nodesize = best$NodeSize
-    )
+      arrange(desc(R2), MSE) %>% slice(1)
+    tibble(ntree = best$Trees, mtry = best$mtry, nodesize = best$NodeSize)
   }
   
-  # helper: extract %IncMSE safely and return tibble(Variable, `%IncMSE`)
   .imp_df <- function(fit) {
     imp <- as.data.frame(randomForest::importance(fit))
     imp$Variable <- rownames(imp)
-    
-    # Remove variables with NA, empty, or literal "NA" names
     imp <- imp[!is.na(imp$Variable) & imp$Variable != "" & imp$Variable != "NA", , drop = FALSE]
-    
-    tibble::as_tibble(imp) %>%
-      dplyr::select(Variable, `%IncMSE`)
+    as_tibble(imp) %>% select(Variable, `%IncMSE`)
   }
   
   all_imp_long <- list()
   
-  # ---------- 1) Per-year jackknife (with graceful fallback for small n) ----------
+  # ---------- 1) Per-year jackknife ----------
   for (yy in sort(unique(model_df$Year))) {
-    df_y <- model_df %>% dplyr::filter(Year == yy) %>% dplyr::select(-Year)
-    n_y  <- nrow(df_y)
-    if (n_y == 0) next
+    df_y <- model_df %>% filter(Year == yy) %>% select(-Year)
+    n_y  <- nrow(df_y); if (n_y == 0) next
     
-    # Tune once on full year's data
-    best <- .tune_once(df_y)
+    best <- .tune_once(df_y, seed = seed_base + yy)
     
     if (n_y < 5) {
-      # Fallback: single fit (no jackknife) so the year still appears
+      set.seed(seed_base + yy*1000)
       fit <- randomForest::randomForest(
         as.formula(paste(response_var, "~ .")),
-        data       = df_y,
-        ntree      = best$ntree,
-        mtry       = best$mtry,
-        nodesize   = best$nodesize,
-        importance = TRUE
+        data = df_y, ntree = best$ntree, mtry = best$mtry, nodesize = best$nodesize, importance = TRUE
       )
-      imp_long <- .imp_df(fit) %>% dplyr::mutate(Year = yy, jack_idx = 1L)
-      all_imp_long[[as.character(yy)]] <- imp_long
+      all_imp_long[[as.character(yy)]] <- .imp_df(fit) %>% mutate(Year = yy, jack_idx = 1L)
       next
     }
     
-    # Jackknife: drop each observation once
     imp_stack <- vector("list", n_y)
     for (i in seq_len(n_y)) {
+      set.seed(seed_base + yy*1000 + i)
       fit_i <- randomForest::randomForest(
         as.formula(paste(response_var, "~ .")),
-        data       = df_y[-i, , drop = FALSE],
-        ntree      = best$ntree,
-        mtry       = best$mtry,
-        nodesize   = best$nodesize,
-        importance = TRUE
+        data = df_y[-i, , drop = FALSE],
+        ntree = best$ntree, mtry = best$mtry, nodesize = best$nodesize, importance = TRUE
       )
-      imp_stack[[i]] <- .imp_df(fit_i) %>% dplyr::mutate(Year = yy, jack_idx = i)
+      imp_stack[[i]] <- .imp_df(fit_i) %>% mutate(Year = yy, jack_idx = i)
     }
-    all_imp_long[[as.character(yy)]] <- dplyr::bind_rows(imp_stack)
+    all_imp_long[[as.character(yy)]] <- bind_rows(imp_stack)
   }
   
-  # ---------- 1b) Add pooled "All years" jackknife as a final column ----------
-  df_all <- model_df %>% dplyr::select(-Year)
+  # ---------- 1b) Pooled "All years" jackknife ----------
+  df_all <- model_df %>% select(-Year)
   n_all  <- nrow(df_all)
-  if (n_all < 2L) stop("Not enough rows overall for pooled analysis.")
+  stopifnot(n_all >= 2L)
   
-  best_all <- .tune_once(df_all)
+  best_all <- .tune_once(df_all, seed = seed_base + 9999)
   
   if (n_all >= 5) {
     imp_stack_all <- vector("list", n_all)
     for (i in seq_len(n_all)) {
+      set.seed(seed_base + 9999*1000 + i)
       fit_i <- randomForest::randomForest(
         as.formula(paste(response_var, "~ .")),
-        data       = df_all[-i, , drop = FALSE],
-        ntree      = best_all$ntree,
-        mtry       = best_all$mtry,
-        nodesize   = best_all$nodesize,
-        importance = TRUE
+        data = df_all[-i, , drop = FALSE],
+        ntree = best_all$ntree, mtry = best_all$mtry, nodesize = best_all$nodesize, importance = TRUE
       )
-      imp_stack_all[[i]] <- .imp_df(fit_i) %>% dplyr::mutate(Year = 9999L, jack_idx = i)
+      imp_stack_all[[i]] <- .imp_df(fit_i) %>% mutate(Year = 9999L, jack_idx = i)
     }
-    all_imp_long[["ALL"]] <- dplyr::bind_rows(imp_stack_all)
+    all_imp_long[["ALL"]] <- bind_rows(imp_stack_all)
   } else {
-    # Fallback single fit if overall n is very small
+    set.seed(seed_base + 9999*1000)
     fit_all <- randomForest::randomForest(
       as.formula(paste(response_var, "~ .")),
-      data       = df_all,
-      ntree      = best_all$ntree,
-      mtry       = best_all$mtry,
-      nodesize   = best_all$nodesize,
-      importance = TRUE
+      data = df_all, ntree = best_all$ntree, mtry = best_all$mtry, nodesize = best_all$nodesize, importance = TRUE
     )
-    all_imp_long[["ALL"]] <- .imp_df(fit_all) %>% dplyr::mutate(Year = 9999L, jack_idx = 1L)
+    all_imp_long[["ALL"]] <- .imp_df(fit_all) %>% mutate(Year = 9999L, jack_idx = 1L)
   }
   
   if (length(all_imp_long) == 0) stop("No years had enough observations after cleaning.")
   
-  imp_long <- dplyr::bind_rows(all_imp_long) %>% dplyr::filter(!is.na(`%IncMSE`))
+  imp_long <- bind_rows(all_imp_long) %>% filter(!is.na(`%IncMSE`))
   
   # ---------- 2) Summarize mean ± sd per (Year, Variable) ----------
   imp_summary <- imp_long %>%
-    dplyr::group_by(Year, Variable) %>%
-    dplyr::summarise(
+    group_by(Year, Variable) %>%
+    summarise(
       mean_incMSE = mean(`%IncMSE`, na.rm = TRUE),
       sd_incMSE   = stats::sd(`%IncMSE`,   na.rm = TRUE),
       .groups = "drop"
     )
   
-  # Use provided var_order (if NULL, fall back to computed order)
   if (is.null(var_order)) {
     var_order <- imp_summary %>%
-      dplyr::group_by(Variable) %>%
-      dplyr::summarise(overall_mean = mean(mean_incMSE, na.rm = TRUE), .groups = "drop") %>%
-      dplyr::arrange(dplyr::desc(overall_mean)) %>%
-      dplyr::pull(Variable)
+      group_by(Variable) %>%
+      summarise(overall_mean = mean(mean_incMSE, na.rm = TRUE), .groups = "drop") %>%
+      arrange(desc(overall_mean)) %>%
+      pull(Variable)
   }
-  # y order: most important at top
+  
+  vars_present <- unique(imp_summary$Variable)
+  missing <- setdiff(vars_present, var_order)
+  if (length(missing)) {
+    message("Adding to var_order (not previously listed): ",
+            paste(missing, collapse = ", "))
+    var_order <- c(var_order, missing)
+  }
+  
   imp_summary <- imp_summary %>%
-    dplyr::mutate(Variable = factor(Variable, levels = rev(var_order)))
+    mutate(Variable = forcats::fct_relevel(Variable, rev(var_order)))
   
   # Year labels with n + pooled "All"
-  n_all_row <- tibble::tibble(Year = 9999L, n = n_all)
-  n_per_year2 <- dplyr::bind_rows(n_per_year, n_all_row)
+  n_all_row <- tibble(Year = 9999L, n = n_all)
+  n_per_year2 <- bind_rows(n_per_year, n_all_row)
   
   year_lab <- n_per_year2 %>%
-    dplyr::mutate(Year_label = dplyr::if_else(Year == 9999L,
-                                              paste0("All\n(n=", n, ")"),
-                                              paste0(Year, "\n(n=", n, ")"))) %>%
-    dplyr::select(Year, Year_label) %>%
-    dplyr::arrange(Year)  # 9999 -> last
+    mutate(
+      Year_label = if_else(
+        Year == 9999L, paste0("All\n(n=", n, ")"),
+        paste0(Year, "\n(n=", n, ")")
+      )
+    ) %>%
+    select(Year, Year_label)
   
-  imp_summary <- imp_summary %>% filter(!is.na(Year)) #put this here because of plotting issue
+  year_levels <- c(
+    year_lab$Year_label[year_lab$Year == 9999L],
+    year_lab$Year_label[year_lab$Year != 9999L][order(year_lab$Year[year_lab$Year != 9999L])]
+  )
   
   plot_df <- imp_summary %>%
-    dplyr::left_join(year_lab, by = "Year") %>%
-    dplyr::mutate(Year_label = factor(Year_label, levels = unique(year_lab$Year_label)))
+    left_join(year_lab, by = "Year") %>%
+    mutate(Year_label = factor(Year_label, levels = year_levels))
   
-  # ---------- 3) Heatmap with text "mean±sd" ----------
-  heat <- ggplot2::ggplot(plot_df, ggplot2::aes(x = Year_label, y = Variable, fill = mean_incMSE)) +
-    ggplot2::geom_tile(color = "white", linewidth = 0.2) +
-    ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f±%.1f", mean_incMSE, sd_incMSE)), size = 2.8) +
-    viridis::scale_fill_viridis(name = "Mean %IncMSE", option = "H") +
-    ggplot2::labs(
+  # Safe labeller: map internal names -> pretty labels if provided
+  y_lab_fun <- function(v) {
+    if (is.null(variable_labels)) return(v)
+    out <- unname(variable_labels[as.character(v)])
+    out[is.na(out)] <- v[is.na(out)]
+    out
+  }
+  
+  # ---------- 3) Heatmap ----------
+  heat <- ggplot(plot_df, aes(x = Year_label, y = Variable, fill = mean_incMSE)) +
+    geom_tile(color = "white", linewidth = 0.2) +
+    geom_text(
+      aes(label = sprintf("%.1f±%.1f", mean_incMSE, sd_incMSE),
+          color = mean_incMSE < 2),
+      size = 2.8
+    ) +
+    viridis::scale_fill_viridis(
+      name = "Mean %IncMSE",
+      option = "H",
+      limits = c(0, 10),          # clamp range to 0–10
+      oob = scales::squish,       # values >10 stay at top color
+      breaks = c(0, 10),
+      labels = c("0", "≥10")
+    ) +
+    scale_color_manual(
+      values = c("TRUE" = "white", "FALSE" = "black"),
+      guide = "none"
+    ) +
+    scale_y_discrete(labels = y_lab_fun) +
+    labs(
       title = paste0("Jackknife %IncMSE (", year_min, "–", year_max, " + All)"),
       subtitle = whichvars_label,
       x = "Year (n after cleaning)",
       y = "Variables (ordered by overall mean %IncMSE)"
     ) +
-    ggplot2::theme_minimal(base_size = 11) +
-    ggplot2::theme(
-      panel.grid = ggplot2::element_blank(),
-      axis.text.x = ggplot2::element_text(lineheight = 0.9),
-      plot.title = ggplot2::element_text(face = "bold")
+    theme_minimal(base_size = 11) +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_text(lineheight = 0.9),
+      plot.title = element_text(face = "bold")
     )
   
-  # Save if requested
   if (!is.null(save_path)) {
-    ggplot2::ggsave(filename = save_path, plot = heat, width = 12, height = 8, dpi = 400, bg = "white")
+    ggsave(filename = save_path, plot = heat, width = 12, height = 8, dpi = 400, bg = "white")
   }
   
   invisible(list(plot = heat, summary = plot_df))

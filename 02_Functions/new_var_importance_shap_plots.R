@@ -9,23 +9,31 @@ library(fastshap)
 library(patchwork)
 library(here)
 
-
+# Put this near the top of the function (after library calls is fine)
+axis_only_theme <- theme_classic(base_size = 10) +
+  theme(
+    panel.border = element_blank(),     # no full border
+    axis.line    = element_line(color = "black", linewidth = 0.4),
+    axis.ticks   = element_line(color = "black")
+  )
 
 # Xdataframe: data.frame with Date column (Date or POSIXt) + predictors + response
 # XYear, XYear2: inclusive year bounds (e.g., 2014, 2019)
 # whichvars: label for titles/files
 # response_var: name of response column as a string (e.g., "DCM_depth" or "max_conc")
 # save_dir: subfolder under Figs/MachineLearning/ for saving (e.g., "Depth" or "Magnitude")
-
-var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, response_var, save_dir) {
-  
-  # # ----parameters for testing
-  # Xdataframe <- selected_depth_analysis
-  # XYear <- 2015
-  # XYear2 <- 2024
-  # whichvars <- "selected vars"
-  # response_var <- "DCM_depth"
-  # save_dir <- "Depth"
+# variable_labels: named character vector mapping internal names -> pretty labels used in plots
+var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, response_var, save_dir,
+                                      variable_labels = NULL) {
+  # helper: safe pretty labels
+  pretty_lab <- function(v) {
+    if (is.null(variable_labels)) return(v)
+    out <- unname(variable_labels[as.character(v)])
+    out[is.na(out)] <- v[is.na(out)]
+    out
+  }
+  # pretty response label if available
+  response_label <- pretty_lab(response_var)
   
   # ---- Filter by year window; keep Year & row id so we can tally after cleaning ----
   df <- Xdataframe %>%
@@ -89,7 +97,6 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
   # ---- RF tuning ----
   set.seed(123)
   rf_formula <- as.formula(paste(response_var, "~ ."))
-  
   rf_df <- model_df %>% select(all_of(response_var), all_of(pred_cols))
   
   grid_trees <- c(100, 200, 300, 500)
@@ -146,8 +153,9 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
   
   preds_final <- predict(final_rf, rf_df)
   r2_final <- 1 - sum((y_obs - preds_final)^2) / sum((y_obs - mean(y_obs))^2)
-  meta_subtitle <- sprintf("R²=%.3f | n=%d | ntree=%d | mtry=%d | nodesize=%d",
-                           r2_final, nrow(rf_df), best$Trees, best$mtry, best$NodeSize)  
+  meta_subtitle <- sprintf("%s | R²=%.3f | n=%d | ntree=%d | mtry=%d | nodesize=%d",
+                           response_label, r2_final, nrow(rf_df), best$Trees, best$mtry, best$NodeSize)
+  
   # ---- Variable importance (%IncMSE) ----
   imp_df <- as.data.frame(importance(final_rf)) %>%
     rownames_to_column("Variable") %>%
@@ -162,14 +170,15 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
   ) +
     geom_point(size = 3) +
     labs(
-      title = paste0(save_dir, " Variable Importance (%IncMSE) — ", XYear),
-      subtitle = meta_subtitle,   # <<–– adds R2, n, and best params per year
+      title = paste0(save_dir, " Variable Importance (%IncMSE) ", XYear, "-", XYear2),
+      subtitle = meta_subtitle,
       x = "% IncMSE",
       y = "Variables"
     ) +
-    theme_classic(base_size = 10) +
+    scale_y_discrete(labels = pretty_lab) +
+    axis_only_theme +                                # << use axis-only styling
     theme(
-      plot.title = element_text(face = "bold"),
+      plot.title    = element_text(face = "bold"),
       plot.subtitle = element_text(size = 9)
     )
   
@@ -209,30 +218,20 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
     scale_color_viridis_c(option = "H", limits = c(-3, 3), oob = scales::oob_squish) +
     labs(
-      title = paste0(save_dir, " SHAP value distribution\n",
-                     XYear, "-", XYear2, "  ", whichvars),
+      title  = paste0(save_dir, " SHAP value distribution ",
+                      XYear, "-", XYear2, "  ", whichvars),
+      subtitle = response_label,
       y = "",
       color = "z-scaled\nvalues"
     ) +
-    theme_classic(base_size = 10) +
+    scale_y_discrete(labels = pretty_lab) +
+    axis_only_theme +                                # << use axis-only styling
     theme(
-      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
-      plot.title = element_text(hjust = 0.5)
+      plot.title = element_text(hjust = 0.5, face = "bold")
     )
   
-  # ---- Combined & save (with R²) ----
-  combined_plot <- p_imp + p_shap + plot_layout(ncol = 2) +
-    plot_annotation(
-      title = paste0(
-        "Variable Importance & SHAP: ", response_var,
-        " (", XYear, "-", XYear2, ") — ", whichvars,
-        "\nBest RF: ntree=", best$Trees,
-        ", mtry=", best$mtry,
-        ", nodesize=", best$NodeSize,
-        " | n=", nrow(rf_df),
-        " | R²=", round(r2_final, 3)
-      )
-    )
+  # ---- Combined & save ----
+  combined_plot <- p_imp + p_shap + plot_layout(ncol = 2)
   
   ggsave(
     filename = here::here("Figs", "MachineLearning", save_dir,
@@ -242,9 +241,36 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
   )
   
   return(list(
-    plot = combined_plot,
-    var_order = ordered_vars
+    plots = list(
+      importance = p_imp,
+      shap       = p_shap,
+      combined   = combined_plot
+    ),
+    var_order = ordered_vars,
+    model_details = list(
+      response     = response_var,
+      response_label = response_label,
+      years        = c(XYear, XYear2),
+      whichvars    = whichvars,
+      n            = nrow(rf_df),
+      r2           = unname(r2_final),
+      best_params  = list(
+        ntree    = best$Trees,
+        mtry     = best$mtry,
+        nodesize = best$NodeSize
+      )
+    ),
+    counts = list(
+      before = list(
+        total  = obs_total_before,
+        by_year = obs_per_year_before
+      ),
+      after = list(
+        total  = obs_total_after,
+        by_year = obs_per_year_after
+      )
+    ),
+    tuning_scores = RF_tuning_scores,
+    importance_table = imp_df
   ))
 }
-
-

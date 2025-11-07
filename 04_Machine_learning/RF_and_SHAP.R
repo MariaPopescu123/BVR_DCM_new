@@ -12,7 +12,12 @@
 #to inform decisions on which variables will go into the final model
 #####ALL VARS####
 depth_analysis <- read.csv("CSVs/depth_analysis_revised.csv")
-var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "all variables","DCM_depth", "Depth")
+depth_ML <- var_importance_shap_plots(Xdataframe = depth_analysis, 2015, 2024, "","DCM_depth", "Depth")
+depth_ML
+#to see model_details
+print(depth_ML$model_details)
+#Variable Importance & SHAP: DCM_depth (2015-2024) — all variables
+#Best RF: ntree=200, mtry=3, nodesize=2 | n=133 | R²=0.938
 
 #####all vars individual years#####
 all_plots <- list()
@@ -21,7 +26,7 @@ for (i in 2015:2024) {
     Xdataframe = depth_analysis,
     XYear = i,
     XYear2 = i,
-    whichvars = "all variables",
+    whichvars = " ",
     response_var = "DCM_depth",
     save_dir = "Depth"
   )
@@ -43,13 +48,14 @@ ggsave(
 final_depth_analysis <- depth_analysis |>
   select(
     Date, DCM_depth,
-    PZ, PZ_prop, thermocline_depth, schmidt_stability, WaterLevel_m,
+    PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
     depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
     wind_lag1, airtemp_lag2, precip_lag1
   )
 #write.csv(selected_depth_analysis, "CSVs/selected_depth_analysis.csv", row.names = FALSE)
 
-fulldepthRF <- var_importance_shap_plots(Xdataframe = final_depth_analysis, 2015, 2024, "Final","DCM_depth", "Depth")
+finaldepthRF <- var_importance_shap_plots(Xdataframe = final_depth_analysis, 2015, 2024,
+                                          "","DCM_depth", "Depth", variable_labels = variable_labels)
 
 #I want this function to also return a list called var_order
 
@@ -62,7 +68,8 @@ for (i in 2015:2024) {
     XYear2 = i,
     whichvars = "final",
     response_var = "DCM_depth",
-    save_dir = "Depth"
+    save_dir = "Depth", 
+    variable_labels = variable_labels
   )
   all_plots[[as.character(i)]] <- p[[1]]
 }
@@ -82,25 +89,21 @@ depth_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = final_depth_analysis,
   year_min       = 2015,
   year_max       = 2024,
-  var_order = fulldepthRF$var_order,
+  var_order = finaldepthRF$var_order,
   response_var   = "DCM_depth",
-  whichvars_label= "Selected variables",
-  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png")
+  whichvars_label= "",
+  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap.png"), 
+  variable_labels = variable_labels
 )
-#if you want to view
-#res$plot
-#res$summary %>% as.data.frame() %>% head()
-
-
 
 
 ####weather lags####
-met_lags <- depth_analysis |>
+met_lags <- full_weekly_data |>
   select(Date, DCM_depth,
          Precip_Weekly, precip_lag1, precip_lag2,
          AirTemp_Avg, airtemp_lag1, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
-var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "DCM_depth", "Depth")
+var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "DCM_depth", "Depth", variable_labels = variable_labels)
 
 all_plots <- list()
 
@@ -131,59 +134,6 @@ ggsave(
 ####Magnitude Analysis####
 magnitude_analysis <- read.csv("CSVs/magnitude_analysis_revised.csv")
 
-#####all variables all years#####
-var_importance_shap_plots(magnitude_analysis, 2015, 2024, "all_vars", "max_conc", "Magnitude")
-#individual years
-all_plots <- list()
-for (i in 2015:2024) {
-  p <- var_importance_shap_plots(
-    Xdataframe = magnitude_analysis,
-    XYear = i,
-    XYear2 = i,
-    whichvars = "all variables",
-    response_var = "max_conc",
-    save_dir = "Magnitude"
-  )
-  all_plots[[as.character(i)]] <- p
-}
-# Combine all 10 plots in a grid (e.g., 2 rows x 5 columns)
-combined_all <- wrap_plots(all_plots, ncol = 1)
-# Save all together
-ggsave(
-  here::here("Figs", "MachineLearning", "Magnitude","all years combined", "AllYears_Combined_ALL_VARIABLES.png"),
-  plot = combined_all,
-  width = 12,
-  height = 30,
-  dpi = 600,
-  bg = "white"
-)
-
-
-####selected variables####
-
-var_importance_shap_plots(magnitude_analysis_revised, 2015, 2024, "selected vars", "max_conc", "Magnitude")
-all_plots <- list()
-for (i in 2015:2024) {
-  p <- var_importance_shap_plots(
-    Xdataframe = magnitude_analysis_revised,
-    XYear = i,
-    XYear2 = i,
-    whichvars = "all variables",
-    response_var = "max_conc",
-    save_dir = "Magnitude"
-  )
-  all_plots[[as.character(i)]] <- p
-}
-combined_all <- wrap_plots(all_plots, ncol = 1)
-ggsave(
-  here::here("Figs", "MachineLearning", "Magnitude","all years combined", "AllYears_Combined_selected_vars.png"),
-  plot = combined_all,
-  width = 12,
-  height = 30,
-  dpi = 600,
-  bg = "white"
-)
-
 ####weather lags####
 met_lags <- magnitude_analysis |>
   select(Date, max_conc,
@@ -192,49 +142,12 @@ met_lags <- magnitude_analysis |>
          WindSpeed_Avg, wind_lag1, wind_lag2)
 var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "max_conc", "Magnitude")
 
-#individual years
-all_plots <- list()
-for (i in 2015:2024) {
-  p <- var_importance_shap_plots(
-    Xdataframe = met_lags,
-    XYear = i,
-    XYear2 = i,
-    whichvars = "ALL MET LAGS",
-    response_var = "max_conc",
-    save_dir = "Magnitude"
-  )
-  all_plots[[as.character(i)]] <- p
-}
-combined_all <- wrap_plots(all_plots, ncol = 1)
-ggsave(
-  here::here("Figs", "MachineLearning", "Magnitude","all years combined", "AllYears_combined_MET_LAGS.png"),
-  plot = combined_all,
-  width = 12,
-  height = 30,
-  dpi = 600,
-  bg = "white"
-)
-
 ####Final Plots####
-final_magnitude_analysis <- magnitude_analysis|>
-  select(
-    Date,
-    max_conc,
-    WaterLevel_m,
-    PZ, PZ_prop,
-    N_at_DCM,
-    schmidt_stability,
-    thermocline_depth,
-    TFe_mgL_max_val,
-    SRP_ugL_max_val,
-    NH4_ugL_max_val,
-    NO3NO2_ugL_max_val,
-    precip_lag1,
-    airtemp_lag2,
-    wind_lag1
-  )
 
-finalmagnitudeRF <- var_importance_shap_plots(final_magnitude_analysis, 2015, 2024, "final", "max_conc", "Magnitude")
+finalmagnitudeRF <- var_importance_shap_plots(magnitude_analysis,
+                                              2015, 2024,
+                                              "", "max_conc", "Magnitude",  
+                                              variable_labels = variable_labels)
 
 #individual years
 all_plots <- list()
@@ -260,14 +173,27 @@ ggsave(
 )
 
 magnitude_jackknife <- jackknife_incMSE_heatmap(
-  Xdataframe     = final_magnitude_analysis,
+  Xdataframe     = magnitude_analysis,
   year_min       = 2015,
   year_max       = 2024,
   var_order = finalmagnitudeRF$var_order,
   response_var   = "max_conc",
-  whichvars_label= "Final",
-  save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png")
+  whichvars_label= "",
+  save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png"), 
+  variable_labels = variable_labels
 )
 #if you want to view
 #res$plot
 #res$summary %>% as.data.frame() %>% head()
+
+#now to combine the two plots from depth and magnitude
+combined_RF_panels <- finaldepthRF$plots$combined /
+  finalmagnitudeRF$plots$combined
+
+ggsave(
+  filename = here::here("Figs", "MachineLearning", "Combined_Depth_Magnitude_RF.png"),
+  plot = combined_RF_panels,
+  width = 14, height = 10, dpi = 600, bg = "white"
+)
+
+

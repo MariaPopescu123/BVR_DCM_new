@@ -372,32 +372,7 @@ for (var in pigment_vars) {
 
 
 ####boxplots depth of DCM####
-
 #need to use raw data for this to work 
-
-#for june, july, august
-boxplot_Data <- final_DCM_metrics |>
-  filter(max_conc > 20) |>
-  filter(month(Date)>5, month(Date)<9) |>
-  mutate(Year = year(Date), Month = month(Date))|>
-  group_by(Year, Month)|>
-  mutate(monthly_avg = mean(max_conc))
-
-# Calculate max_legend_value for the color scale limits
-max_legend_value <- max(boxplot_Data$max_conc, na.rm = TRUE)
-
-# Create the multi-panel boxplot with an overlay of colored points for Totals_DCM_conc
-ggplot(boxplot_Data, aes(x = factor(Month, labels = c("June", "July", "August")), 
-                         y = DCM_depth, 
-                         fill = monthly_avg)) +
-  geom_boxplot() +  # Boxplot with filled colors based on Totals_DCM_conc
-  facet_wrap(~ Year) +  # Create a panel for each year
-  scale_fill_gradientn(colours = blue2green2red(60), na.value = "gray", limits = c(NA, max_legend_value)) +  # Apply color gradient to boxes
-  scale_y_reverse(name = "DCM Depth (inverted)") +  # Reverse the y-axis
-  ylim(10, 0) +  # Set the y-axis limits, reversing the range
-  labs(x = "Month", y = "DCM Depth", fill = "Total's µg/L") +  # Label the legend
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels
-#visualizing just one box per year
 
 #filtering so that max_conc is greater than 20 because otherwise we can't call it a deep chlorophyll maxima 
 boxplot_Data <- final_DCM_metrics|>
@@ -448,89 +423,7 @@ ggsave(
   dpi = 300     # optional: high resolution
 )
 
-
-####boxplot width of DCM####
-
-# boxplot_Data <- DCM_final |>
-#   filter(Totals_DCM_conc > 20) |>
-#   filter(month(Date)>5, month(Date)<9) |>
-#   mutate(Year = year(Date), Month = month(Date))|>
-#   filter(peak.width<2.5)
-
-# # Create the multi-panel boxplot with an overlay of colored points for width of DCM
-# ggplot(boxplot_Data, aes(x = factor(Month, labels = c("June", "July", "August")), 
-#                          y = peak.width)) +
-#   geom_boxplot() +
-#   geom_point(aes(color = Totals_DCM_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
-#   facet_wrap(~ Year) +  # Create a panel for each year
-#   scale_color_gradientn(colours = blue2green2red(60), na.value = "gray", limits = c(NA, max_legend_value)) +  # Apply color gradient to points
-#   labs(x = "Month", y = "Peak Width", color = "totals ugL") +  # Label the legend
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-# #one box per year
-# boxplot_Data <- DCM_final |>
-#   filter(Totals_DCM_conc > 20) |>
-#   mutate(DayOfYear = yday(Date))|>
-#   filter(DayOfYear>133, DayOfYear<286) |>
-#   mutate(Year = year(Date), Month = month(Date))|>
-#   filter(peak.width<2.5)
-# 
-# label_data <- boxplot_Data %>%
-#   group_by(Year) %>%
-#   summarise(n = n())  # Calculate the number of data points per year
-# 
-# ggplot(boxplot_Data, aes(x = factor(Year), y = peak.width)) +
-#   geom_boxplot() +
-#   geom_point(aes(color = Totals_DCM_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
-#   scale_color_gradientn(colours = blue2green2red(60), na.value = "gray", limits = c(NA, max_legend_value)) +  # Apply color gradient to points
-#   ggtitle(label = "Peak Width only displaying totals > 20") +
-#   ylim(0, 5) +  # Set the y-axis limits
-#   labs(x = "Year", y = "Peak Width", color = "totals ugL") +  # Label the legend
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-#   geom_text(data = label_data, aes(x = factor(Year), y = 4.5, label = paste0("n = ", n)), 
-#             vjust = -0.5)  # Adjust y position for labels at the top
-# 
-
 ####boxplots magnitude of DCM####
-
-#for June-August
-
-boxplot_Data <- final_DCM_metrics |>
-  filter(max_conc > 20) |>
-  filter(month(Date)>5, month(Date)<9, year(Date)>2014) |>
-  mutate(Year = year(Date), Month = month(Date))|>
-  select(CastID, Date,Year,Month, DCM_depth, max_conc)|>
-  group_by(CastID, Date,Year,Month)|>
-  summarise(
-    DCM_depth = mean(DCM_depth, na.rm = TRUE),
-    max_conc = mean(max_conc, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-label_data <- boxplot_Data %>%
-  group_by(Year) %>%
-  summarise(n = n())  # Calculate the number of data points per year
-
-
-summer_conc <- ggplot(boxplot_Data, aes(x = factor(Month, labels = c("June", "July", "August")), 
-                         y = max_conc)) +
-  geom_boxplot() +
-  geom_point(aes(color = max_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
-  facet_wrap(~ Year, nrow = 2, ncol = 5) +  # Create a panel for each year
-  scale_color_gradientn(colours = blue2green2red(60), na.value = "gray", limits = c(NA, max_legend_value)) +  # Apply color gradient to points
-  labs(x = "Month", y = "Peak Magnitude", color = "totals ugL") +  # Label the legend
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-print(summer_conc)
-
-ggsave(
-  filename = "DCM_concentrations_summer_months.png",
-  plot = last_plot(),
-  path = "Figs/Phytos_viz",
-  width = 10,   # width in inches
-  height = 5,   # height in inches
-  dpi = 300     # optional: high resolution
-)
-
 #visualizing just one box per year
 
 boxplot_Data <- final_DCM_metrics |>
@@ -542,26 +435,34 @@ boxplot_Data <- final_DCM_metrics |>
   mutate(Year = year(Date), Month = month(Date))|>
   group_by(Year, CastID)|>
   summarise(max_conc = mean(max_conc))
+# Count points per year (after your filters/summary)
+label_data <- boxplot_Data |>
+  dplyr::group_by(Year) |>
+  dplyr::summarise(n = dplyr::n(), .groups = "drop")
 
 ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
-  geom_boxplot(outlier.shape = NA) +                    # ← no black outliers
+  geom_boxplot(outlier.shape = NA) +
   geom_point(aes(color = max_conc),
              position = position_jitter(width = 0.2), size = 2) +
-  geom_point(aes(color = max_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
   scale_color_gradientn(
-    colours = c("blue","cyan", "green","yellow", "red", "red3"),
-    values = scales::rescale(c(0,40, 75, 100, 200, max_legend_value)),  # Make red hit at 150 µg/L
+    colours = c("blue","cyan","green","yellow","red","red3"),
+    values = scales::rescale(c(0, 40, 75, 100, 200, max_legend_value)),
     na.value = "gray",
-    limits = c(20, max_legend_value), 
+    limits = c(20, max_legend_value),
     breaks = c(20, 100, 200, 300, 380)
-  ) +  
-  ggtitle(label = "Peak Magnitudes")+
-  ylim(0, 385) +  # Set the y-axis limits, reversing the range
-  labs(x = "Year", y = "Peak Magnitude", color = "totals ugL") +  # Label the legend
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  geom_text(data = label_data, aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)), 
-            vjust = -0.5)  # Add labels at the top of each column
-
+  ) +
+  ggtitle("Peak Magnitudes") +
+  ylim(0, 385) +
+  labs(x = "Year", y = "Peak Magnitude", color = "Total (µg/L)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # Top-of-column labels (per-year)
+  geom_text(
+    data = label_data,
+    aes(x = factor(Year), y = Inf, label = paste0("n = ", n)),
+    vjust = 1.2,           # nudge down from the top
+    size = 3.2,
+    inherit.aes = FALSE
+  )
 ggsave(
   filename = "Peak_Magnitidues_2015_2024_boxplot.png",
   plot = last_plot(),
@@ -601,18 +502,120 @@ write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #var_min_val
 #var_mean
 #var_range (max-main)
-final_phytos <- final_phytos|>
-  filter(Year>2014)
+#-----Kruskal Wallis Test------
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
 
-#kruskal wallis test
-kruskal.test(DCM_depth ~ Year, data = final_phytos)
-pairwise.wilcox.test(final_phytos$DCM_depth, final_phytos$Year, 
-                     p.adjust.method = "BH")  # Benjamini–Hochberg correction
+sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) {
+  df <- data %>%
+    mutate(Year_num = as.integer(as.character(Year))) %>%
+    filter(!is.na(Year_num), Year_num >= year_min) %>%
+    mutate(Year = factor(Year_num, levels = sort(unique(Year_num)))) %>%
+    select(-Year_num)
+  
+  # Kruskal–Wallis
+  fml <- as.formula(paste(response_col, "~ Year"))
+  kw <- kruskal.test(fml, data = df)
+  
+  # Pairwise Wilcoxon (BH)
+  resp_vec <- df[[response_col]]
+  pw <- pairwise.wilcox.test(resp_vec, df$Year, p.adjust.method = "BH", exact = FALSE)
+  
+  # Full symmetric adjusted-p matrix
+  years <- levels(df$Year)
+  Pfull <- matrix(NA_real_, nrow = length(years), ncol = length(years),
+                  dimnames = list(years, years))
+  m <- pw$p.value
+  if (!is.null(m)) {
+    for (i in rownames(m)) for (j in colnames(m)) {
+      Pfull[i, j] <- m[i, j]
+      Pfull[j, i] <- m[i, j]
+    }
+  }
+  diag(Pfull) <- NA_real_
+  
+  # Long + upper triangle
+  p_long <- as.data.frame(Pfull) %>%
+    tibble::rownames_to_column("Year1") %>%
+    tidyr::pivot_longer(-Year1, names_to = "Year2", values_to = "p_adj") %>%
+    dplyr::mutate(
+      Year1_num = as.integer(as.character(Year1)),
+      Year2_num = as.integer(as.character(Year2))
+    ) %>%
+    dplyr::filter(Year1_num < Year2_num) %>%
+    dplyr::mutate(
+      sig_bin = dplyr::case_when(
+        is.na(p_adj)  ~ NA_character_,
+        p_adj < 0.001 ~ "< 0.001",
+        p_adj < 0.01  ~ "< 0.01",
+        p_adj < 0.05  ~ "< 0.05",
+        TRUE          ~ "\u2265 0.05"
+      ),
+      sig_bin = factor(sig_bin, levels = c("< 0.001", "< 0.01", "< 0.05", "\u2265 0.05")),
+      # Stars only when significant; otherwise ""
+      stars = dplyr::case_when(
+        is.na(p_adj)  ~ "",
+        p_adj < 0.001 ~ "***",
+        p_adj < 0.01  ~ "**",
+        p_adj < 0.05  ~ "*",
+        TRUE          ~ ""   # no "ns"
+      ),
+      # Always show number when not NA; append stars only if significant
+      label_txt = dplyr::case_when(
+        is.na(p_adj) ~ "",
+        p_adj < 0.05 ~ paste0(formatC(p_adj, format = "f", digits = 3), "\n", stars),
+        TRUE         ~ formatC(p_adj, format = "f", digits = 3)
+      )
+    )
+  
+  sig_pal <- c(
+    "< 0.001" = "#08306b",
+    "< 0.01"  = "#2171b5",
+    "< 0.05"  = "#6baed6",
+    "\u2265 0.05" = "#e0e0e0"
+  )
+  
+  ggplot2::ggplot(p_long, ggplot2::aes(x = Year1, y = Year2, fill = sig_bin)) +
+    ggplot2::geom_tile(color = "white", linewidth = 0.4) +
+    ggplot2::geom_text(ggplot2::aes(label = label_txt), size = 3.2, lineheight = 0.9) +
+    ggplot2::scale_fill_manual(values = sig_pal, na.value = "white", drop = FALSE, name = "Adj. p (BH)") +
+    ggplot2::coord_equal() +
+    ggplot2::labs(
+      title = title_label,
+      subtitle = paste0("Kruskal–Wallis p = ", signif(kw$p.value, 3)),
+      x = NULL, y = NULL
+    ) +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(
+      panel.grid = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+      legend.position = "right",
+      legend.title = ggplot2::element_text(size = 10),
+      legend.text = ggplot2::element_text(size = 9),
+      plot.title = ggplot2::element_text(face = "bold")
+    )
+}
 
-#kruskal wallis test
-kruskal.test(max_conc ~ Year, data = final_phytos)
-pairwise.wilcox.test(final_phytos$max_conc, final_phytos$Year, 
-                     p.adjust.method = "BH")  # Benjamini–Hochberg correction
 
+    
+# ---------- Run for both responses ----------
+# (If needed, coerce Year in your source once)
+final_phytos <- final_phytos %>% mutate(Year = as.integer(as.character(Year)))
 
+p_depth <- sig_grid_upper_fn(final_phytos, "DCM_depth",
+                             "Pairwise Differences by Year - DCM Depth")
+p_mag   <- sig_grid_upper_fn(final_phytos, "max_conc",
+                             "Pairwise Differences by Year - Max Phytoplankton")
 
+# Stack
+sig_both <- p_depth / p_mag + plot_annotation(
+  title = "Year-wise Pairwise Significance (BH-adjusted)",
+  theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
+)
+
+sig_both
+
+ggsave("Figs/Significance_UpperTriangle_DCM_and_MaxConc.png",
+       sig_both, width = 10, height = 12, dpi = 600, bg = "white")
