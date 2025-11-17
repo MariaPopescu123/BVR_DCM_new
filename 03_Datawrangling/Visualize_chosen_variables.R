@@ -9,7 +9,7 @@ chosen_variables <- full_weekly_data |>
     PZ,                           # Photic zone depth (m)
     schmidt_stability,            # Schmidt stability (J/m²)
     thermocline_depth,            # Thermocline depth (m)
-    TFe_mgL_max_val,              # Max total Fe (mg/L)
+    SFe_mgL_max_val,              # Max Soluble Fe (mg/L)
     SRP_ugL_max_val,              # Max soluble reactive phosphorus (µg/L)
     NH4_ugL_max_val,              # Max ammonium (µg/L)
     depth_SFe_mgL_max,            # Depth of max soluble Fe (m)
@@ -28,161 +28,33 @@ variable_labels <- c(
   PZ = "Photic Zone Depth (m)",
   schmidt_stability = "Schmidt Stability (J/m²)",
   thermocline_depth = "Thermocline Depth (m)",
-  TFe_mgL_max_val = "Max Total Fe (mg/L)",
+  SFe_mgL_max_val = "Max Solubles Fe (mg/L)",
   SRP_ugL_max_val = "Max SRP (µg/L)",
   NH4_ugL_max_val = "Max NH₄⁺ (µg/L)",
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
   depth_np_ratio_max = "Depth of Max N:P Ratio",
-  precip_lag1 = "Precipitation (Lag 1 wk)",
-  airtemp_lag2 = "Air Temperature (Lag 2 wk)",
-  wind_lag1 = "Wind Speed (Lag 1 wk)"
+  precip_lag1 = "Precipitation Weekly Sum (Lag 1 wk)",
+  airtemp_lag2 = "Air Temperature Weekly Average (Lag 2 wk)",
+  wind_lag1 = "Wind Speed Weekly Average (Lag 1 wk)"
 )
 
 
-
-# ---All variable visualization plot-----
-variable_labels2 <- c(
-  WaterLevel_m        = "Water Level (m)",
-  PZ                  = "Photic Zone Depth (m)",
-  schmidt_stability   = "Schmidt Stability (J/m²)",
-  thermocline_depth   = "Thermocline Depth (m)",
-  TFe_mgL_max_val     = "Max Total Fe (mg/L)",
-  SRP_ugL_max_val     = "Max SRP (µg/L)",
-  NH4_ugL_max_val     = "Max NH\u2084\u207A (µg/L)",
-  depth_SFe_mgL_max   = "Depth of Max Soluble Fe (m)",
-  depth_SRP_ugL_max   = "Depth of Max SRP (m)",
-  depth_NH4_ugL_max   = "Depth of Max NH\u2084\u207A (m)",
-  Precip_Weekly       = "Weekly Precipitation (mm)",
-  AirTemp_Avg         = "Air Temperature (°C)",
-  WindSpeed_Avg       = "Wind Speed (m/s)",
-  DCM_depth           = "DCM Depth (m)",
-  max_conc            = "Max Chlorophyll-a (µg/L)"
-)
-
-variables_plot <- full_weekly_data |>
-  dplyr::select(
-    Date,
-    DCM_depth,
-    max_conc,
-    WaterLevel_m,
-    PZ,
-    schmidt_stability,
-    thermocline_depth,
-    TFe_mgL_max_val,
-    SRP_ugL_max_val,
-    NH4_ugL_max_val,
-    depth_SFe_mgL_max,
-    depth_SRP_ugL_max,
-    depth_NH4_ugL_max,
-    Precip_Weekly,
-    AirTemp_Avg,
-    WindSpeed_Avg
-  ) |>
-  dplyr::filter(lubridate::year(Date) > 2014)
-
-color_df <- ggplot_build(wtrlvl_by_year)$data[[1]] |>
-  dplyr::select(group, colour) |>
-  dplyr::distinct() |>
-  dplyr::arrange(group)
-
-year_levels <- as.character(2015:2024)
-year_colors <- setNames(
-  color_df$colour[seq_along(year_levels) %% nrow(color_df) + 1],
-  year_levels
-)
-
-variables_plot <- variables_plot |>
-  dplyr::mutate(
-    Date = as.Date(Date),
-    Year_num = lubridate::year(Date),
-    Year = factor(as.character(Year_num), levels = year_levels)
-  )
-
-facet_vars <- c(
-  "WaterLevel_m", "PZ", "schmidt_stability", "thermocline_depth",
-  "TFe_mgL_max_val", "SRP_ugL_max_val", "NH4_ugL_max_val",
-  "depth_SFe_mgL_max", "depth_SRP_ugL_max", "depth_NH4_ugL_max",
-  "Precip_Weekly", "AirTemp_Avg", "WindSpeed_Avg",
-  "DCM_depth", "max_conc"
-)
-
-variables_plot_long <- variables_plot |>
-  tidyr::pivot_longer(
-    cols = dplyr::all_of(facet_vars),
-    names_to  = "Variable",
-    values_to = "Value"
-  ) |>
-  dplyr::mutate(
-    Variable_f = factor(
-      Variable,
-      levels = names(variable_labels2),
-      labels = unname(variable_labels2)
-    )
-  )
-
-variables_plot_long$Variable_f <- factor(
-  variables_plot_long$Variable_f,
-  levels = unname(variable_labels2)
-)
-
-all_variables_visualize <- ggplot(
-  variables_plot_long,
-  aes(x = Date, y = Value, color = Year, group = Year)
-) +
-  geom_line(linewidth = 0.7, alpha = 0.9) +
-  facet_wrap(~ Variable_f, scales = "free_y", ncol = 5, nrow = 3) +
-  scale_color_manual(
-    values = year_colors,
-    name   = "Year",
-    limits = year_levels,
-    drop   = FALSE
-  ) +
-  scale_x_date(
-    breaks = seq(as.Date("2015-01-01"), as.Date("2024-12-31"), by = "1 year"),
-    date_labels = "%Y",
-    expand = expansion(mult = c(0.01, 0.01))
-  ) +
-  labs(
-    x = "Year",
-    y = NULL,
-    title = "Environmental Variables and Depth Metrics (2015–2024)"
-  ) +
-  theme_bw(base_size = 12) +
-  theme(
-    strip.background   = element_rect(fill = "grey92", color = "grey70"),
-    strip.text         = element_text(face = "bold"),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank(),
-    axis.title.x       = element_text(margin = ggplot2::margin(t = 6)),
-    axis.text.x        = element_text(angle = 45, hjust = 1),
-    legend.position    = "right",
-    legend.direction   = "vertical",
-    legend.title       = element_text(size = 10),
-    legend.text        = element_text(size = 9),
-    plot.title         = element_text(face = "bold", hjust = 0.5)
-  ) +
-  guides(color = guide_legend(ncol = 1, override.aes = list(alpha = 1)))
-
-ggsave(
-  filename = "Figs/all_variables_by_yearly_color.png",
-  plot     = all_variables_visualize,
-  width    = 20, height = 12, units = "in", dpi = 300, bg = "white"
-)
 
 #----overlapping years----
 library(dplyr)
 library(tidyr)
 library(lubridate)
 library(ggplot2)
+library(patchwork)
 
 variable_labels2 <- c(
   WaterLevel_m        = "Water Level (m)",
   PZ                  = "Photic Zone Depth (m)",
   schmidt_stability   = "Schmidt Stability (J/m²)",
   thermocline_depth   = "Thermocline Depth (m)",
-  TFe_mgL_max_val     = "Max Total Fe (mg/L)",
+  SFe_mgL_max_val     = "Max Soluble Fe (mg/L)",
   SRP_ugL_max_val     = "Max SRP (µg/L)",
   NH4_ugL_max_val     = "Max NH\u2084\u207A (µg/L)",
   depth_SFe_mgL_max   = "Depth of Max Soluble Fe (m)",
@@ -192,92 +64,160 @@ variable_labels2 <- c(
   AirTemp_Avg         = "Air Temperature (°C)",
   WindSpeed_Avg       = "Wind Speed (m/s)",
   DCM_depth           = "DCM Depth (m)",
-  max_conc            = "Max Chlorophyll-a (µg/L)"
+  max_conc            = "Total Phytoplankton (µg/L)"
 )
 
 variables_plot <- full_weekly_data %>%
   select(
     Date, DCM_depth, max_conc,
     WaterLevel_m, PZ, schmidt_stability, thermocline_depth,
-    TFe_mgL_max_val, SRP_ugL_max_val, NH4_ugL_max_val,
+    SFe_mgL_max_val, SRP_ugL_max_val, NH4_ugL_max_val,
     depth_SFe_mgL_max, depth_SRP_ugL_max, depth_NH4_ugL_max,
     Precip_Weekly, AirTemp_Avg, WindSpeed_Avg
   ) %>%
   filter(year(Date) > 2014) %>%
   mutate(
-    Date   = as.Date(Date),
-    Year   = factor(year(Date)),
-    DOY    = yday(Date),
-    Leap   = leap_year(year(Date)),
+    Date       = as.Date(Date),
+    Year       = factor(year(Date)),
+    DOY        = yday(Date),
+    Leap       = leap_year(year(Date)),
     DOY_season = if_else(Leap & DOY > 59, DOY - 1L, DOY)
   ) %>%
-  filter(DOY_season > 133, DOY_season < 285)   # ← restrict to May–Oct window
+  filter(DOY_season > 133, DOY_season < 285)
 
-facet_vars <- c(
-  "WaterLevel_m","PZ","schmidt_stability","thermocline_depth",
-  "TFe_mgL_max_val","SRP_ugL_max_val","NH4_ugL_max_val",
-  "depth_SFe_mgL_max","depth_SRP_ugL_max","depth_NH4_ugL_max",
-  "Precip_Weekly","AirTemp_Avg","WindSpeed_Avg",
-  "DCM_depth","max_conc"
-)
+facet_vars <- names(variable_labels2)
 
 variables_plot_long <- variables_plot %>%
   pivot_longer(cols = all_of(facet_vars),
                names_to = "Variable", values_to = "Value") %>%
-  mutate(Variable_f = factor(
+  mutate(Variable_label = factor(
     Variable,
     levels = names(variable_labels2),
     labels = unname(variable_labels2)
   ))
 
-month_starts <- yday(as.Date(paste0("2001-", 5:10, "-01")))  # May–Oct
+library(patchwork)
+
+# Month ticks for May–Oct
+month_starts <- yday(as.Date(paste0("2001-", 5:10, "-01")))
 month_labs   <- month.abb[5:10]
 
-ggplot(variables_plot_long,
-       aes(x = DOY_season, y = Value, color = Year, group = Year)) +
-  geom_line(linewidth = 0.7, alpha = 0.9) +
-  facet_wrap(~ Variable_f, scales = "free_y", ncol = 5, nrow = 3) +
-  # Optional custom year palette (uncomment if you have one)
-  # scale_color_manual(values = year_colors, name = "Year") +
-  scale_x_continuous(
-    breaks = month_starts,
-    labels = month_labs,
-    limits = c(133, 285),
-    expand = expansion(mult = c(0.01, 0.01))
-  ) +
-  labs(
-    x = "Month (Growing Season)",
-    y = NULL,
-    title = "Seasonal Overlap (DOY 133–285) of Environmental and Depth Metrics by Year"
-  ) +
-  theme_bw(base_size = 12) +
-  theme(
-    strip.background   = element_rect(fill = "grey92", color = "grey70"),
-    strip.text         = element_text(face = "bold"),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank(),
-    axis.text.x        = element_text(angle = 45, hjust = 1),
-    plot.title         = element_text(face = "bold", hjust = 0.5)
-  ) +
-  guides(color = guide_legend(ncol = 1, override.aes = list(alpha = 1)))
+# Helper: single-panel plot
+one_panel <- function(label_text, reverse_y = FALSE) {
+  d <- variables_plot_long %>%
+    mutate(Variable_label = factor(
+      Variable,
+      levels = names(variable_labels2),
+      labels = unname(variable_labels2)
+    )) %>%
+    dplyr::filter(Variable_label == label_text)
+  
+  p <- ggplot(d, aes(DOY_season, Value, color = Year, group = Year)) +
+    geom_line(linewidth = 0.7, alpha = 0.9) +
+    scale_x_continuous(
+      breaks = month_starts, labels = month_labs,
+      limits = c(133, 285), expand = expansion(mult = c(0.01, 0.01))
+    ) +
+    labs(x = NULL, y = NULL, title = label_text) +
+    theme_bw(base_size = 12) +
+    theme(
+      plot.title         = element_text(face = "bold", size = 11, hjust = 0.5),
+      panel.grid.minor   = element_blank(),
+      panel.grid.major.x = element_blank(),
+      axis.text.x        = element_text(angle = 45, hjust = 1),
+      legend.position    = "none"
+    )
+  if (reverse_y) p + scale_y_reverse() else p
+}
 
-ggsave(
-  filename = "Figs/all_variables_season_DOY133_285.png",
-  width = 20, height = 12, units = "in", dpi = 300, bg = "white"
+# Which panels should be reversed?
+rev_labels <- c(
+  "Water Level (m)",
+  "Photic Zone Depth (m)",
+  "Thermocline Depth (m)",
+  "DCM Depth (m)",
+  "Depth of Max Soluble Fe (m)",
+  "Depth of Max SRP (m)",
+  "Depth of Max NH\u2084\u207A (m)"
 )
 
-#-----with points------
+R <- function(lbl) one_panel(lbl, lbl %in% rev_labels)
+
+# Row 1: Waterlevel, PZ, Thermocline Depth, Schmidt Stability
+row1 <- ( R("Water Level (m)")
+          + R("Photic Zone Depth (m)")
+          + R("Thermocline Depth (m)")
+          + R("Schmidt Stability (J/m²)") ) +
+  plot_layout(ncol = 4)
+
+row2 <- ( plot_spacer()
+          + R("Weekly Precipitation (mm)")
+          + R("Air Temperature (°C)")
+          + R("Wind Speed (m/s)") ) +
+  plot_layout(ncol = 4)
+
+row3 <- ( R("DCM Depth (m)")
+          + R("Depth of Max Soluble Fe (m)")
+          + R("Depth of Max SRP (m)")
+          + R("Depth of Max NH\u2084\u207A (m)") ) +
+  plot_layout(ncol = 4)
+
+row4 <- ( R("Total Phytoplankton (µg/L)")
+          + R("Max Soluble Fe (mg/L)")
+          + R("Max SRP (µg/L)")
+          + R("Max NH\u2084\u207A (µg/L)") ) +
+  plot_layout(ncol = 4)
+
+p_final <- (row1 / row2 / row3 / row4) +
+  plot_layout(guides = "collect") & theme(legend.position = "right")
+
+p_final <- p_final + plot_annotation(
+  title = "Seasonal Overlap (DOY 133–285) of Environmental and Depth Metrics by Year",
+  theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
+)
+
+print(p_final)
+
+ggsave(
+  filename = "Figs/all_variables_season_DOY133_285_custom.png",
+  plot = p_final,
+  width = 20, height = 14, units = "in", dpi = 300, bg = "white"
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####With points##############
 library(dplyr)
 library(tidyr)
 library(lubridate)
 library(ggplot2)
+library(patchwork)
 
 variable_labels2 <- c(
   WaterLevel_m        = "Water Level (m)",
   PZ                  = "Photic Zone Depth (m)",
   schmidt_stability   = "Schmidt Stability (J/m²)",
   thermocline_depth   = "Thermocline Depth (m)",
-  TFe_mgL_max_val     = "Max Total Fe (mg/L)",
+  SFe_mgL_max_val     = "Max Soluble Fe (mg/L)",
   SRP_ugL_max_val     = "Max SRP (µg/L)",
   NH4_ugL_max_val     = "Max NH\u2084\u207A (µg/L)",
   depth_SFe_mgL_max   = "Depth of Max Soluble Fe (m)",
@@ -287,79 +227,201 @@ variable_labels2 <- c(
   AirTemp_Avg         = "Air Temperature (°C)",
   WindSpeed_Avg       = "Wind Speed (m/s)",
   DCM_depth           = "DCM Depth (m)",
-  max_conc            = "Max Chlorophyll-a (µg/L)"
+  max_conc            = "Total Phytoplankton (µg/L)"
 )
 
 variables_plot <- full_weekly_data %>%
   select(
     Date, DCM_depth, max_conc,
     WaterLevel_m, PZ, schmidt_stability, thermocline_depth,
-    TFe_mgL_max_val, SRP_ugL_max_val, NH4_ugL_max_val,
+    SFe_mgL_max_val, SRP_ugL_max_val, NH4_ugL_max_val,
     depth_SFe_mgL_max, depth_SRP_ugL_max, depth_NH4_ugL_max,
     Precip_Weekly, AirTemp_Avg, WindSpeed_Avg
   ) %>%
   filter(year(Date) > 2014) %>%
   mutate(
-    Date   = as.Date(Date),
-    Year   = factor(year(Date)),
-    DOY    = yday(Date),
-    Leap   = leap_year(year(Date)),
+    Date       = as.Date(Date),
+    Year       = factor(year(Date)),
+    DOY        = yday(Date),
+    Leap       = leap_year(year(Date)),
     DOY_season = if_else(Leap & DOY > 59, DOY - 1L, DOY)
   ) %>%
-  filter(DOY_season > 133, DOY_season < 285)   # ← restrict to May–Oct window
+  filter(DOY_season > 133, DOY_season < 285)
 
-facet_vars <- c(
-  "WaterLevel_m","PZ","schmidt_stability","thermocline_depth",
-  "TFe_mgL_max_val","SRP_ugL_max_val","NH4_ugL_max_val",
-  "depth_SFe_mgL_max","depth_SRP_ugL_max","depth_NH4_ugL_max",
-  "Precip_Weekly","AirTemp_Avg","WindSpeed_Avg",
-  "DCM_depth","max_conc"
-)
+facet_vars <- names(variable_labels2)
 
 variables_plot_long <- variables_plot %>%
   pivot_longer(cols = all_of(facet_vars),
                names_to = "Variable", values_to = "Value") %>%
-  mutate(Variable_f = factor(
+  mutate(Variable_label = factor(
     Variable,
     levels = names(variable_labels2),
     labels = unname(variable_labels2)
   ))
 
-month_starts <- yday(as.Date(paste0("2001-", 5:10, "-01")))  # May–Oct
+# Month ticks for May–Oct
+month_starts <- yday(as.Date(paste0("2001-", 5:10, "-01")))
 month_labs   <- month.abb[5:10]
 
-ggplot(variables_plot_long,
-       aes(x = DOY_season, y = Value, color = Year)) +
-  geom_point(size = 1.8, alpha = 0.8) +                      # ← points only
-  facet_wrap(~ Variable_f, scales = "free_y", ncol = 5, nrow = 3) +
-  # Optional custom year palette (uncomment if you have one)
-  # scale_color_manual(values = year_colors, name = "Year") +
-  scale_x_continuous(
-    breaks = month_starts,
-    labels = month_labs,
-    limits = c(133, 285),
-    expand = expansion(mult = c(0.01, 0.01))
-  ) +
-  labs(
-    x = "Month (Growing Season)",
-    y = NULL,
-    title = "Seasonal Overlap (DOY 133–285) of Environmental and Depth Metrics by Year"
-  ) +
-  theme_bw(base_size = 12) +
-  theme(
-    strip.background   = element_rect(fill = "grey92", color = "grey70"),
-    strip.text         = element_text(face = "bold"),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank(),
-    axis.text.x        = element_text(angle = 45, hjust = 1),
-    plot.title         = element_text(face = "bold", hjust = 0.5)
-  ) +
-  guides(color = guide_legend(ncol = 1, override.aes = list(alpha = 1)))
+# Helper: single-panel plot (POINTS)
+one_panel <- function(label_text, reverse_y = FALSE) {
+  d <- variables_plot_long %>%
+    mutate(Variable_label = factor(
+      Variable,
+      levels = names(variable_labels2),
+      labels = unname(variable_labels2)
+    )) %>%
+    dplyr::filter(Variable_label == label_text)
+  
+  p <- ggplot(d, aes(DOY_season, Value, color = Year)) +
+    geom_point(size = 1.8, alpha = 0.85) +
+    scale_x_continuous(
+      breaks = month_starts, labels = month_labs,
+      limits = c(133, 285), expand = expansion(mult = c(0.01, 0.01))
+    ) +
+    labs(x = NULL, y = NULL, title = label_text) +
+    theme_bw(base_size = 12) +
+    theme(
+      plot.title         = element_text(face = "bold", size = 11, hjust = 0.5),
+      panel.grid.minor   = element_blank(),
+      panel.grid.major.x = element_blank(),
+      axis.text.x        = element_text(angle = 45, hjust = 1),
+      legend.position    = "none"
+    )
+  if (reverse_y) p + scale_y_reverse() else p
+}
+
+# Panels to reverse
+rev_labels <- c(
+  "Water Level (m)",
+  "Photic Zone Depth (m)",
+  "Thermocline Depth (m)",
+  "DCM Depth (m)",
+  "Depth of Max Soluble Fe (m)",
+  "Depth of Max SRP (m)",
+  "Depth of Max NH\u2084\u207A (m)"
+)
+
+R <- function(lbl) one_panel(lbl, lbl %in% rev_labels)
+
+# ---- EXACT LAYOUT (4x4, row 2 centered) ----
+row1 <- ( R("Water Level (m)")
+          + R("Photic Zone Depth (m)")
+          + R("Thermocline Depth (m)")
+          + R("Schmidt Stability (J/m²)") ) + plot_layout(ncol = 4)
+
+row2 <- ( plot_spacer()
+          + R("Weekly Precipitation (mm)")
+          + R("Air Temperature (°C)")
+          + R("Wind Speed (m/s)") ) + plot_layout(ncol = 4)
+
+row3 <- ( R("DCM Depth (m)")
+          + R("Depth of Max Soluble Fe (m)")
+          + R("Depth of Max SRP (m)")
+          + R("Depth of Max NH\u2084\u207A (m)") ) + plot_layout(ncol = 4)
+
+row4 <- ( R("Total Phytoplankton (µg/L)")
+          + R("Max Soluble Fe (mg/L)")
+          + R("Max SRP (µg/L)")
+          + R("Max NH\u2084\u207A (µg/L)") ) + plot_layout(ncol = 4)
+
+p_final <- (row1 / row2 / row3 / row4) +
+  plot_layout(guides = "collect") & theme(legend.position = "right")
+
+p_final <- p_final + plot_annotation(
+  title = "Seasonal Overlap (DOY 133–285) of Environmental and Depth Metrics by Year",
+  theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
+)
+
+print(p_final)
 
 ggsave(
   filename = "Figs/all_variables_season_DOY133_285_points.png",
-  width = 20, height = 12, units = "in", dpi = 300, bg = "white"
+  plot = p_final,
+  width = 20, height = 14, units = "in", dpi = 300, bg = "white"
 )
+
+####----table display important metrics----####
+tabledata <- full_weekly_data %>%
+ select(
+    Date,
+    max_conc,                     # Maximum phytoplankton concentration (µg/L)
+    DCM_depth,                    # Deep Chlorophyll Maximum depth (m)
+    WaterLevel_m,                 # Reservoir water level (m)
+    PZ,                           # Photic zone depth (m)
+    schmidt_stability,            # Schmidt stability (J/m²)
+    thermocline_depth,            # Thermocline depth (m)
+    SFe_mgL_max_val,              # Max Soluble Fe (mg/L)
+    SRP_ugL_max_val,              # Max soluble reactive phosphorus (µg/L)
+    NH4_ugL_max_val,              # Max ammonium (µg/L)
+    depth_SFe_mgL_max,            # Depth of max soluble Fe (m)
+    depth_SRP_ugL_max,            # Depth of max SRP (m)
+    depth_NH4_ugL_max,            # Depth of max ammonium (m)
+    depth_np_ratio_max,           # Depth of max N:P ratio
+    precip_lag1,                  # 1-week lag precipitation (mm)
+    airtemp_lag2,                 # 2-week lag air temperature (°C)
+    wind_lag1                     # 1-week lag wind speed (m/s)
+  )
+
+variables <- c(
+  "max_conc",             # Maximum phytoplankton concentration (µg/L)
+  "DCM_depth",            # Deep Chlorophyll Maximum depth (m)
+  "WaterLevel_m",         # Reservoir water level (m)
+  "PZ",                   # Photic zone depth (m)
+  "schmidt_stability",    # Schmidt stability (J/m²)
+  "thermocline_depth",    # Thermocline depth (m)
+  "SFe_mgL_max_val",      # Max Soluble Fe (mg/L)
+  "SRP_ugL_max_val",      # Max soluble reactive phosphorus (µg/L)
+  "NH4_ugL_max_val",      # Max ammonium (µg/L)
+  "depth_SFe_mgL_max",    # Depth of max soluble Fe (m)
+  "depth_SRP_ugL_max",    # Depth of max SRP (m)
+  "depth_NH4_ugL_max",    # Depth of max ammonium (m)
+  "depth_np_ratio_max",   # Depth of max N:P ratio
+  "precip_lag1",          # 1-week lag precipitation (mm)
+  "airtemp_lag2",         # 2-week lag air temperature (°C)
+  "wind_lag1"             # 1-week lag wind speed (m/s)
+)
+
+tabledataprep <- tabledata %>%
+  mutate(Year = lubridate::year(Date)) %>%
+  pivot_longer(
+    cols = all_of(variables),
+    names_to = "Variable",
+    values_to = "value"
+  ) %>%
+  group_by(Year, Variable) %>%
+  summarise(
+    Max   = max(value, na.rm = TRUE),
+    Min   = min(value, na.rm = TRUE),
+    Range = Max - Min,
+    Mean  = mean(value, na.rm = TRUE),
+    SD    = sd(value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Variable = variable_labels[Variable] %||% Variable
+  )
+
+
+# make sure metrics in a nice order
+tabledataprep_long <- tabledataprep %>%
+  pivot_longer(
+    cols = c(Max, Min, Range, Mean, SD),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Metric = factor(Metric, levels = c("Max", "Min", "Range", "Mean", "SD"))
+  )
+
+# wide table: one row per Year, one column per Variable × Metric
+tabledataprep_wide <- tabledataprep_long %>%
+  unite("colname", Variable, Metric, sep = " - ") %>%   # e.g. "DCM depth (m) - Max"
+  pivot_wider(
+    names_from = colname,
+    values_from = Value
+  ) %>%
+  arrange(Year)
 
 
 
@@ -378,7 +440,7 @@ final_data_availability_fig <- full_weekly_data |>
     PZ,
     schmidt_stability,
     thermocline_depth,
-    TFe_mgL_max_val,
+    SFe_mgL_max_val,
     SRP_ugL_max_val,
     NH4_ugL_max_val,
     Precip_Weekly,
@@ -393,7 +455,7 @@ final_data_availability_fig <- full_weekly_data |>
     `Photic Zone Depth (m)`        = PZ,
     `Schmidt Stability (J/m²)`     = schmidt_stability,
     `Thermocline Depth (m)`        = thermocline_depth,
-    `Total Fe (mg/L)`              = TFe_mgL_max_val,
+    `Soluble Fe (mg/L)`              = SFe_mgL_max_val,
     `SRP (µg/L)`                   = SRP_ugL_max_val,
     `NH₄⁺ (µg/L)`                  = NH4_ugL_max_val,
     `Precipitation (mm/day)`       = Precip_Weekly,
@@ -408,7 +470,7 @@ variables <- c(
   "Photic Zone Depth (m)",
   "Schmidt Stability (J/m²)",
   "Thermocline Depth (m)",
-  "Total Fe (mg/L)",
+  "Soluble Fe (mg/L)",
   "SRP (µg/L)",
   "NH₄⁺ (µg/L)",
   "Precipitation (mm/day)",

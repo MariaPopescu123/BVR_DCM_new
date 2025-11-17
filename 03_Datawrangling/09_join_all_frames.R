@@ -35,5 +35,6 @@ full_weekly_data <- full_weekly_data |>
   relocate(airtemp_lag1, airtemp_lag2, .after = AirTemp_Avg)|>
   filter(year(Date)>2014)
 
+
 write.csv(full_weekly_data, "CSVs/full_weekly_data.csv", row.names = FALSE)
 

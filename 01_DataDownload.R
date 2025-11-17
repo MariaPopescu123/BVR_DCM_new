@@ -2,7 +2,9 @@
 
 pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
-               reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes, splines, readr)
+               reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes, splines, readr, ggbeeswarm)
+library(knitr)
+library(kableExtra)
 
 source("02_Functions/interpolate_variable.R")
 source("02_Functions/data_availability_function.R")

@@ -11,19 +11,9 @@ pacman::p_load(tidyverse, lubridate, akima, reshape2,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes)
 
 
-# Chlorophyll data for the line visualizing chl max on heatmaps
-
-chlorophyll_data <- phytos %>%
-  select(Date, Depth_m, TotalConc_ugL)|> #change to chl here if you want
-  mutate(DayOfYear = yday(Date))|>
-  group_by(Date) %>%
-  slice(which.max(TotalConc_ugL)) %>%
-  ungroup()|>
-  mutate(Reservoir = "BVR")|>
-  mutate(DateTime = Date)|> #no actual time
-  filter(DayOfYear > 133, DayOfYear < 285, TotalConc_ugL >20)|>
-  filter(!(month(Date) == 8 & year(Date) == 2017 & TotalConc_ugL < 35)) #weird drop here
-
+#water level
+phytos <- phytos|>
+left_join(water_level, by = c("Week", "Year"))
 
 ####heatmaps####
 
@@ -302,6 +292,9 @@ print(p1)
     combined_plot <- plot_grid(plotlist = plots, ncol = 5)
     
     print(combined_plot)
+    
+    
+    
     
 #### SFe_mgL  ####
 {

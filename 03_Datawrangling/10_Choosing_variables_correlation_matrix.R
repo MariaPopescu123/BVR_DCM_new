@@ -163,6 +163,23 @@ depth_analysis_revised <- depth_analysis |>
          wind_lag1)
 
 write.csv(depth_analysis_revised, "CSVs/depth_analysis_revised.csv", row.names = FALSE)
+####over20####
+depth_analysis_over20 <- full_weekly_data |>
+  filter(max_conc >20)|>
+  select(Date, DCM_depth,
+         WaterLevel_m,
+         PZ,
+         depth_SFe_mgL_max,
+         depth_np_ratio_max,
+         depth_NH4_ugL_max,
+         depth_SRP_ugL_max,
+         thermocline_depth,
+         schmidt_stability,
+         precip_lag1,
+         airtemp_lag2,
+         wind_lag1)
+  
+write.csv(depth_analysis_over20, "CSVs/depth_analysis_revised_over20.csv", row.names = FALSE)
 
 
 #####BOTH Met Data##### these are variables for both DCM depth and DCM magnitude
@@ -232,7 +249,11 @@ magnitude_analysis <- read.csv("CSVs/magnitude_analysis_frame.csv")
 
 magnitude_analysis_revised <- magnitude_analysis |>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,
-         TFe_mgL_max_val,SRP_ugL_max_val, NH4_ugL_max_val, 
+         SFe_mgL_max_val,SRP_ugL_max_val, NH4_ugL_max_val, 
          precip_lag1, airtemp_lag2, wind_lag1)
 write.csv(magnitude_analysis_revised, "CSVs/magnitude_analysis_revised.csv", row.names = FALSE)
 
+magnitude_analysis_over20 <- magnitude_analysis_revised|>
+  filter(max_conc > 20)
+
+write.csv(magnitude_analysis_over20, "CSVs/magnitude_analysis_over20.csv", row.names = FALSE)
