@@ -242,10 +242,44 @@ jackknife_incMSE_heatmap <- function(
       axis.text.x = element_text(lineheight = 0.9),
       plot.title = element_text(face = "bold")
     )
+  # ---------- 2b) Overall importance across years ----------
+  overall_importance <- imp_summary %>%
+    group_by(Variable) %>%
+    summarise(
+      overall_mean_incMSE = mean(mean_incMSE, na.rm = TRUE),
+      overall_sd_incMSE   = sd(mean_incMSE,  na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(overall_mean_incMSE))
   
+  # ---------- 2c) Year-level stats ----------
+  year_stats <- n_per_year %>%
+    mutate(
+      n_predictors = length(pred_cols_all),
+      response     = response_var
+    )
+  
+  # ---------- 2d) Metadata ----------
+  meta <- list(
+    response_var   = response_var,
+    metric         = metric,
+    years          = range(model_df$Year),
+    n_total        = n_all,
+    n_per_year     = n_per_year,
+    dropped_cols   = drop_cols,
+    best_all_model = best_all
+  )
   if (!is.null(save_path)) {
     ggsave(filename = save_path, plot = heat, width = 12, height = 8, dpi = 400, bg = "white")
   }
   
-  invisible(list(plot = heat, summary = plot_df))
+  invisible(list(
+    plot              = heat,
+    plot_df           = plot_df,        # what you already called "summary"
+    imp_summary       = imp_summary,    # numeric mean±sd by Year × Variable
+    imp_long          = imp_long,       # full jackknife distribution
+    overall_importance = overall_importance, # cross-year ranking
+    year_stats        = year_stats,     # n per year + predictors
+    meta              = meta            # response, metric, years, best params
+  ))
 }
