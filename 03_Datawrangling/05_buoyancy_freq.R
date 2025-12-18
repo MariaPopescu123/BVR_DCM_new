@@ -33,3 +33,24 @@ final_buoyancy <- frame_weeks|>
 
 write.csv(final_buoyancy, "CSVs/final_buoyancy.csv", row.names = FALSE)
 
+
+#checking within year and across year variability
+var_summary <- final_buoyancy %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(N_at_DCM, na.rm = TRUE),
+    sd_within = sd(N_at_DCM, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
+

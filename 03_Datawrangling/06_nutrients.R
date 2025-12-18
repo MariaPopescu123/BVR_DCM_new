@@ -47,12 +47,37 @@ calculate_np_ratio <- function(tn, tp) {
 # added np ratio to dataframe
 chemistry_filtered_np <- chemistry_filtered %>%
   mutate(np_ratio = calculate_np_ratio(TN_ugL,TP_ugL))|>
-  relocate(np_ratio, .before = TN_ugL)
+  relocate(np_ratio, .before = TN_ugL)|>
+  mutate(Week = week(Date), 
+         Year = year(Date))
 
-variables <- c("TN_ugL", "TP_ugL","SRP_ugL", "NH4_ugL", "NO3NO2_ugL", 
-               "DIC_mgL", "np_ratio")
 
-chem_weekly_sum <- weekly_sum_variables(chemistry_filtered_np, variables)
+#before I run this I need to have DCM depth calculated so I can see what the 
+#concentration of the nutrients are at DCM depth
+
+#just date and DCMdepth
+
+chem_w_DCM <- chemistry_filtered_np|>
+  left_join(final_phytos, by = c("Week", "Year"))|>
+  mutate(Reservoir = "BVR", Site = 50) # need to this here for interpolation function
+
+#interpolate so that I can get a value for DCM depth
+variables <- c("SRP_ugL", "NH4_ugL", "np_ratio")
+chem_interpolated <- interpolate_variable(chem_w_DCM, variables)
+
+chem_interpolated2 <- chem_interpolated |>
+  left_join(final_phytos, by = c("Week", "Year")) 
+chem_interpolated3 <- chem_interpolated2|>
+  mutate(Reservoir = "BVR", Site = 50) |>
+  filter(Year > 2014) |>
+  group_by(Date) |>
+  tidyr::fill(DCM_depth, .direction = "downup") |>
+  ungroup()|>
+  filter(!is.na(DCM_depth))
+
+####summarize variables
+variables <- c("SRP_ugL", "NH4_ugL", "np_ratio")
+chem_weekly_sum <- weekly_sum_variables(chem_interpolated3, variables)
 
 #join to frame with correct dates
 final_chem <- frame_weeks|>
@@ -60,3 +85,22 @@ final_chem <- frame_weeks|>
   select(-WaterLevel_m)
 
 write.csv(final_chem, "CSVs/final_chem.csv", row.names = FALSE)
+
+
+####SFe joined####
+# metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
+#updated 2025
+metalsdf <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
+#removed flags for 68 as per Cece's advice
+metals_updated <- metalsdf |>
+  mutate(Date = as.Date(DateTime)) |>
+  filter(Site == 50, Reservoir == "BVR", Flag_SFe_mgL != 68) |>
+  select(Date, Depth_m, SFe_mgL)
+
+final_metals <- frame_weeks|> #random forest frame with metals
+  left_join(metals_summarised, by = c("Week", "Year"))|>
+  select(-WaterLevel_m)
+
+write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
+
+

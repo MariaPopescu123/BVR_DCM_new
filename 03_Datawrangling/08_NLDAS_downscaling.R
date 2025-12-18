@@ -156,3 +156,48 @@ variables <- c("precip_weekly","weekly_airtempavg","WindSpeed_Weekly_Average_m_s
 data_availability(full_met, variables)
 
 write.csv(full_met, "CSVs/final_metdata.csv", row.names = FALSE)
+
+full_met <- read.csv("CSVs/final_metdata.csv")
+
+#checking within year and across year variability
+var_summary <- full_met %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(WindSpeed_Weekly_Average_m_s, na.rm = TRUE),
+    sd_within = sd(WindSpeed_Weekly_Average_m_s, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
+
+#now for air temp
+var_summary <- full_met %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(airtemp_lag2, na.rm = TRUE),
+    sd_within = sd(airtemp_lag2, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
+
+
+

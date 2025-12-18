@@ -379,3 +379,24 @@ data_availability(final_photic_thermo, variables)
 
 write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
 
+#checking within and across year variability 
+
+#checking within year and across year variability
+var_summary <- photic_zone_frame %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(PZ, na.rm = TRUE),
+    sd_within = sd(PZ, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+

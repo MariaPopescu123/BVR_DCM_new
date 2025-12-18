@@ -233,7 +233,7 @@ plot_correlation_matrix(CHEM_magnitude_analysis,
                         "Figs/DCM_Magnitude_Correlations/CHEM_magnitude_Correlation_Matrix.png", 
                         title = "CHEM Magnitude Variables Correlation Matrix Heatmap")
 #####Physics#####
-physics_magnitude_analysis <- magnitude_analysis |>
+physics_magnitude_analysis <- full_weekly_data |>
   select(Date, max_conc,
          N_at_DCM, schmidt_stability, thermocline_depth)
 #correlation matrix

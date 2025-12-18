@@ -84,3 +84,25 @@ ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))
 for some reason I can't write the CSV in markdown, so run this line in your terminal in order to save it as a csv file to be read in later
 
 write.csv(final_schmidt, "CSVs/final_schmidt.csv", row.names = FALSE)
+```{r}
+
+#checking within year and across year variability
+var_summary <- final_schmidt %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(schmidt_stability, na.rm = TRUE),
+    sd_within = sd(schmidt_stability, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
+```

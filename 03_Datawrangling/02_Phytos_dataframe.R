@@ -124,10 +124,10 @@ DCM_metrics <- phytos |>
     CastID,
     Depth_m,
     TotalConc_ugL,
-    GreenAlgae_ugL,
-    Bluegreens_ugL,
-    BrownAlgae_ugL,
-    MixedAlgae_ugL
+    # GreenAlgae_ugL,
+    # Bluegreens_ugL,
+    # BrownAlgae_ugL,
+    # MixedAlgae_ugL
   ) |>
   group_by(Reservoir, Date, Site) |>
   mutate(FacetID = paste(CastID, Reservoir, Site, Date, "Week", Week, sep = " ")) |>
@@ -137,11 +137,13 @@ DCM_metrics <- phytos |>
 # Get unique years in the dataset
 years <- unique(year(DCM_metrics$Date))
 
-types <- c("TotalConc_ugL",
-          "GreenAlgae_ugL",
-          "Bluegreens_ugL",
-          "BrownAlgae_ugL",
-          "MixedAlgae_ugL")
+types <- c("TotalConc_ugL"
+           #,
+          # "GreenAlgae_ugL",
+          # "Bluegreens_ugL",
+          # "BrownAlgae_ugL",
+          # "MixedAlgae_ugL"
+          )
 # Loop over each type
 for (type in types) {
   
@@ -182,19 +184,19 @@ for (type in types) {
 #casts to remove: 467, 814, 856, 920, 1149 
 
 DCM_metrics_filtered <- DCM_metrics |>
-  filter(!CastID %in% c(467, 814, 856, 920, 1149, 788)) |> #make sure to remove these for heatmaps too
-  mutate(CastID = case_when(
-    CastID == 485 ~ 484,  # Change 485 to 484. doing this because these need to be combined
-    CastID == 486 ~ 484,  # Change 485 to 484. doing this because these need to be combined
-    CastID == 492 ~ 493,  # Combine 492 and 493
-    CastID == 499 ~ 500,  # Combine 499 and 500
-    CastID == 603 ~ 604,  # Combine 603 and 604
-    
-    TRUE ~ CastID          # Keep other values unchanged
-  ))|>
-  mutate(DOY = yday(Date), Year = year(Date))|>
+  filter(!CastID %in% c(467, 814, 856, 920, 1149, 788, 933)) |> 
+  mutate(
+    CastID = case_when(
+      CastID %in% c(485, 486) ~ 484,    # combine 485 + 486 into 484
+      CastID %in% c(492, 493, 494) ~ 492,    # or 493 – pick ONE target
+      CastID %in% c(499, 500, 501) ~ 499,    # or 500 – pick ONE target
+      CastID %in% c(603, 604, 605) ~ 603,    # or 604 – pick ONE target
+      TRUE ~ CastID
+    )
+  ) |>
+  mutate(DOY = yday(Date), Year = year(Date)) |>
   filter(DOY > 133, DOY < 285)
-
+  
 #join waterlevel because this will be important for peak metrics
 water_level <- read.csv("CSVs/water_level.csv") |>
   mutate(Date = as_date(Date)) |>
@@ -207,7 +209,7 @@ DCM_metrics_filtered <- DCM_metrics_filtered|>
 
 ####Peak.depth and max_conc####
 # Define pigment variables to loop over
-pigment_vars <- c("TotalConc_ugL", "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL")
+pigment_vars <- c("TotalConc_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Start from your filtered data
 DCM_metrics_depth <- DCM_metrics_filtered |> group_by(CastID)
@@ -230,98 +232,15 @@ for (var in pigment_vars) {
 # Ungroup after loop
 DCM_metrics_depth <- DCM_metrics_depth |> ungroup()
 
-####Peak.width####
-#use Totals_mean
-#calculate the metrics on the actual observed profiles 
-#don't interpolate 
-
-#Using mean as per Mary's recommendation
+# final_DCM_metrics<- final_DCM_metrics|>
+#   #select(-peak.top, -peak.bottom, -peak.width)|>#can remove this once have peak calculations figured out
+#   group_by(CastID)|>
+#   mutate(Q3 = quantile(TotalConc_ugL, 0.75)) #25% of data falls above this value 
 # 
-# for_peaks <- DCM_metrics_depth|>
-#   group_by(CastID) %>%
-#   mutate(
-#     totals_med = median(TotalConc_ugL, na.rm = TRUE),  # Calculate the median, excluding NA values
-#     totals_mean = mean(TotalConc_ugL, na.rm = TRUE),   # Calculate the mean
-#     peak.top = as.integer(Depth_m <= DCM_depth & TotalConc_ugL >= totals_mean),  # Create binary indicator
-#     peak.bottom = as.integer(Depth_m >= DCM_depth & TotalConc_ugL >= totals_mean),
-#     # Apply condition: If Totals_DCM_conc < 30, set peak.top and peak.bottom to 0
-#     peak.top = if_else(max_conc < 30, 0, peak.top),
-#     peak.bottom = if_else(max_conc < 30, 0, peak.bottom),
-#     # Replace peak.top and peak.bottom with Depth_m if indicator is 1
-#     peak.top = if_else(peak.top == 1, Depth_m, 0),
-#     peak.bottom = if_else(peak.bottom == 1, Depth_m, 0),
-#     # Get the minimum peak.top value, replace Inf with NA if all are NA or 0
-#     peak.top = if_else(any(peak.top != 0), 
-#                        min(peak.top[peak.top != 0], na.rm = TRUE), 
-#                        NA_real_),
-#     # Get the maximum peak.bottom value, replace -Inf with NA if all are NA or 0
-#     peak.bottom = if_else(any(peak.bottom != 0), 
-#                           max(peak.bottom[peak.bottom != 0], na.rm = TRUE), 
-#                           NA_real_),
-#     # Calculate peak width and handle infinite values by replacing them with NA
-#     peak.width = peak.bottom - peak.top,
-#     peak.width = if_else(is.na(peak.top) | is.na(peak.bottom), NA_real_, peak.width)
-#   ) %>%
-#   ungroup()|>  # Ungroup after mutations
-#   select(CastID, Depth_m, peak.top, peak.bottom, peak.width, totals_mean, totals_med)
-# 
-# final_DCM_metrics <- DCM_metrics_depth |> #with peak calculations
-#   left_join(for_peaks, by = c("CastID", "Depth_m")) |>
-#   #mutate(peak.width = if_else(peak.width < .3*WaterLevel_m, peak.width, NA_real_)) |>
-#   filter(DOY > 133, DOY < 286)
-# 
-####visualize DCM metrics####
-# Loop over each year
-# for (yr in years) {
-#   
-#   # Filter data for the year
-#   test <- final_DCM_metrics |>
-#     filter(year(Date) == yr)
-#   
-#   # Skip if there's no data
-#   if (nrow(test) == 0) next
-#   
-#   # Create plot
-#   plot_casts <- ggplot(test, aes(x = TotalConc_ugL, y = Depth_m)) +
-#     geom_path() +
-#     # Light blue grid lines for every whole meter
-#     geom_hline(yintercept = seq(0, max(test$Depth_m, na.rm = TRUE), by = 1), 
-#                color = "lightblue", linetype = "dotted", linewidth = 0.3) +
-#     # Horizontal lines for depths
-#     geom_hline(aes(yintercept = peak.top), linetype = "dashed", color = "red") +
-#     geom_hline(aes(yintercept = DCM_depth), linetype = "solid", color = "red") +
-#     geom_hline(aes(yintercept = peak.bottom), linetype = "dashed", color = "red") +
-#     # Vertical lines for concentrations
-#     geom_vline(aes(xintercept = totals_mean), color = "red") +
-#     scale_y_reverse(breaks = seq(0, max(test$Depth_m, na.rm = TRUE), by = 1)) +
-#     theme_bw() +
-#     facet_wrap(vars(FacetID)) +
-#     xlab("micrograms per liter") +
-#     ylab("Depth (m)") +
-#     ggtitle(paste(yr, "raw casts"))+
-#     geom_text(aes(label = round(DCM_depth, 1), x = Inf, y = DCM_depth), 
-#               color = "black", hjust = 1.1, size = 3)
-#   
-#   # Save plot
-#   ggsave(filename = paste0("Figs/raw_flora_casts/", yr, "_raw_casts.png"),
-#          plot = plot_casts,
-#          width = 12,
-#          height = 10,
-#          dpi = 300)
-# }
-# 
-#for now not going to keep peak calculations in analysis 
-#will come back to this at a later date
-
-final_DCM_metrics<- final_DCM_metrics|>
-  #select(-peak.top, -peak.bottom, -peak.width)|>#can remove this once have peak calculations figured out
-  group_by(CastID)|>
-  mutate(Q3 = quantile(TotalConc_ugL, 0.75)) #25% of data falls above this value 
-
 #-----max_conc check-----------####
 
 # Pigments to visualize (columns that have *_DCM_depth already computed)
-pigment_vars <- c("TotalConc_ugL", "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL")
+pigment_vars <- c("TotalConc_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Ensure output dir exists
 dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
@@ -341,7 +260,7 @@ for (var in pigment_vars) {
     
     depth_max <- max(test$Depth_m, na.rm = TRUE)
     
-    plot_casts <- ggplot(test, aes(x = .data[[var]], y = Depth_m, group = Date)) +
+    plot_casts <- ggplot(test, aes(x = .data[[var]], y = Depth_m, group = CastID)) +
       geom_path() +
       # light grid every meter
       geom_hline(yintercept = seq(0, depth_max, by = 1),
@@ -355,7 +274,7 @@ for (var in pigment_vars) {
       ) +
       scale_y_reverse(breaks = seq(0, depth_max, by = 1)) +
       theme_bw() +
-      facet_wrap(vars(FacetID)) +
+      facet_wrap(vars(CastID)) +
       xlab("micrograms per liter") +
       ylab("Depth (m)") +
       ggtitle(paste(yr, "-", var, "raw casts"))
@@ -370,25 +289,38 @@ for (var in pigment_vars) {
   }
 }
 
+#
+final_DCM_metrics<- DCM_metrics_depth|>
+  mutate(max_conc = TotalConc_ugL_max_conc, 
+         DCM_depth = TotalConc_ugL_DCM_depth)
+
+
 
 ####boxplots depth of DCM####
 #need to use raw data for this to work 
 
 #filtering so that max_conc is greater than 20 because otherwise we can't call it a deep chlorophyll maxima 
-boxplot_Data <- final_DCM_metrics|>
- # filter(max_conc > 20) |> #or change this so that it's only displaying points greater than 20ugL
-  mutate(DayOfYear = yday(Date))|>
-  filter(DayOfYear>133, DayOfYear<286) |>
-  mutate(Year = year(Date), Month = month(Date))|>
-  select(CastID, Date,Year,Month, DCM_depth, max_conc)|>
-  group_by(CastID, Date,Year,Month,)|>
+boxplot_Data <- final_DCM_metrics |>
+  mutate(
+    DayOfYear = yday(Date),
+    Year = year(Date),
+    Month = month(Date)
+  ) |>
+  filter(DayOfYear > 133, DayOfYear < 286) |>
+  select(CastID, Date, Year, Month, DCM_depth, max_conc) |>
+  # Remove exact duplicates BEFORE grouping
+  distinct() |>
+  # Reduce grouping to Date–CastID level only
+  group_by(CastID, Date) |>
+  filter(max_conc >= 20) |>
+  filter(Year > 2014)|>
   summarise(
+    Year = first(Year),
+    Month = first(Month),
     DCM_depth = mean(DCM_depth, na.rm = TRUE),
     max_conc = mean(max_conc, na.rm = TRUE),
     .groups = "drop"
-  )|>
-  filter(max_conc >= 20)|>
-  filter(year(Date) >2014)
+  ) 
 
 label_data <- boxplot_Data %>%
   group_by(Year) %>%
@@ -396,22 +328,29 @@ label_data <- boxplot_Data %>%
 
 # Plot with labels for the number of data points
 last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
-  geom_boxplot() +
-  geom_point(aes(color = max_conc), position = position_jitter(width = 0.2), size = 2) +  # Add points with color representing concentration
+  geom_boxplot(outlier.shape = NA) +   # ⬅️ this line changed
+  geom_point(
+    aes(color = max_conc),
+    position = position_jitter(width = 0.2),
+    size = 2
+  ) +
   scale_color_gradientn(
     colours = c("blue","cyan", "green","yellow", "red", "red3"),
-    values = scales::rescale(c(0,40, 75, 100, 200, max_legend_value)),  # Make red hit at 150 µg/L
+    values = scales::rescale(c(0,40, 75, 100, 200, 380)),
     na.value = "gray",
-    limits = c(20, max_legend_value), 
+    limits = c(20, 380), 
     breaks = c(20, 100, 200, 300, 380)
-  ) +  scale_y_reverse(name = "DCM Depth (inverted)") +  # Reverse the y-axis
-  ggtitle(label = "DCM Depths") + #or change this so that it's only displaying points greater than 20ugL
-  ylim(10, 0) +  # Set the y-axis limits, reversing the range
-  labs(x = "Year", y = "DCM Depth", color = "totals ugL") +  # Label the legend
+  ) +
+  scale_y_reverse(name = "DCM Depth (inverted)") +
+  ggtitle("DCM Depths") +
+  ylim(10, 0) +
+  labs(x = "Year", y = "DCM Depth", color = "totals ugL") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  geom_text(data = label_data, aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)), 
-            vjust = -0.5)  # Add labels at the top of each column
-
+  geom_text(
+    data = label_data,
+    aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)),
+    vjust = -0.5
+  )
 print(last_plot)
 
 ggsave(
@@ -446,9 +385,9 @@ ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
              position = position_jitter(width = 0.2), size = 2) +
   scale_color_gradientn(
     colours = c("blue","cyan","green","yellow","red","red3"),
-    values = scales::rescale(c(0, 40, 75, 100, 200, max_legend_value)),
+    values = scales::rescale(c(0, 40, 75, 100, 200, 380)),
     na.value = "gray",
-    limits = c(20, max_legend_value),
+    limits = c(20, 380),
     breaks = c(20, 100, 200, 300, 380)
   ) +
   ggtitle("Peak Magnitudes") +
@@ -459,12 +398,12 @@ ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
   geom_text(
     data = label_data,
     aes(x = factor(Year), y = Inf, label = paste0("n = ", n)),
-    vjust = 1.2,           # nudge down from the top
+    vjust = 2.0,           # nudge down from the top
     size = 3.2,
     inherit.aes = FALSE
   )
 ggsave(
-  filename = "Peak_Magnitidues_2015_2024_boxplot.png",
+  filename = "Peak_Magnitidues_2015_2024_boxplot_20.png",
   plot = last_plot(),
   path = "Figs/Phytos_viz",
   width = 10,   # width in inches
@@ -482,8 +421,6 @@ final_phytos <- final_DCM_metrics|>
   summarise(
     DCM_depth = mean(DCM_depth, na.rm = TRUE),
     max_conc = mean(max_conc, na.rm = TRUE),
-    totals_mean = mean(totals_mean),
-    totals_med = mean(totals_med),
     .groups = "drop"
   )|>
   select(-WaterLevel_m)
@@ -604,7 +541,10 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
 # (If needed, coerce Year in your source once)
 final_phytos <- final_phytos %>% mutate(Year = as.integer(as.character(Year)))
 
-p_depth <- sig_grid_upper_fn(final_phytos, "DCM_depth",
+final_phytos_over20 <- final_phytos|>
+  filter(max_conc >20)
+
+p_depth <- sig_grid_upper_fn(final_phytos_over20, "DCM_depth",
                              "Pairwise Differences by Year - DCM Depth")
 p_mag   <- sig_grid_upper_fn(final_phytos, "max_conc",
                              "Pairwise Differences by Year - Max Phytoplankton")
@@ -617,5 +557,5 @@ sig_both <- p_depth / p_mag + plot_annotation(
 
 sig_both
 
-ggsave("Figs/Significance_UpperTriangle_DCM_and_MaxConc.png",
+ggsave("Figs/Significance_UpperTriangle_DCM_and_MaxConc_over20_just_for_DCM_depth.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")

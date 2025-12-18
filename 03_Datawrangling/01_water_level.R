@@ -157,3 +157,28 @@ ggsave("Figs/WaterLevel_colored_by_year.png", wtrlvl_by_year, width = 8, height 
 
 
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
+
+#basic stats for paper 
+
+#How much did water level drop in 2022 
+water2022 <- water_level|>
+  filter(Year == 2022)
+
+#checking within year and across year variability
+var_summary <- water_level %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(WaterLevel_m, na.rm = TRUE),
+    sd_within = sd(WaterLevel_m, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across

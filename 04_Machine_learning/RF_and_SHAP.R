@@ -99,11 +99,13 @@ depth_jackknife <- jackknife_incMSE_heatmap(
 
 ####weather lags####
 met_lags <- full_weekly_data |>
+  filter(max_conc>20)|>
   select(Date, DCM_depth,
          Precip_Weekly, precip_lag1, precip_lag2,
          AirTemp_Avg, airtemp_lag1, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
-var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "DCM_depth", "Depth", variable_labels = variable_labels)
+met_RFSHAP <- var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "MET LAGS", "DCM_depth", "Depth", variable_labels = variable_labels)
+
 
 all_plots <- list()
 
@@ -135,12 +137,12 @@ ggsave(
 magnitude_analysis <- read.csv("CSVs/magnitude_analysis_revised.csv")
 
 ####weather lags####
-met_lags <- magnitude_analysis |>
+met_lags <- full_weekly_data |>
   select(Date, max_conc,
          Precip_Weekly, precip_lag1, precip_lag2,
          AirTemp_Avg, airtemp_lag1, airtemp_lag2,
          WindSpeed_Avg, wind_lag1, wind_lag2)
-var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "ALL MET LAGS", "max_conc", "Magnitude")
+var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "MET LAGS", "max_conc", "Magnitude")
 
 ####Final Plots####
 
@@ -201,12 +203,13 @@ ggsave(
 #######With max_conc >20######
 
 #------depth------#
-depth_analysis_over20 <- depth_analysis_over20|>
+depth_analysis_over20 <- full_weekly_data|>
+  filter(max_conc>20)|>
   select(
     Date, DCM_depth,
     PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
     depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
-    wind_lag1, airtemp_lag2, precip_lag1
+    wind_lag1, airtemp_lag2, precip_lag1  
   )
 
 finaldepthRF_over20 <- var_importance_shap_plots(Xdataframe = depth_analysis_over20, 2015, 2024,
@@ -222,38 +225,22 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   var_order = finaldepthRF_over20$var_order,
   response_var   = "DCM_depth",
   whichvars_label= "over20",
-  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20.png"), 
+  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20_3.png"), 
   variable_labels = variable_labels
 )
 
 #------magnitude-------#
+magnitude_analysis_over20 <- full_weekly_data|>
+  select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
+         SFe_mgL_max_val,SRP_ugL_max_val, NH4_ugL_max_val, 
+         precip_lag1, airtemp_lag2, wind_lag1)|>
+  filter(max_conc>20)
+
 finalmagnitudeRF_over20 <- var_importance_shap_plots(magnitude_analysis_over20,
                                               2015, 2024,
                                               "", "max_conc", "Magnitude",  
                                               variable_labels = variable_labels)
 
-#individual years
-all_plots <- list()
-for (i in 2015:2024) {
-  p <- var_importance_shap_plots(
-    Xdataframe = final_magnitude_analysis,
-    XYear = i,
-    XYear2 = i,
-    whichvars = "final",
-    response_var = "max_conc",
-    save_dir = "Magnitude"
-  )
-  all_plots[[as.character(i)]] <- p[[1]]
-}
-combined_all <- wrap_plots(all_plots, ncol = 1)
-ggsave(
-  here::here("Figs", "MachineLearning", "Magnitude","all years combined", "Final.png"),
-  plot = combined_all,
-  width = 12,
-  height = 30,
-  dpi = 600,
-  bg = "white"
-)
 
 magnitude_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = magnitude_analysis_over20,
