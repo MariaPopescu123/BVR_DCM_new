@@ -1,18 +1,9 @@
 #function for summarizing variables 
 
-library(dplyr)
-library(lubridate)
-library(rlang)
-library(purrr)
-
 #example of use 
 #Date must be edited to be just Date
 #variables <- c("SFe_mgL", "TFe_mgL", "SMn_mgL")
 #summary_output <- summarize_data_by_week(metalsdf, variables)
-library(dplyr)
-library(lubridate)
-library(rlang)
-library(purrr)
 
 library(dplyr)
 library(lubridate)

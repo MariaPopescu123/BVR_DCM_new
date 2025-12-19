@@ -240,6 +240,14 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     width = 12, height = 5, dpi = 600, bg = "white"
   )
   
+  #added this so I can make SHAP interaction plots 
+  vars_long_raw <- as_tibble(X_shap) %>%
+    rownames_to_column("row_id") %>%
+    pivot_longer(-row_id, names_to = "var", values_to = "value_raw")
+  
+  df_shap <- df_shap %>%
+    left_join(vars_long_raw, by = c("row_id","var"))
+  
   return(list(
     plots = list(
       importance = p_imp,
@@ -271,6 +279,8 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
       )
     ),
     tuning_scores = RF_tuning_scores,
-    importance_table = imp_df
+    importance_table = imp_df, 
+    shap_long = df_shap,        
+    shap_long_filtered = df_shap_f
   ))
 }

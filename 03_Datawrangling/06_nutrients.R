@@ -95,12 +95,38 @@ metalsdf <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072
 metals_updated <- metalsdf |>
   mutate(Date = as.Date(DateTime)) |>
   filter(Site == 50, Reservoir == "BVR", Flag_SFe_mgL != 68) |>
-  select(Date, Depth_m, SFe_mgL)
+  select(Date, Depth_m, SFe_mgL)|>
+  mutate(Week = week(Date), 
+         Year = year(Date))
+
+metaswDCM <- metals_updated|>
+  left_join(final_phytos, by = c("Week", "Year"))|>
+  mutate(Reservoir = "BVR", Site = 50) # need to this here for interpolation function
+
+#interpolate so that I can get a value for DCM depth
+variables <- c("SFe_mgL")
+metals_interpolated <- interpolate_variable(metaswDCM, variables)
+
+metals_interpolated2 <- metals_interpolated |>
+  left_join(final_phytos, by = c("Week", "Year")) 
+metals_interpolated3 <- metals_interpolated2|>
+  mutate(Reservoir = "BVR", Site = 50) |>
+  filter(Year > 2014) |>
+  group_by(Date) |>
+  tidyr::fill(DCM_depth, .direction = "downup") |>
+  ungroup()|>
+  filter(!is.na(DCM_depth))
+####summarize variables
+variables <- c("SFe_mgL")
+metals_weekly_sum <- weekly_sum_variables(metals_interpolated3, variables)
 
 final_metals <- frame_weeks|> #random forest frame with metals
-  left_join(metals_summarised, by = c("Week", "Year"))|>
+  left_join(metals_weekly_sum, by = c("Week", "Year"))|>
   select(-WaterLevel_m)
 
 write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
 
+#just want to check something 
+SRPcheck <- chem_interpolated3|>
+  filter(Depth_m == 4)
 

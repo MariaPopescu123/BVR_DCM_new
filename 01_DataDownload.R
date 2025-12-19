@@ -13,6 +13,7 @@ source("02_Functions/weekly_sum_variables.R")
 source("02_Functions/new_var_importance_shap_plots.R")#function for running RandomForest and visualizing variable importance and shap values
 source("02_Functions/jackknife.R")
 source("02_Functions/final_data_availability_plot.R")
+source("02_Functions/plot_shap_vs_value_loop.R")
 
 #### Loading Data  #### 04July2025
 

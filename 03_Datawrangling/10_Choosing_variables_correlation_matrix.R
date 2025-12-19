@@ -105,8 +105,6 @@ chem_depth_corr <- depth_analysis |>
     depth_NO3NO2_ugL_max,
     depth_NO3NO2_ugL_min,
     depth_mean_NO3NO2_ugL,
-    depth_DIC_mgL_max,
-    depth_DIC_mgL_min,
     depth_mean_DIC_mgL,
     depth_np_ratio_max,
     depth_np_ratio_min,
@@ -146,9 +144,9 @@ plot_correlation_matrix(
 #may do this
 
 ####chosen variables####
-depth_analysis <- read.csv("CSVs/depth_analysis_frame.csv")
+full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
 
-depth_analysis_revised <- depth_analysis |>
+depth_analysis <- full_weekly_data |>
   select(Date, DCM_depth,
          WaterLevel_m,
          PZ,
@@ -162,11 +160,10 @@ depth_analysis_revised <- depth_analysis |>
          airtemp_lag2,
          wind_lag1)
 
-write.csv(depth_analysis_revised, "CSVs/depth_analysis_revised.csv", row.names = FALSE)
 ####over20####
 depth_analysis_over20 <- full_weekly_data |>
   filter(max_conc >20)|>
-  select(Date, DCM_depth,
+  select(Date, DCM_depth, N_at_DCM,
          WaterLevel_m,
          PZ,
          depth_SFe_mgL_max,
@@ -179,7 +176,7 @@ depth_analysis_over20 <- full_weekly_data |>
          airtemp_lag2,
          wind_lag1)
   
-write.csv(depth_analysis_over20, "CSVs/depth_analysis_revised_over20.csv", row.names = FALSE)
+write.csv(depth_analysis_over20, "CSVs/depth_analysis_over20.csv", row.names = FALSE)
 
 
 #####BOTH Met Data##### these are variables for both DCM depth and DCM magnitude
@@ -245,15 +242,13 @@ plot_correlation_matrix(physics_magnitude_analysis,
 #####Phytos#####
 
 ####chosen variables####
-magnitude_analysis <- read.csv("CSVs/magnitude_analysis_frame.csv")
-
-magnitude_analysis_revised <- magnitude_analysis |>
+magnitude_analysis <- full_weekly_data |>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,
-         SFe_mgL_max_val,SRP_ugL_max_val, NH4_ugL_max_val, 
+         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, 
          precip_lag1, airtemp_lag2, wind_lag1)
-write.csv(magnitude_analysis_revised, "CSVs/magnitude_analysis_revised.csv", row.names = FALSE)
+write.csv(magnitude_analysis, "CSVs/magnitude_analysis_all_data.csv", row.names = FALSE)
 
-magnitude_analysis_over20 <- magnitude_analysis_revised|>
+magnitude_analysis_over20 <- magnitude_analysis|>
   filter(max_conc > 20)
 
 write.csv(magnitude_analysis_over20, "CSVs/magnitude_analysis_over20.csv", row.names = FALSE)

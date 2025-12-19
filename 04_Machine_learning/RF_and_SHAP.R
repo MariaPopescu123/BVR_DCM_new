@@ -225,14 +225,14 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   var_order = finaldepthRF_over20$var_order,
   response_var   = "DCM_depth",
   whichvars_label= "over20",
-  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20_3.png"), 
+  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20_5.png"), 
   variable_labels = variable_labels
 )
 
 #------magnitude-------#
 magnitude_analysis_over20 <- full_weekly_data|>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
-         SFe_mgL_max_val,SRP_ugL_max_val, NH4_ugL_max_val, 
+         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, 
          precip_lag1, airtemp_lag2, wind_lag1)|>
   filter(max_conc>20)
 
@@ -266,4 +266,50 @@ ggsave(
   filename = here::here("Figs", "MachineLearning", "OVER20Combined_Depth_Magnitude_RF.png"),
   plot = combined_RF_panels,
   width = 14, height = 10, dpi = 600, bg = "white"
+)
+
+####-----interaction plots for SHAP vs value----####
+
+####----depth####
+depthshap <- finaldepthRF_over20$shap_long
+vars_to_plot <- c(
+  "PZ",
+  "thermocline_depth",
+  "schmidt_stability",
+  "WaterLevel_m",
+  "depth_NH4_ugL_max",
+  "depth_SRP_ugL_max",
+  "depth_SFe_mgL_max",
+  "wind_lag1",
+  "airtemp_lag2"
+)
+plot_shap_vs_value_loop(
+  shap_df = depthshap,
+  vars_to_plot = vars_to_plot,
+  out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Depth"),
+  prefix = "depth",
+  years_label = "2014–2024"
+)
+
+
+#----magnitude----
+magnitudeshap <- finalmagnitudeRF_over20$shap_long
+vars_to_plot <- c(
+  "WaterLevel_m",
+  "PZ",
+  "schmidt_stability",
+  "thermocline_depth",
+  "N_at_DCM",
+  "SFe_mgL_at_DCM",
+  "NH4_ugL_at_DCM",
+  "precip_lag1",
+  "airtemp_lag2",
+  "wind_lag1"
+)
+plot_shap_vs_value_loop(
+  shap_df = magnitudeshap,
+  vars_to_plot = vars_to_plot,
+  out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Magnitude"),
+  prefix = "depth",
+  years_label = "2014–2024"
 )
