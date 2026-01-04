@@ -288,7 +288,7 @@ plot_shap_vs_value_loop(
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Depth"),
   prefix = "depth",
-  years_label = "2014–2024"
+  analysis_label = "Depth Analysis"
 )
 
 
@@ -310,6 +310,6 @@ plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Magnitude"),
-  prefix = "depth",
-  years_label = "2014–2024"
+  prefix = "magnitude",
+  analysis_label = "Magnitude Analysis"
 )
