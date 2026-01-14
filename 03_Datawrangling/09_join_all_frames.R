@@ -38,3 +38,28 @@ full_weekly_data <- full_weekly_data |>
 
 write.csv(full_weekly_data, "CSVs/full_weekly_data.csv", row.names = FALSE)
 
+
+#####phyto medians####
+
+DCMmedian <- full_weekly_data %>%
+  filter(max_conc > 20) %>%
+  summarise(
+    median_max_conc = median(max_conc, na.rm = TRUE),
+    sd_max_conc     = sd(max_conc, na.rm = TRUE),
+    median_minus_1sd = median_max_conc - sd_max_conc,
+    median_plus_1sd  = median_max_conc + sd_max_conc,
+    n = sum(!is.na(max_conc))
+  )
+DCMmedian
+
+DCM_depth_stats <- full_weekly_data %>%
+  filter(max_conc > 20) %>%
+  summarise(
+    median_DCM_depth = median(DCM_depth, na.rm = TRUE),
+    sd_DCM_depth     = sd(DCM_depth, na.rm = TRUE),
+    median_minus_1sd = median_DCM_depth - sd_DCM_depth,
+    median_plus_1sd  = median_DCM_depth + sd_DCM_depth,
+    n = sum(!is.na(DCM_depth))
+  )
+
+DCM_depth_stats

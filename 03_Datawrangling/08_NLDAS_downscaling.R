@@ -15,24 +15,87 @@
 pacman::p_load(tidyverse, lubridate, RColorBrewer, dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
 ####1 EDI met data####
-#meteorological data from FCR https://portal.edirepository.org/nis/mapbrowse?packageid=edi.389.8
-#2015-2024
-options(timeout = 300)
-EDImet <- read.csv( "https://pasta.lternet.edu/package/data/eml/edi/389/9/62647ecf8525cdfc069b8aaee14c0478")
+EDImet <- read.csv("EDImet.csv")
+EDImetC <- EDImet %>%
+  select(
+    Reservoir,
+    Site,
+    DateTime,
+    Rain_Total_mm,
+    WindSpeed_Average_m_s,
+    AirTemp_C_Average,
+    Flag_WindSpeed_Average_m_s,
+    Flag_AirTemp_C_Average,
+    Flag_Rain_Total_mm
+  )
 
 #Weekly values
-EDImet_0 <- EDImet |>
-  mutate(Date = as_date(DateTime))|>
-  mutate(Year = year(DateTime),
-         Week = week(Date)) |>
+library(dplyr)
+library(lubridate)
+
+# 1) Add date/year/week
+EDImet_wk <- EDImetC |>
+  mutate(
+    Date = as_date(DateTime),
+    Year = year(DateTime),
+    Week = isoweek(Date)   # use week(Date) if you prefer; isoweek is usually more consistent
+  )
+
+# 2) Compute missingness per (Year, Week), drop weeks with >10% missing
+wk_qc <- EDImet_wk |>
   group_by(Year, Week) |>
   summarise(
-    Date = min(Date),
-    precip_weekly = sum(Rain_Total_mm, na.rm = TRUE),  #total rainfall per week (mm)
+    n_rows = n(),
+    
+    # % missing for each field used downstream
+    miss_dt   = mean(is.na(DateTime)),
+    miss_rain = mean(is.na(Rain_Total_mm)),
+    miss_tair = mean(is.na(AirTemp_C_Average)),
+    miss_wind = mean(is.na(WindSpeed_Average_m_s)),
+    
+    # worst-case missingness across required fields
+    miss_any_required = pmax(miss_dt, miss_rain, miss_tair, miss_wind),
+    
+    drop_week = miss_any_required > 0.10,
+    .groups = "drop"
+  )
+
+# 3) Print dropped weeks per year
+dropped <- wk_qc |>
+  filter(drop_week) |>
+  transmute(
+    Year, Week,
+    pct_missing = round(100 * miss_any_required, 1)
+  ) |>
+  arrange(Year, Week)
+
+if (nrow(dropped) == 0) {
+  message("No weeks dropped (no weeks exceeded 10% missing data).")
+} else {
+  dropped |>
+    group_by(Year) |>
+    summarise(
+      dropped_weeks = paste0(Week, " (", pct_missing, "%)", collapse = ", "),
+      .groups = "drop"
+    ) |>
+    print(n = Inf)
+}
+
+# 4) Keep only good weeks and compute weekly summaries
+EDImet_0 <- EDImet_wk |>
+  inner_join(wk_qc |> filter(!drop_week) |> select(Year, Week), by = c("Year", "Week")) |>
+  mutate()
+  group_by(Year, Week) |>
+  summarise(
+    Date = min(Date, na.rm = TRUE),
+    precip_weekly = sum(Rain_Total_mm, na.rm = TRUE),
     weekly_airtempavg = mean(AirTemp_C_Average, na.rm = TRUE),
     WindSpeed_Weekly_Average_m_s = mean(WindSpeed_Average_m_s, na.rm = TRUE),
     .groups = "drop"
   )
+
+
+
 ####2 NLDAS met data####
 
 #Heather Wander generated data
@@ -40,23 +103,89 @@ EDImet_0 <- EDImet |>
 #heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
 #NLDAS <- read.csv(heathergeneratedNLDAS)
 #write.csv(NLDAS, "CSVs/NLDAS.csv", row.names = FALSE)
-#heather's is given in m per day
+#heather's precipitation is given in m per day
+#windspeed in m per day
+#air temp is hourly
 
 NLDAS <- read.csv("CSVs/NLDAS.csv")
-
-NLDAS_0 <- NLDAS %>%
-  mutate(Date = as_date(time),
-         Year = year(Date),
-         Week = week(Date)) %>%
-  group_by(Year, Week) %>%
-  summarise(
-    Date = min(Date),
-    precip_weekly = sum(Rain * 1000, na.rm = TRUE),  #convert m → mm, then sum for weekly total
-    weekly_airtempavg = mean(AirTemp, na.rm = TRUE),
-    WindSpeed_Weekly_Average_m_s = mean(WindSpeed, na.rm = TRUE),
-    .groups = "drop"
+  
+  # ---- 1) Add Date/Year/Week + unit conversions (rowwise, before weekly QC) ----
+  NLDAS_wk <- NLDAS %>%
+    mutate(
+      Date = as_date(time),
+      Year = year(Date),
+      Week = isoweek(Date),        # swap to week(Date) if you prefer
+      Rain = Rain * 1000,          # m -> mm (to match EDI)
+      WindSpeed = WindSpeed / 86400 # m/day -> m/s (to match EDI)
+    )
+  
+  # ---- 2) Compute missingness per variable by (Year, Week) ----
+  wk_miss <- NLDAS_wk %>%
+    group_by(Year, Week) %>%
+    summarise(
+      n_rows = n(),
+      miss_rain = mean(is.na(Rain)),
+      miss_tair = mean(is.na(AirTemp)),
+      miss_wind = mean(is.na(WindSpeed)),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      bad_rain = miss_rain > 0.10,
+      bad_tair = miss_tair > 0.10,
+      bad_wind = miss_wind > 0.10
+    )
+  
+  # ---- 3) Report which weeks were "removed" (NA’d) per year, per variable ----
+  report_one <- function(df, flag_col, label) {
+    df %>%
+      filter(.data[[flag_col]]) %>%
+      transmute(
+        Year, Week,
+        pct_missing = round(100 * .data[[sub("bad_", "miss_", flag_col)]], 1),
+        variable = label
+      ) %>%
+      arrange(Year, Week)
+  }
+  
+  removed_tbl <- bind_rows(
+    wk_miss %>% filter(bad_rain) %>% transmute(Year, Week, variable = "Rain (mm)", pct_missing = round(100*miss_rain, 1)),
+    wk_miss %>% filter(bad_tair) %>% transmute(Year, Week, variable = "AirTemp",   pct_missing = round(100*miss_tair, 1)),
+    wk_miss %>% filter(bad_wind) %>% transmute(Year, Week, variable = "WindSpeed (m/s)", pct_missing = round(100*miss_wind, 1))
   )
-
+  
+  if (nrow(removed_tbl) == 0) {
+    message("No (Year, Week) exceeded 10% missingness for any variable.")
+  } else {
+    removed_tbl %>%
+      group_by(Year, variable) %>%
+      summarise(
+        weeks_removed = paste0(Week, " (", pct_missing, "%)", collapse = ", "),
+        .groups = "drop"
+      ) %>%
+      arrange(Year, variable) %>%
+      print(n = Inf)
+  }
+  
+  # ---- 4) Join flags back + set only the bad-variable values to NA within those weeks ----
+  NLDAS_qc <- NLDAS_wk %>%
+    left_join(wk_miss %>% select(Year, Week, bad_rain, bad_tair, bad_wind), by = c("Year", "Week")) %>%
+    mutate(
+      Rain = if_else(bad_rain, NA_real_, Rain),
+      AirTemp = if_else(bad_tair, NA_real_, AirTemp),
+      WindSpeed = if_else(bad_wind, NA_real_, WindSpeed)
+    )
+  
+  # ---- 5) Weekly summaries (weeks still exist; some variables may be NA for that week) ----
+  NLDAS_0 <- NLDAS_qc %>%
+    group_by(Year, Week) %>%
+    summarise(
+      Date = min(Date, na.rm = TRUE),
+      precip_weekly = sum(Rain, na.rm = TRUE),
+      weekly_airtempavg = mean(AirTemp, na.rm = TRUE),
+      WindSpeed_Weekly_Average_m_s = mean(WindSpeed, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
 ####3. Build regressions for downscaling####
 # overlap data
 overlap <- inner_join(

@@ -173,7 +173,6 @@ var_summary <- water_level %>%
     sd_within = sd(WaterLevel_m, na.rm = TRUE),
     cv_within = sd_within / mean_val
   )
-
 across_year <- var_summary %>%
   summarise(
     mean_across = mean(mean_val),
@@ -182,3 +181,19 @@ across_year <- var_summary %>%
   )
 
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
+#water level ranges before and after 2022
+before2022 <- water_levelscoalesced %>%
+  filter(Year < 2022)
+after2022 <- water_levelscoalesced %>%
+  filter(Year > 2022)
+before2022 %>%
+  summarise(
+    min_waterlevel = min(WaterLevel_m, na.rm = TRUE),
+    max_waterlevel = max(WaterLevel_m, na.rm = TRUE)
+  )
+after2022 %>%
+  summarise(
+    min_waterlevel = min(WaterLevel_m, na.rm = TRUE),
+    max_waterlevel = max(WaterLevel_m, na.rm = TRUE)
+  )

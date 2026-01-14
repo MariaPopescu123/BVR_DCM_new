@@ -3,6 +3,7 @@ plot_shap_vs_value_loop <- function(shap_df,
                                     out_dir,
                                     prefix = "shap_vs",
                                     analysis_label = "Depth Analysis",
+                                    var_labels = NULL,   # <--- added
                                     width = 6,
                                     height = 4,
                                     dpi = 300,
@@ -19,6 +20,15 @@ plot_shap_vs_value_loop <- function(shap_df,
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   
   safe_name <- function(x) gsub("[^A-Za-z0-9_\\-]+", "_", x)
+  
+  # helper to lookup pretty labels
+  pretty_label <- function(v) {
+    if (!is.null(var_labels) && v %in% names(var_labels)) {
+      unname(var_labels[[v]])
+    } else {
+      v
+    }
+  }
   
   plot_list <- list()
   
@@ -39,7 +49,8 @@ plot_shap_vs_value_loop <- function(shap_df,
       next
     }
     
-    title_txt <- paste0(analysis_label, ": SHAP vs ", v)
+    v_pretty <- pretty_label(v)
+    title_txt <- paste0(analysis_label, ": SHAP vs ", v_pretty)
     
     p <- ggplot2::ggplot(df_v, ggplot2::aes(x = value_num, y = shap, color = value_z)) +
       ggplot2::geom_point(alpha = 0.75, size = 1.5) +
@@ -51,7 +62,7 @@ plot_shap_vs_value_loop <- function(shap_df,
       ) +
       ggplot2::labs(
         title = title_txt,
-        x = v,
+        x = v_pretty,
         y = "SHAP value",
         color = "z-scaled\nvalue"
       ) +
@@ -98,4 +109,3 @@ plot_shap_vs_value_loop <- function(shap_df,
     panel_plot = panel_plot
   ))
 }
-

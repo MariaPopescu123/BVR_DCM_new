@@ -36,9 +36,15 @@ variable_labels <- c(
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
-  precip_lag1 = "Precipitation Weekly Sum (Lag 1 wk)",
-  airtemp_lag2 = "Air Temperature Weekly Average (Lag 2 wk)",
-  wind_lag1 = "Wind Speed Weekly Average (Lag 1 wk)"
+  Precip_Weekly  = "Precipitation Weekly Sum",
+  precip_lag1    = "Precipitation Weekly Sum (Lag 1 wk)",
+  precip_lag2    = "Precipitation Weekly Sum (Lag 2 wk)",
+  AirTemp_Avg    = "Air Temperature Weekly Average",
+  airtemp_lag1   = "Air Temperature Weekly Average (Lag 1 wk)",
+  airtemp_lag2   = "Air Temperature Weekly Average (Lag 2 wk)",
+  WindSpeed_Avg  = "Wind Speed Weekly Average",
+  wind_lag1      = "Wind Speed Weekly Average (Lag 1 wk)",
+  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)"
 )
 
 
