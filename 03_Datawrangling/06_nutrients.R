@@ -126,7 +126,42 @@ final_metals <- frame_weeks|> #random forest frame with metals
 
 write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
 
-#just want to check something 
-SRPcheck <- chem_interpolated3|>
-  filter(Depth_m == 4)
+####sulfate####
+# metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
+#updated 2025
+sulfatedf <- read.csv("CSVs/sulfate_combined.csv")
+#removed flags for 68 as per Cece's advice
+sulfate_updated <- sulfatedf |>
+  mutate(Date = as.Date(Date)) |>
+  filter(Site == 50, Reservoir == "BVR") |>
+  select(Date, Depth_m, SO4_ugL)|>
+  mutate(Week = week(Date), 
+         Year = year(Date))
+
+sulfatewDCM <- sulfate_updated|>
+  left_join(final_phytos, by = c("Week", "Year"))|>
+  mutate(Reservoir = "BVR", Site = 50) # need to this here for interpolation function
+
+#interpolate so that I can get a value for DCM depth
+variables <- c("SO4_ugL")
+so4_interpolated <- interpolate_variable(sulfatewDCM, variables)
+
+so4_interpolated2 <- so4_interpolated |>
+  left_join(final_phytos, by = c("Week", "Year")) 
+so4_interpolated3 <- so4_interpolated2|>
+  mutate(Reservoir = "BVR", Site = 50) |>
+  filter(Year > 2014) |>
+  group_by(Date) |>
+  tidyr::fill(DCM_depth, .direction = "downup") |>
+  ungroup()|>
+  filter(!is.na(DCM_depth))
+####summarize variables
+variables <- c("SO4_ugL")
+so4_weekly_sum <- weekly_sum_variables(so4_interpolated3, variables)
+
+final_sulfate <- frame_weeks|> #random forest frame with metals
+  left_join(so4_weekly_sum, by = c("Week", "Year"))|>
+  select(-WaterLevel_m)
+
+write.csv(final_sulfate, "CSVs/final_sulfate.csv", row.names = FALSE)
 

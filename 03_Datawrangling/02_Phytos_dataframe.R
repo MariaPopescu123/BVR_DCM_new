@@ -10,7 +10,7 @@ current_df <- read_csv("https://pasta-s.lternet.edu/package/data/eml/edi/1304/1/
 
 #adding columns with total_conc max and the depth at which it occurs
 phytos <- current_df %>% 
-  filter(Reservoir == "BVR", Site == 50)%>%
+  filter(Reservoir == "FCR", Site == 50)%>%
   mutate(Date  = as_date(DateTime)) |> 
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
   filter(!(CastID == 592))|> #filter out weird drop in 2017
@@ -123,9 +123,9 @@ DCM_metrics <- phytos |>
     Week,
     CastID,
     Depth_m,
-    TotalConc_ugL,
+    #TotalConc_ugL,
     # GreenAlgae_ugL,
-    # Bluegreens_ugL,
+     Bluegreens_ugL,
     # BrownAlgae_ugL,
     # MixedAlgae_ugL
   ) |>
@@ -137,10 +137,10 @@ DCM_metrics <- phytos |>
 # Get unique years in the dataset
 years <- unique(year(DCM_metrics$Date))
 
-types <- c("TotalConc_ugL"
+types <- c(#"TotalConc_ugL"
            #,
           # "GreenAlgae_ugL",
-          # "Bluegreens_ugL",
+           "Bluegreens_ugL"
           # "BrownAlgae_ugL",
           # "MixedAlgae_ugL"
           )
@@ -180,6 +180,7 @@ for (type in types) {
     )
   }
 }
+
 #notes on casts
 #casts to remove: 467, 814, 856, 920, 1149 
 
@@ -194,22 +195,12 @@ DCM_metrics_filtered <- DCM_metrics |>
       TRUE ~ CastID
     )
   ) |>
-  mutate(DOY = yday(Date), Year = year(Date)) |>
-  filter(DOY > 133, DOY < 285)
+  mutate(DOY = yday(Date), Year = year(Date)) 
   
-#join waterlevel because this will be important for peak metrics
-water_level <- read.csv("CSVs/water_level.csv") |>
-  mutate(Date = as_date(Date)) |>
-  select(Week, Year, WaterLevel_m) |>
-  group_by(Week, Year) |>
-  summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop")
-
-DCM_metrics_filtered <- DCM_metrics_filtered|>
-  left_join(water_level, by = c("Week", "Year"))
 
 ####Peak.depth and max_conc####
 # Define pigment variables to loop over
-pigment_vars <- c("TotalConc_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
+pigment_vars <- c("Bluegreens_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Start from your filtered data
 DCM_metrics_depth <- DCM_metrics_filtered |> group_by(CastID)
@@ -240,7 +231,7 @@ DCM_metrics_depth <- DCM_metrics_depth |> ungroup()
 #-----max_conc check-----------####
 
 # Pigments to visualize (columns that have *_DCM_depth already computed)
-pigment_vars <- c("TotalConc_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
+pigment_vars <- c("Bluegreens_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Ensure output dir exists
 dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
@@ -291,8 +282,8 @@ for (var in pigment_vars) {
 
 #
 final_DCM_metrics<- DCM_metrics_depth|>
-  mutate(max_conc = TotalConc_ugL_max_conc, 
-         DCM_depth = TotalConc_ugL_DCM_depth)
+  mutate(max_conc = Bluegreens_ugL_max_conc, 
+         DCM_depth = Bluegreens_ugL_DCM_depth)
 
 
 
@@ -411,24 +402,22 @@ ggsave(
   dpi = 300     # optional: high resolution
 )
 
-#For heatmaps go to "Extra Helpful Scripts/DCMBVRheatmaps"
+#For heatmaps go to "Extra Helpful Scripts/DCMFCRheatmaps"
 
 
 #frame that will be added to for RF analysis at the end
 #one measurement for each week that we have data available for 
 final_phytos <- final_DCM_metrics|>
-  group_by(Year,Week,WaterLevel_m)|>
+  group_by(Year,Week)|>
   summarise(
     DCM_depth = mean(DCM_depth, na.rm = TRUE),
     max_conc = mean(max_conc, na.rm = TRUE),
     .groups = "drop"
-  )|>
-  select(-WaterLevel_m)
+  )
 
 #everything else will be joined to this dataframe
 frame_weeks <- final_phytos|>
-  distinct(Year, Week)|>
-  left_join(water_level, by = c("Week", "Year"))
+  distinct(Year, Week)
 
 write.csv(frame_weeks, "CSVs/frame_weeks.csv", row.names = FALSE)
 write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)

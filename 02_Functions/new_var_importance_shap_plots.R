@@ -18,12 +18,19 @@ axis_only_theme <- theme_classic(base_size = 10) +
   )
 
 # Xdataframe: data.frame with Date column (Date or POSIXt) + predictors + response
-# XYear, XYear2: inclusive year bounds (e.g., 2014, 2019)
+# XYear, XYear2: inclusive year bounds (e.g., 2014, 2019) [used only if `years` is NULL]
+# years: optional vector of specific years to include (e.g., c(2016, 2024))
 # whichvars: label for titles/files
 # response_var: name of response column as a string (e.g., "DCM_depth" or "max_conc")
 # save_dir: subfolder under Figs/MachineLearning/ for saving (e.g., "Depth" or "Magnitude")
 # variable_labels: named character vector mapping internal names -> pretty labels used in plots
-var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, response_var, save_dir,
+var_importance_shap_plots <- function(Xdataframe,
+                                      XYear = NULL,
+                                      XYear2 = NULL,
+                                      years = NULL,
+                                      whichvars,
+                                      response_var,
+                                      save_dir,
                                       variable_labels = NULL) {
   # helper: safe pretty labels
   pretty_lab <- function(v) {
@@ -35,12 +42,26 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
   # pretty response label if available
   response_label <- pretty_lab(response_var)
   
-  # ---- Filter by year window; keep Year & row id so we can tally after cleaning ----
+  # ---- Prepare df with Year + row id ----
   df <- Xdataframe %>%
-    mutate(Date = as.Date(Date),
-           Year = year(Date),
-           .row_id = seq_len(n())) %>%
-    filter(Year >= XYear, Year <= XYear2)
+    mutate(
+      Date   = as.Date(Date),
+      Year   = year(Date),
+      .row_id = seq_len(n())
+    )
+  
+  # ---- Filter years: either exact set or inclusive bounds ----
+  if (!is.null(years)) {
+    years <- sort(unique(years))
+    df <- df %>% filter(Year %in% years)
+    XYear  <- min(years)
+    XYear2 <- max(years)
+  } else {
+    if (is.null(XYear) || is.null(XYear2)) {
+      stop("Provide either `years = c(YYYY, YYYY)` OR both `XYear` and `XYear2`.")
+    }
+    df <- df %>% filter(Year >= XYear, Year <= XYear2)
+  }
   
   # ---- Quick counts (pre-clean) ----
   obs_total_before <- nrow(df)
@@ -176,7 +197,7 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
       y = "Variables"
     ) +
     scale_y_discrete(labels = pretty_lab) +
-    axis_only_theme +                                # << use axis-only styling
+    axis_only_theme +
     theme(
       plot.title    = element_text(face = "bold"),
       plot.subtitle = element_text(size = 9)
@@ -225,7 +246,7 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
       color = "z-scaled\nvalues"
     ) +
     scale_y_discrete(labels = pretty_lab) +
-    axis_only_theme +                                # << use axis-only styling
+    axis_only_theme +
     theme(
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
@@ -240,7 +261,7 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     width = 12, height = 5, dpi = 600, bg = "white"
   )
   
-  #added this so I can make SHAP interaction plots 
+  # added this so I can make SHAP interaction plots 
   vars_long_raw <- as_tibble(X_shap) %>%
     rownames_to_column("row_id") %>%
     pivot_longer(-row_id, names_to = "var", values_to = "value_raw")
@@ -256,13 +277,13 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     ),
     var_order = ordered_vars,
     model_details = list(
-      response     = response_var,
+      response       = response_var,
       response_label = response_label,
-      years        = c(XYear, XYear2),
-      whichvars    = whichvars,
-      n            = nrow(rf_df),
-      r2           = unname(r2_final),
-      best_params  = list(
+      years          = if (!is.null(years)) years else c(XYear, XYear2),
+      whichvars      = whichvars,
+      n              = nrow(rf_df),
+      r2             = unname(r2_final),
+      best_params    = list(
         ntree    = best$Trees,
         mtry     = best$mtry,
         nodesize = best$NodeSize
@@ -270,17 +291,17 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     ),
     counts = list(
       before = list(
-        total  = obs_total_before,
+        total   = obs_total_before,
         by_year = obs_per_year_before
       ),
       after = list(
-        total  = obs_total_after,
+        total   = obs_total_after,
         by_year = obs_per_year_after
       )
     ),
     tuning_scores = RF_tuning_scores,
-    importance_table = imp_df, 
-    shap_long = df_shap,        
+    importance_table = imp_df,
+    shap_long = df_shap,
     shap_long_filtered = df_shap_f
   ))
 }

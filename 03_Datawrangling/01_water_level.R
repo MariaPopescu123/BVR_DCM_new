@@ -1,5 +1,6 @@
 #Maria Popescu
 #Water level for Beaverdam 
+#need to veer away from using this for FCR, FCR is relatively stable
 
 #need to load this in here
 
@@ -197,3 +198,4 @@ after2022 %>%
     min_waterlevel = min(WaterLevel_m, na.rm = TRUE),
     max_waterlevel = max(WaterLevel_m, na.rm = TRUE)
   )
+
