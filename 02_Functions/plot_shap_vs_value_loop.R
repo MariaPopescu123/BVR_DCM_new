@@ -3,12 +3,13 @@ plot_shap_vs_value_loop <- function(shap_df,
                                     out_dir,
                                     prefix = "shap_vs",
                                     analysis_label = "Depth Analysis",
-                                    var_labels = NULL,   # <--- added
+                                    var_labels = NULL,
                                     width = 6,
                                     height = 4,
                                     dpi = 300,
-                                    panel_width = 12,
-                                    panel_height = 14) {
+                                    panel_ncol = 2,
+                                    panel_width = NULL,
+                                    panel_height = NULL) {
   stopifnot(is.data.frame(shap_df))
   
   required_cols <- c("var", "value_num", "shap")
@@ -85,14 +86,24 @@ plot_shap_vs_value_loop <- function(shap_df,
     )
   }
   
-  # ---- Build and save a 2-column panel with one legend ----
+  # ---- Build and save an N-panel figure (supports 10+ panels) with one legend ----
   panel_plot <- NULL
   if (length(plot_list) > 0) {
-    panel_plot <- patchwork::wrap_plots(plot_list, ncol = 2) +
+    
+    n_panels <- length(plot_list)
+    panel_ncol <- max(1, panel_ncol)
+    n_rows <- ceiling(n_panels / panel_ncol)
+    
+    # auto-size: scale panel dimensions from single-plot size
+    if (is.null(panel_width))  panel_width  <- width  * panel_ncol
+    if (is.null(panel_height)) panel_height <- height * n_rows
+    
+    panel_plot <- patchwork::wrap_plots(plot_list, ncol = panel_ncol) +
       patchwork::plot_layout(guides = "collect") +
       ggplot2::theme(legend.position = "right")
     
-    panel_file <- paste0(prefix, "_", safe_name(analysis_label), "_PANEL_2col.png")
+    panel_file <- paste0(prefix, "_", safe_name(analysis_label),
+                         "_PANEL_", panel_ncol, "col_", n_panels, "plots.png")
     
     ggplot2::ggsave(
       filename = file.path(out_dir, panel_file),

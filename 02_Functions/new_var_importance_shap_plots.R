@@ -169,6 +169,11 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
     aes(x = `%IncMSE`, y = factor(Variable, levels = reversed_vars))
   ) +
     geom_point(size = 3) +
+    geom_text(
+      aes(label = sprintf("%.2f", `%IncMSE`)),
+      hjust = -0.2,
+      size = 3.5
+    ) +
     labs(
       title = paste0(save_dir, " Variable Importance (%IncMSE) ", XYear, "-", XYear2),
       subtitle = meta_subtitle,
@@ -176,11 +181,21 @@ var_importance_shap_plots <- function(Xdataframe, XYear, XYear2, whichvars, resp
       y = "Variables"
     ) +
     scale_y_discrete(labels = pretty_lab) +
-    axis_only_theme +                                # << use axis-only styling
+    axis_only_theme +
     theme(
-      plot.title    = element_text(face = "bold"),
+      plot.title = element_text(face = "bold"),
       plot.subtitle = element_text(size = 9)
-    )
+    )+
+  scale_x_continuous(expand = expansion(mult = c(0.02, 0.15)))
+  
+  
+  
+  
+  
+  
+  
+
+  
   
   # ---- SHAP ----
   X_shap <- rf_df %>% select(all_of(pred_cols))
