@@ -163,6 +163,7 @@ vars_to_plot <- c(
   "N_at_DCM",
   "SFe_mgL_at_DCM",
   "NH4_ugL_at_DCM",
+  "SRP_ugL_at_DCM",
   "Precip_Weekly",
   "AirTemp_Avg",
   "wind_lag1"
