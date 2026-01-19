@@ -7,7 +7,6 @@
 
 #### secchi PZ  ####
 
-
 #need to load in frame weeks 
 
 {
@@ -69,7 +68,7 @@
 library(ISOweek)
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
 
-#write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
+write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
 
 ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
   geom_line(aes(group = factor(year(Date)))) +
@@ -84,6 +83,7 @@ ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
 #ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
 ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
+ysi_profiles <- read.csv("CSVs/ysi_profiles.csv")
 
 ysi_profiles <- ysi_profiles|>
   filter(Reservoir == "BVR", Site == 50)|>
@@ -135,7 +135,7 @@ CTDdata <- data_availability(CTDfiltered, variables)
 
 CTDtemp<- CTDfiltered|>
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2014, 2015, 2016,2019,2021, 2022, 2023, 2024))|> #remove flags
+  filter(Year %in% c(2014, 2015, 2016,2019,2021, 2022, 2023, 2024))|> 
   select(Date, Year, Week, Temp_C, Depth_m)
 
 ysitemp<- ysi%>%
@@ -245,78 +245,64 @@ for (yr in years) {
 
 write.csv(temp_depths_cleaned, "CSVs/temp_depths_cleaned.csv", row.names = FALSE)
 
-temp_weekly_sum <- weekly_sum_variables(temp_depths_cleaned, "Temp_C")
+#temp_weekly_sum <- weekly_sum_variables(temp_depths_cleaned, "Temp_C") don't need this anymore
 
 ####Thermocline####
 
 # Dataframe with thermocline
 just_thermocline <- temp_depths_cleaned |>
   filter(!is.na(Temp_C)) |>
-  group_by(Date, Depth_m)|>
-  mutate(Temp_C = mean(Temp_C), na.rm = TRUE)|>
-  ungroup()|>
+  group_by(Date, Depth_m) |>
+  mutate(Temp_C = mean(Temp_C), na.rm = TRUE) |>
+  ungroup() |>
   group_by(Date) |>
   group_modify(~ {
-    # Calculate max depth where Temp_C is not NA
     max_depth <- max(.x$Depth_m[!is.na(.x$Temp_C)], na.rm = TRUE)
     
-    # Compute thermocline depth
+    # --- 1) First pass: standard thermo.depth ---
     thermocline_depth <- thermo.depth(
-      .x$Temp_C, 
-      .x$Depth_m, 
-      Smin = 1, 
-      seasonal = TRUE, 
-      index = FALSE, 
-      mixed.cutoff = 0.25 * max_depth  # Use 25% of max depth for mixed layer
+      .x$Temp_C,
+      .x$Depth_m,
+      Smin = 1,
+      seasonal = TRUE,
+      index = FALSE,
+      mixed.cutoff = 0.25 * max_depth
     )
-    # RECALCULATE INCORRECT THERMOCLINES
-    if (!is.na(thermocline_depth) && thermocline_depth <= 0.5) {
-      .x_filtered <- .x |> filter(Depth_m > 0.5)
+    
+    # --- 2) If it's too shallow, ignore surface and recalc deeper ---
+    if (!is.na(thermocline_depth) && thermocline_depth < 0.2 * max_depth) {
       
-      if (nrow(.x_filtered) >= 2) {
+      # Remove mixed layer entirely
+      .x_deep <- .x |> filter(Depth_m > 0.25 * max_depth)
+      
+      if (nrow(.x_deep) >= 3) {
         thermocline_depth <- tryCatch(
           thermo.depth(
-            .x_filtered$Temp_C, 
-            .x_filtered$Depth_m, 
-            Smin = .5, 
-            seasonal = TRUE, 
-            index = FALSE, 
-            #mixed.cutoff = 0.25 * max_depth
+            .x_deep$Temp_C,
+            .x_deep$Depth_m,
+            Smin = 0.5,
+            seasonal = TRUE,
+            index = FALSE
           ),
           error = function(e) NA_real_
         )
-      } else {
-        thermocline_depth <- NA_real_  # Not enough data to recalculate
-      }
-    }
-    #again still not capturing alot in 2018 and 2020
-    if (!is.na(thermocline_depth) && thermocline_depth <= 0.5) {
-      if (nrow(.x) >= 2) {
-        thermocline_depth <- tryCatch(
-          thermo.depth(
-            .x$Temp_C, 
-            .x$Depth_m, 
-            Smin = .05, 
-            seasonal = TRUE, 
-            index = FALSE, 
-            #mixed.cutoff = 0.25 * max_depth
-          ),
-          error = function(e) NA_real_
-        )
-      } else {
-        thermocline_depth <- NA_real_  # Not enough data to recalculate
       }
     }
     
-    thermocline_depth <- ifelse(thermocline_depth < 0.15 * max_depth, NA, thermocline_depth)
+    # --- 3) Final sanity: still reject noise ---
+    thermocline_depth <- ifelse(
+      is.na(thermocline_depth) | thermocline_depth < 0.15 * max_depth,
+      NA,
+      thermocline_depth
+    )
     
-    # Ensure Date is a single value and return the summarised dataframe
     tibble(Date = .x$Date[1], thermocline_depth = thermocline_depth)
   }) |>
-  
-  ungroup()|>
-  mutate(Week = week(Date), 
-         Year = year(Date))
+  ungroup() |>
+  mutate(
+    Week = week(Date),
+    Year = year(Date)
+  )
 
 #####individual date thermocline check####
 #join thermocline to temp profiles so that I can plot them 
@@ -399,4 +385,5 @@ across_year <- var_summary %>%
   )
 
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
 

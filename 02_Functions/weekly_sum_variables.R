@@ -12,7 +12,7 @@ library(purrr)
 
 weekly_sum_variables <- function(df, variables) {
   
-  # ---- safe reducers: return NA if all missing ----
+  # return NA if too many missing
   max_na <- function(x) {
     x <- x[!is.na(x)]
     if (length(x) == 0) NA_real_ else max(x)
@@ -22,7 +22,7 @@ weekly_sum_variables <- function(df, variables) {
     if (length(x) == 0) NA_real_ else min(x)
   }
   
-  # ---- Step 0: prep ----
+  # prep data
   df_prepped <- df |>
     mutate(
       Week = lubridate::week(Date),
@@ -30,7 +30,7 @@ weekly_sum_variables <- function(df, variables) {
     ) |>
     select(Date, Depth_m, Week, Year, DCM_depth, all_of(variables))
   
-  # ---- Step 1: valid Week-Year combos with depth range > 4 m ----
+  # valid Week-Year combos with depth range > 4 m
   valid_weeks <- df_prepped |>
     group_by(Year, Week, Date) |>
     summarise(
@@ -40,7 +40,7 @@ weekly_sum_variables <- function(df, variables) {
     filter(depth_range > 4) |>
     distinct(Year, Week)
   
-  # ---- Step 2: filter + group ----
+  # filter + group 
   df_filtered <- df_prepped |>
     semi_join(valid_weeks, by = c("Year", "Week")) |>
     group_by(Year, Week)
@@ -58,7 +58,7 @@ weekly_sum_variables <- function(df, variables) {
       filter(!is.na(Depth_m), !is.na(!!var_sym)) |>
       arrange(Depth_m)
     
-    if (nrow(dsub) == 0) return(NA_real_)        # var is all NA this week
+    if (nrow(dsub) == 0) return(NA_real_)  # var is all NA this week
     
     max_depth <- max(dsub$Depth_m)
     
@@ -72,7 +72,7 @@ weekly_sum_variables <- function(df, variables) {
     dsub |> slice(idx) |> pull(!!var_sym)
   }
   
-  # ---- helper: depth at max/min, return NA if var all NA ----
+  # helper: depth at max/min, return NA if var all NA
   .depth_at_extreme <- function(.df, var_name, which = c("max", "min")) {
     which <- match.arg(which)
     var_sym <- sym(var_name)
@@ -92,7 +92,7 @@ weekly_sum_variables <- function(df, variables) {
     tmp |> slice(1) |> pull(Depth_m)      # always 1 value
   }
   
-  # ---- Step 3: summarise per variable ----
+  # Step 3: summarise per variable
   summary_list <- lapply(variables, function(var) {
     var_sym <- sym(var)
     
@@ -107,10 +107,10 @@ weekly_sum_variables <- function(df, variables) {
       )
   })
   
-  # ---- Step 4: combine ----
+  # combine
   combined_summary <- reduce(summary_list, left_join, by = c("Year", "Week"))
   
-  # ---- Step 5: add earliest date for each Week-Year ----
+  # add earliest date for each Week-Year
   week_dates <- df_filtered |>
     summarise(Date = min(Date), .groups = "drop")
   

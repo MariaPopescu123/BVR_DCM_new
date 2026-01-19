@@ -15,7 +15,7 @@
 pacman::p_load(tidyverse, lubridate, RColorBrewer, dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
 ####1 EDI met data####
-EDImet <- read.csv("EDImet.csv")
+EDImet <- read.csv("CSVs/EDImet.csv")
 EDImetC <- EDImet %>%
   select(
     Reservoir,
@@ -84,7 +84,6 @@ if (nrow(dropped) == 0) {
 # 4) Keep only good weeks and compute weekly summaries
 EDImet_0 <- EDImet_wk |>
   inner_join(wk_qc |> filter(!drop_week) |> select(Year, Week), by = c("Year", "Week")) |>
-  mutate()
   group_by(Year, Week) |>
   summarise(
     Date = min(Date, na.rm = TRUE),

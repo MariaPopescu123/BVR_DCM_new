@@ -86,7 +86,7 @@ plot_shap_vs_value_loop <- function(shap_df,
     )
   }
   
-  # ---- Build and save an N-panel figure (supports 10+ panels) with one legend ----
+  # Build and save an N-panel figure (supports 10+ panels) with one legend
   panel_plot <- NULL
   if (length(plot_list) > 0) {
     

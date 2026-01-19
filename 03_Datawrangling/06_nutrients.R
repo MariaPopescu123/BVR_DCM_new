@@ -1,6 +1,3 @@
-#chemistry package updated 2025: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
-chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
-
 
 #### Nutrients  ####
 
@@ -126,7 +123,4 @@ final_metals <- frame_weeks|> #random forest frame with metals
 
 write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
 
-#just want to check something 
-SRPcheck <- chem_interpolated3|>
-  filter(Depth_m == 4)
 

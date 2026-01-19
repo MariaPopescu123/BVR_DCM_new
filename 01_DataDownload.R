@@ -21,12 +21,9 @@ source("02_Functions/plot_shap_vs_value_loop.R")
 #updated 2025
 CTD <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1")
 
-#flora data https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.9
-#published 2024
-#current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/8/0359840d24028e6522f8998bd41b544e")
-
-#published 2025
-phytos_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/9/f246b36c591a888cc70ebc87a5abbcb7")
+#flora data https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.10
+#published 2026
+phytos_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/10/6d7576cc758ca378fe004ad0ac9eed85")
 
 # metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
 #updated 2025
@@ -40,11 +37,11 @@ secchiframe <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/3
 #ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
 ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
+write.csv(ysi_profiles, "CSVs/ysi_profiles.csv")
 
 ##chemistry: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
 #updated 2025
 chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
-
 
 #meteorological data from FCR https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=389&revision=9
 options(timeout = 999999)
@@ -52,7 +49,6 @@ url  <- "https://pasta.lternet.edu/package/data/eml/edi/389/9/62647ecf8525cdfc06
 dest <- "CSVs/EDImet.csv"
 download.file(url, dest, mode = "wb")
 EDImet <- read.csv(dest)
-
 
 #bathymetry data for BVR https://portal.edirepository.org/nis/metadataviewer?packageid=edi.1254.1
 bath <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")
