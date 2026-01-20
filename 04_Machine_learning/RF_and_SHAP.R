@@ -47,7 +47,7 @@ depth_analysis_over20 <- full_weekly_data|>
     Date, DCM_depth,
     PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
     depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
-    wind_lag2, airtemp_lag2)
+    wind_lag2, airtemp_lag2, )
 
 finaldepthRF_over20 <- var_importance_shap_plots(Xdataframe = depth_analysis_over20, 2015, 2024,
                                           "","DCM_depth", "Depth", variable_labels = variable_labels)
@@ -69,13 +69,17 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
 magnitude_analysis_over20 <- full_weekly_data|>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
          SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, 
-         Precip_Weekly, AirTemp_Avg, wind_lag1)|>
+         Precip_Weekly, AirTemp_Avg, wind_lag1, SO4_ugL_max_val, SO4_ugL_min_val)|>
   filter(max_conc>20)
 
-finalmagnitudeRF_over20 <- var_importance_shap_plots(magnitude_analysis_over20,
-                                              2015, 2024,
-                                              "", "max_conc", "Magnitude",  
-                                              variable_labels = variable_labels)
+finalmagnitudeRF_over20 <- var_importance_shap_plots(
+  Xdataframe   = magnitude_analysis_over20,
+  years        = c(2016, 2024),
+  whichvars    = "over20",
+  response_var = "max_conc",
+  save_dir     = "Magnitude",
+  variable_labels = variable_labels
+)
 
 
 magnitude_jackknife_over20 <- jackknife_incMSE_heatmap(

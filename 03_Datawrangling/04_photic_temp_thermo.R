@@ -15,7 +15,7 @@
     mutate(Date = as_date(DateTime)) |>
     group_by(Date, Reservoir, Site) |>
     summarise(Secchi_m = mean(Secchi_m, na.rm = TRUE), .groups = "drop") |>
-    filter(Reservoir == "BVR" & Site == 50) |>
+    filter(Reservoir == "FCR" & Site == 50) |>
     mutate(Year = year(Date), DOY = yday(Date))
   
   variables <- c("Secchi_m")
@@ -62,7 +62,7 @@
     mutate(sec_K_d = 1.7/Secchi_m) |>
     mutate(PZ = 4.065 /sec_K_d)|>
     group_by(Year, Week)|>
-    mutate(PZ = if_else(PZ > WaterLevel_m, WaterLevel_m, PZ))
+    mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))
 }
 
 library(ISOweek)
@@ -86,7 +86,7 @@ ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/
 ysi_profiles <- read.csv("CSVs/ysi_profiles.csv")
 
 ysi_profiles <- ysi_profiles|>
-  filter(Reservoir == "BVR", Site == 50)|>
+  filter(Reservoir == "FCR", Site == 50)|>
   mutate(Date = as_date(DateTime))
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
@@ -111,10 +111,15 @@ data_availability(ysi, variables)
 
 #unnecessary if you've already loaded in the data from 01_DataDownload
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
-#CTD <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1")
+options(timeout = 999999)
+url  <- "https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1"
+dest <- "CSVs/CTD.csv"
+dir.create("CSVs", showWarnings = FALSE)
+download.file(url, dest, mode = "wb")
+CTD <- read.csv(dest)
 
 CTDfiltered <- CTD |>
-  filter(Reservoir == "BVR", Site == 50) |>
+  filter(Reservoir == "FCR", Site == 50) |>
   filter(!if_any(starts_with("Flag"), ~ . == 68)) |>
   mutate(
     DateTime = ymd_hms(DateTime, tz = "UTC"),
@@ -126,7 +131,7 @@ variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV",
                "pH", "Temp_C")
 CTDdata <- data_availability(CTDfiltered, variables)
 
-#ggsave("Figs/Data_availability/CTDdata_availability.png", plot = CTDdata, width = 20, height = 15, dpi = 300)
+ggsave("Figs/Data_availability/CTDdata_availability.png", plot = CTDdata, width = 20, height = 15, dpi = 300)
 
 
 #can't use many of the variables because not enough data for every year
@@ -186,7 +191,7 @@ temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
   filter(!is.na(Temp_C)) |>
   group_by(Date, Depth_m) |>
   summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop")|>
-  mutate(Reservoir = "BVR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
+  mutate(Reservoir = "FCR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
 
 #join the first half of 2019 from ysi data to 
 

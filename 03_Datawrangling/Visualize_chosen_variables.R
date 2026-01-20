@@ -43,7 +43,12 @@ variable_labels <- c(
   airtemp_lag2   = "Air Temperature Weekly Average (Lag 2 wk)",
   WindSpeed_Avg  = "Wind Speed Weekly Average",
   wind_lag1      = "Wind Speed Weekly Average (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)"
+  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)", 
+  SO4_ugL_max_val = "Sulfate Max (µg/L)",
+  SO4_ugL_min_val = "Sulfate Min (µg/L)",
+  SO4_ugL_at_DCM  = "Sulfate (µg/L) at DCM",
+  depth_SO4_ugL_min = "Depth of Min Sulfate (m)",
+  depth_SO4_ugL_max = "Depth of Max Sulfate (m)"
 )
 
 
