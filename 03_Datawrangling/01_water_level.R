@@ -19,7 +19,6 @@ years <- 2015:2024
 DOY_year_ref <- expand.grid(Year = years, DOY = DOY_list)|>
   arrange(Year, DOY)
 
-
 #add water level to data frame to use as the max depth for creating sequence of depths to interpolate each cast to
 ####Waterlevel####
 wtrlvl <- wtrlvl |> 
@@ -83,8 +82,6 @@ expanded_dates <- expanded_dates %>%
          Date = Date_fake)|>
   select(-Date_fake)
 
-
-
 water_levelsjoined <- expanded_dates|>
   left_join(BVRplatform2_interpolated, by = c("Year", "DOY"), relationship = "many-to-many")|>
   left_join(wtrlvl2_interpolated, by = c("Year", "DOY"), relationship = "many-to-many")|>
@@ -100,35 +97,6 @@ water_levelscoalesced<- water_levelsjoined|>
 water_level <- expanded_dates|>
   left_join(water_levelscoalesced, by = c("Year", "DOY"))|>
   filter(!is.na(WaterLevel_m))
-
-#need to remember that for someone copying this repo for the first time. this won't work. need to rearrange
-final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")
-
-final_photic_thermo <- final_photic_thermo|>
-  mutate(Date = as.Date(Date))
-
-#plot both PZ and water level on the same one
-wtrlvl_photic <- ggplot(water_level, aes(x = Date, y = WaterLevel_m)) +
-  geom_line(color = "#2C3E50", size = .8) +  # Water level line
-  geom_line(data = final_photic_thermo,
-            aes(x = Date, y = PZ, group = Year),
-            color = "green", size = 0.8) +  # PZ line, broken by year
-  scale_y_reverse() +  # Invert y-axis
-  theme_minimal(base_size = 14) +
-  theme(
-    panel.grid.major = element_line(color = "gray80", size = 0.3),
-    panel.grid.minor = element_blank(),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(color = "black"),
-    plot.title = element_text(face = "bold", size = 16, hjust = 0.5)
-  ) +
-  labs(
-    title = "Water Level and Photic Zone (PZ) Over Time",
-    x = "Date",
-    y = "Water Level and Photic Zone (m)"
-  )
-
-ggsave("Figs/water_level_photic_zone.png", wtrlvl_photic, width = 10, height = 4, dpi = 600, bg = "white")
 
 wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
   geom_line(size = 1) +  # Optional: connect points by year
@@ -152,14 +120,13 @@ wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = fa
 
 print(wtrlvl_by_year)
 
-
 ggsave("Figs/WaterLevel_colored_by_year.png", wtrlvl_by_year, width = 8, height = 5, dpi = 600, bg = "white")
 
 
-
+#final csv
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
 
-#basic stats for paper 
+#additional stats for paper 
 
 #How much did water level drop in 2022 
 water2022 <- water_level|>

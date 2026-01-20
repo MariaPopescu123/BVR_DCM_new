@@ -1,16 +1,9 @@
-#Phytoplankton metrics and visualization
-#published 2025
-#current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/9/f246b36c591a888cc70ebc87a5abbcb7")
+#prepping phyto dataframe
 
-#THIS IS IN STAGING RIGHT NOW: 
-current_df <- read_csv("https://pasta-s.lternet.edu/package/data/eml/edi/1304/1/f246b36c591a888cc70ebc87a5abbcb7")
-
-#published 2024
-#current_df <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/8/0359840d24028e6522f8998bd41b544e")
 
 #adding columns with total_conc max and the depth at which it occurs
-phytos <- current_df %>% 
-  filter(Reservoir == "FCR", Site == 50)%>%
+phytos <- phytos_df %>% 
+  filter(Reservoir == "BVR", Site == 50)%>%
   mutate(Date  = as_date(DateTime)) |> 
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
   filter(!(CastID == 592))|> #filter out weird drop in 2017
@@ -282,8 +275,11 @@ for (var in pigment_vars) {
 
 #
 final_DCM_metrics<- DCM_metrics_depth|>
-  mutate(max_conc = Bluegreens_ugL_max_conc, 
-         DCM_depth = Bluegreens_ugL_DCM_depth)
+  mutate(max_conc = TotalConc_ugL_max_conc, 
+         DCM_depth = TotalConc_ugL_DCM_depth)|>
+  filter(!(CastID == 1087))|> #no real peak
+  filter(!(CastID == 1150))|> #incomplete cast
+  filter(Year <2025) 
 
 
 
@@ -525,7 +521,6 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
 }
 
 
-    
 # ---------- Run for both responses ----------
 # (If needed, coerce Year in your source once)
 final_phytos <- final_phytos %>% mutate(Year = as.integer(as.character(Year)))
@@ -537,7 +532,6 @@ p_depth <- sig_grid_upper_fn(final_phytos_over20, "DCM_depth",
                              "Pairwise Differences by Year - DCM Depth")
 p_mag   <- sig_grid_upper_fn(final_phytos, "max_conc",
                              "Pairwise Differences by Year - Max Phytoplankton")
-
 # Stack
 sig_both <- p_depth / p_mag + plot_annotation(
   title = "Year-wise Pairwise Significance (BH-adjusted)",

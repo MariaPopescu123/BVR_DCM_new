@@ -81,10 +81,9 @@ ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))
 
 ```
 
-for some reason I can't write the CSV in markdown, so run this line in your terminal in order to save it as a csv file to be read in later
 
-write.csv(final_schmidt, "CSVs/final_schmidt.csv", row.names = FALSE)
 ```{r}
+write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)
 
 #checking within year and across year variability
 var_summary <- final_schmidt %>%

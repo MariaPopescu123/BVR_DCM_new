@@ -167,8 +167,9 @@ vars_to_plot <- c(
   "N_at_DCM",
   "SFe_mgL_at_DCM",
   "NH4_ugL_at_DCM",
-  "precip_lag1",
-  "weekly_airtempavg",
+  "SRP_ugL_at_DCM",
+  "Precip_Weekly",
+  "AirTemp_Avg",
   "wind_lag1"
 )
 plot_shap_vs_value_loop(
