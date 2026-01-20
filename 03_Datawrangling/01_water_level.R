@@ -1,6 +1,5 @@
 #Maria Popescu
 #Water level for Beaverdam 
-#need to veer away from using this for FCR, FCR is relatively stable
 
 #need to load this in here
 

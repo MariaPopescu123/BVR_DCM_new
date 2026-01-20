@@ -1,5 +1,4 @@
 # buoyancy_freq
-# CHANGE THIS SO IT'S MAXIMUM BUOYANCY FREQUENCY
 
 temp_depths_cleaned <- read.csv("CSVs/temp_depths_cleaned.csv")
 

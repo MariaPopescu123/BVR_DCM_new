@@ -15,7 +15,7 @@
     mutate(Date = as_date(DateTime)) |>
     group_by(Date, Reservoir, Site) |>
     summarise(Secchi_m = mean(Secchi_m, na.rm = TRUE), .groups = "drop") |>
-    filter(Reservoir == "FCR" & Site == 50) |>
+    filter(Reservoir == "BVR" & Site == 50) |>
     mutate(Year = year(Date), DOY = yday(Date))
   
   variables <- c("Secchi_m")
@@ -86,7 +86,7 @@ ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/
 ysi_profiles <- read.csv("CSVs/ysi_profiles.csv")
 
 ysi_profiles <- ysi_profiles|>
-  filter(Reservoir == "FCR", Site == 50)|>
+  filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime))
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
@@ -103,7 +103,7 @@ data_availability(ysi_profiles, variables)
 
 variables <- c("DO_mgL","DOsat_percent", "Temp_C")
 ysi <- ysi_profiles|>
-  select(-PAR_umolm2s, -ORP_mV, -Cond_uScm, -pH)|>
+  select(-ORP_mV, -Cond_uScm, -pH)|>
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))
 data_availability(ysi, variables)
 
@@ -119,7 +119,7 @@ download.file(url, dest, mode = "wb")
 CTD <- read.csv(dest)
 
 CTDfiltered <- CTD |>
-  filter(Reservoir == "FCR", Site == 50) |>
+  filter(Reservoir == "BVR", Site == 50) |>
   filter(!if_any(starts_with("Flag"), ~ . == 68)) |>
   mutate(
     DateTime = ymd_hms(DateTime, tz = "UTC"),
@@ -191,7 +191,7 @@ temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
   filter(!is.na(Temp_C)) |>
   group_by(Date, Depth_m) |>
   summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop")|>
-  mutate(Reservoir = "FCR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
+  mutate(Reservoir = "BVR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
 
 #join the first half of 2019 from ysi data to 
 
