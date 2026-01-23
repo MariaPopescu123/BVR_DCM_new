@@ -116,9 +116,9 @@ DCM_metrics <- phytos |>
     Week,
     CastID,
     Depth_m,
-    #TotalConc_ugL,
+    TotalConc_ugL
     # GreenAlgae_ugL,
-     Bluegreens_ugL,
+    #Bluegreens_ugL,
     # BrownAlgae_ugL,
     # MixedAlgae_ugL
   ) |>
@@ -130,10 +130,10 @@ DCM_metrics <- phytos |>
 # Get unique years in the dataset
 years <- unique(year(DCM_metrics$Date))
 
-types <- c(#"TotalConc_ugL"
+types <- c("TotalConc_ugL"
            #,
           # "GreenAlgae_ugL",
-           "Bluegreens_ugL"
+           #"Bluegreens_ugL"
           # "BrownAlgae_ugL",
           # "MixedAlgae_ugL"
           )
@@ -193,7 +193,7 @@ DCM_metrics_filtered <- DCM_metrics |>
 
 ####Peak.depth and max_conc####
 # Define pigment variables to loop over
-pigment_vars <- c("Bluegreens_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
+pigment_vars <- c("TotalConc_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Start from your filtered data
 DCM_metrics_depth <- DCM_metrics_filtered |> group_by(CastID)
@@ -224,7 +224,7 @@ DCM_metrics_depth <- DCM_metrics_depth |> ungroup()
 #-----max_conc check-----------####
 
 # Pigments to visualize (columns that have *_DCM_depth already computed)
-pigment_vars <- c("Bluegreens_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
+pigment_vars <- c("TotalConc_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Ensure output dir exists
 dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
@@ -542,3 +542,4 @@ sig_both
 
 ggsave("Figs/Significance_UpperTriangle_DCM_and_MaxConc_over20_just_for_DCM_depth.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
+
