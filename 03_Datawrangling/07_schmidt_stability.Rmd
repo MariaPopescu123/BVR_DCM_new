@@ -105,3 +105,29 @@ across_year <- var_summary %>%
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
 
 ```
+
+Additional Stats
+```{r}
+
+#checking within year and across year variability
+var_summary <- final_schmidt %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(schmidt_stability, na.rm = TRUE),
+    sd_within = sd(schmidt_stability, na.rm = TRUE),
+    cv_within = sd_within / mean_val
+  )
+across_year <- var_summary %>%
+  summarise(
+    mean_across = mean(mean_val),
+    sd_across   = sd(mean_val),
+    cv_across   = sd_across / mean_across
+  )
+
+variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
+
+print(var_summary)
+print(variability_ratio)
+```
+
