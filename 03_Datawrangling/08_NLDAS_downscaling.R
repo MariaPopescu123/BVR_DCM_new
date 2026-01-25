@@ -15,7 +15,7 @@
 pacman::p_load(tidyverse, lubridate, RColorBrewer, dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
 ####1 EDI met data####
-EDImet <- read.csv("CSVs/EDImet.csv")
+#EDImet <- read.csv("CSVs/EDImet.csv") not needed if already loaded in
 EDImetC <- EDImet %>%
   select(
     Reservoir,
@@ -81,6 +81,9 @@ if (nrow(dropped) == 0) {
     print(n = Inf)
 }
 
+#these weeks are not within the time frame that we are analyzing so it's ok!
+
+
 # 4) Keep only good weeks and compute weekly summaries
 EDImet_0 <- EDImet_wk |>
   inner_join(wk_qc |> filter(!drop_week) |> select(Year, Week), by = c("Year", "Week")) |>
@@ -99,9 +102,9 @@ EDImet_0 <- EDImet_wk |>
 
 #Heather Wander generated data
 #for full repository https://github.com/hlwander/interannual_zoops/tree/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89
-#heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
-#NLDAS <- read.csv(heathergeneratedNLDAS)
-#write.csv(NLDAS, "CSVs/NLDAS.csv", row.names = FALSE)
+heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
+NLDAS <- read.csv(heathergeneratedNLDAS)
+write.csv(NLDAS, "CSVs/NLDAS.csv", row.names = FALSE)
 #heather's precipitation is given in m per day
 #windspeed in m per day
 #air temp is hourly
@@ -253,6 +256,7 @@ p3 <- ggplot(full_met |> filter(Year == 2015),
   labs(title="Weekly Wind Speed (2015)", y="m/s")
 
 joined_data_2015 <- (p1 / p2 / p3) + plot_layout(heights = c(1,1,1)) 
+print(joined_data_2015)
 ggsave("Figs/metdata/joined_data_2015.png", joined_data_2015)
 
 

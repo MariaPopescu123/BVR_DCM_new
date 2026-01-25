@@ -179,7 +179,7 @@ row4 <- (
 p_final <- (row1 / row2 / row3 / row4) +
   plot_layout(guides = "collect") +
   plot_annotation(
-    title = "Seasonal Overlap (DOY 133–285) of Environmental and Depth Metrics by Year",
+    title = "Seasonal Overlap (DOY 133 - 285) of Environmental and Depth Metrics",
     theme = theme(
       legend.position = "right",
       plot.title = element_text(face = "bold", hjust = 0.5)

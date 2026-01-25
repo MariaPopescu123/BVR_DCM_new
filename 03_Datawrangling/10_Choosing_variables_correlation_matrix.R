@@ -135,7 +135,7 @@ plot_correlation_matrix(
 ####chosen variables####
 full_weekly_data <- full_weekly_data|>
   select(
-    "Date", "Week", "WaterLevel_m", "DCM_depth", "max_conc",
+    "Date", "WaterLevel_m", "DCM_depth", "max_conc",
      "PZ", "thermocline_depth","schmidt_stability",
     "PZ_prop", "N_at_DCM", "depth_SRP_ugL_max", "SRP_ugL_at_DCM",
     "depth_NH4_ugL_max", "NH4_ugL_at_DCM",

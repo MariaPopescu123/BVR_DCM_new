@@ -11,21 +11,35 @@
 ####DEPTH weather lags####
 met_lags <- full_weekly_data |>
   filter(max_conc>20)|>
-  select(Date, DCM_depth,
-         Precip_Weekly, precip_lag1, precip_lag2,
-         AirTemp_Avg, airtemp_lag1, airtemp_lag2,
-         WindSpeed_Avg, wind_lag1, wind_lag2)
-depth_metRF <- var_importance_shap_plots(Xdataframe = met_lags, 2015, 2024, "MET LAGS", "DCM_depth", "Depth", variable_labels = variable_labels)
-
+  select(Date, DCM_depth, precip_lag1, precip_lag2,
+         airtemp_lag1, airtemp_lag2,
+         wind_lag1, wind_lag2)
+depth_metRF <- var_importance_shap_plots(
+  Xdataframe    = met_lags,
+  XYear         = 2015,
+  XYear2        = 2024,
+  whichvars     = "Meteorological Lags",
+  response_var  = "DCM_depth",
+  save_dir      = "Depth",
+  variable_labels = variable_labels
+)
 #------------------------------------------------------------------------------#
 ####MAGNITUDEweather lags####
 met_lags <- full_weekly_data |>
+  filter(max_conc>20)|>
   select(Date, max_conc,
-         Precip_Weekly, precip_lag1, precip_lag2,
-         AirTemp_Avg, airtemp_lag1, airtemp_lag2,
-         WindSpeed_Avg, wind_lag1, wind_lag2)
-magnitudemetRF <- var_importance_shap_plots(Xdataframe = met_lags,
-                                            2015, 2024, "MET LAGS", "max_conc", "Magnitude", variable_labels = variable_labels)
+         precip_lag1, precip_lag2,
+         airtemp_lag1, airtemp_lag2,
+         wind_lag1, wind_lag2)
+magnitudemetRF <- var_importance_shap_plots(
+  Xdataframe     = met_lags,
+  XYear          = 2015,
+  XYear2         = 2024,
+  whichvars      = "Meteorological Lags",
+  response_var   = "max_conc",
+  save_dir       = "Magnitude",
+  variable_labels = variable_labels
+)
 
 #combine the plots
 combined_RF_panels <- depth_metRF$plots$combined /
@@ -47,10 +61,18 @@ depth_analysis_over20 <- full_weekly_data|>
     Date, DCM_depth,
     PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
     depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
-    wind_lag2, airtemp_lag2, )
+    airtemp_lag2, wind_lag1)
 
-finaldepthRF_over20 <- var_importance_shap_plots(Xdataframe = depth_analysis_over20, 2015, 2024,
-                                          "","DCM_depth", "Depth", variable_labels = variable_labels)
+finaldepthRF_over20 <- var_importance_shap_plots(
+  Xdataframe      = depth_analysis_over20,
+  XYear           = 2015,
+  XYear2          = 2024,
+  whichvars       = "",
+  response_var    = "DCM_depth",
+  save_dir        = "Depth",
+  variable_labels = variable_labels
+)
+
 #####Jackknife#####
 #this is for viewing to see how robust the model is across years
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
@@ -61,23 +83,26 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   var_order = finaldepthRF_over20$var_order,
   response_var   = "DCM_depth",
   whichvars_label= "over20",
-  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20_5.png"), 
+  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20.png"), 
   variable_labels = variable_labels
 )
+
+print(depth_jackknife_over20$plot)
 
 ####------magnitude-------####
 magnitude_analysis_over20 <- full_weekly_data|>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
          SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, 
-         Precip_Weekly, AirTemp_Avg, wind_lag1, SO4_ugL_max_val, SO4_ugL_min_val)|>
+         airtemp_lag1, wind_lag1, precip_lag1)|>
   filter(max_conc>20)
 
 finalmagnitudeRF_over20 <- var_importance_shap_plots(
-  Xdataframe   = magnitude_analysis_over20,
-  years        = c(2016, 2024),
-  whichvars    = "over20",
-  response_var = "max_conc",
-  save_dir     = "Magnitude",
+  Xdataframe      = magnitude_analysis_over20,
+  XYear           = 2015,
+  XYear2          = 2024,
+  whichvars       = "",
+  response_var    = "max_conc",
+  save_dir        = "Magnitude",
   variable_labels = variable_labels
 )
 
@@ -144,7 +169,7 @@ vars_to_plot <- c(
   "depth_NH4_ugL_max",
   "depth_SRP_ugL_max",
   "depth_SFe_mgL_max",
-  "wind_lag2",
+  "wind_lag1",
   "airtemp_lag2"
 )
 plot_shap_vs_value_loop(
@@ -168,8 +193,8 @@ vars_to_plot <- c(
   "SFe_mgL_at_DCM",
   "NH4_ugL_at_DCM",
   "SRP_ugL_at_DCM",
-  "Precip_Weekly",
-  "AirTemp_Avg",
+  "precip_lag1",
+  "airtemp_lag1",
   "wind_lag1"
 )
 plot_shap_vs_value_loop(
@@ -180,3 +205,4 @@ plot_shap_vs_value_loop(
   analysis_label = "Magnitude Analysis", 
   var_labels = variable_labels
 )
+

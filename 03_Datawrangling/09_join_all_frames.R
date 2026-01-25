@@ -14,6 +14,7 @@ final_metdata <- read.csv("CSVs/final_metdata.csv")
 
 full_weekly_data <- frame_weeks %>%
   left_join(final_phytos, by = c("Year", "Week")) %>%
+  left_join(weekly_water_level, by = c("Year", "Week"))%>%
   left_join(final_metals, by = c("Year", "Week")) %>%
   left_join(final_photic_thermo, by = c("Year", "Week")) %>%
   left_join(final_buoyancy, by = c("Year", "Week")) %>%
@@ -40,7 +41,6 @@ write.csv(full_weekly_data, "CSVs/full_weekly_data.csv", row.names = FALSE)
 
 
 #####phyto medians####
-
 DCMmedian <- full_weekly_data %>%
   filter(max_conc > 20) %>%
   summarise(
