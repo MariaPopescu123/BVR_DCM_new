@@ -78,8 +78,7 @@ chem_weekly_sum <- weekly_sum_variables(chem_interpolated3, variables)
 
 #join to frame with correct dates
 final_chem <- frame_weeks|>
-  left_join(chem_weekly_sum, by = c("Week", "Year"))|>
-  select(-WaterLevel_m)
+  left_join(chem_weekly_sum, by = c("Week", "Year"))
 
 write.csv(final_chem, "CSVs/final_chem.csv", row.names = FALSE)
 
@@ -96,13 +95,13 @@ metals_updated <- metalsdf |>
   mutate(Week = week(Date), 
          Year = year(Date))
 
-metaswDCM <- metals_updated|>
+metalswDCM <- metals_updated|>
   left_join(final_phytos, by = c("Week", "Year"))|>
   mutate(Reservoir = "BVR", Site = 50) # need to this here for interpolation function
 
 #interpolate so that I can get a value for DCM depth
 variables <- c("SFe_mgL")
-metals_interpolated <- interpolate_variable(metaswDCM, variables)
+metals_interpolated <- interpolate_variable(metalswDCM, variables)
 
 metals_interpolated2 <- metals_interpolated |>
   left_join(final_phytos, by = c("Week", "Year")) 
@@ -118,8 +117,7 @@ variables <- c("SFe_mgL")
 metals_weekly_sum <- weekly_sum_variables(metals_interpolated3, variables)
 
 final_metals <- frame_weeks|> #random forest frame with metals
-  left_join(metals_weekly_sum, by = c("Week", "Year"))|>
-  select(-WaterLevel_m)
+  left_join(metals_weekly_sum, by = c("Week", "Year"))
 
 write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
 

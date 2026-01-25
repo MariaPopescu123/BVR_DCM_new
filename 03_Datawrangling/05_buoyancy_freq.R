@@ -27,8 +27,7 @@ buoyancy_with_dcm <- joined_df |>
   ungroup()
 
 final_buoyancy <- frame_weeks|>
-  left_join(buoyancy_with_dcm, by = c("Week", "Year"))|>
-  select(-WaterLevel_m)
+  left_join(buoyancy_with_dcm, by = c("Week", "Year"))
 
 write.csv(final_buoyancy, "CSVs/final_buoyancy.csv", row.names = FALSE)
 

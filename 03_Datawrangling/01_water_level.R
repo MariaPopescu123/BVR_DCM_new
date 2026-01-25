@@ -97,6 +97,12 @@ water_level <- expanded_dates|>
   left_join(water_levelscoalesced, by = c("Year", "DOY"))|>
   filter(!is.na(WaterLevel_m))
 
+weekly_water_level <- water_level |> 
+  group_by(Year, Week) |> 
+  slice(1) |> 
+  ungroup()|>
+  select(Year, Week, WaterLevel_m)
+
 wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
   geom_line(size = 1) +  # Optional: connect points by year
   labs(

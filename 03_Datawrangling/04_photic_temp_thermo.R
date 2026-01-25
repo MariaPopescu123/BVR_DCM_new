@@ -355,12 +355,14 @@ for (yr in years) {
          dpi = 300)
 }
 
+#keep in mind I will only be analyzing data within the may-october window
 just_thermocline <- just_thermocline|>
   group_by(Week, Year)|>
   summarise(thermocline_depth = mean(thermocline_depth, na.rm = TRUE))
 
 final_photic_thermo <- photic_zone_frame|>
   left_join(just_thermocline, by = c("Week", "Year"))|>
+  left_join(weekly_water_level, by = c("Week", "Year"))|>
   mutate(PZ_prop = PZ/WaterLevel_m)|>
   select(-WaterLevel_m)
 
