@@ -504,9 +504,10 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
     ggplot2::geom_text(ggplot2::aes(label = label_txt), size = 3.2, lineheight = 0.9) +
     ggplot2::scale_fill_manual(values = sig_pal, na.value = "white", drop = FALSE, name = "Adj. p (BH)") +
     ggplot2::coord_equal() +
+    ggplot2::scale_x_discrete(position = "top") +
     ggplot2::labs(
       title = title_label,
-      subtitle = paste0("Kruskal–Wallis p = ", signif(kw$p.value, 3)),
+      subtitle = paste0("Kruskal - Wallis p = ", signif(kw$p.value, 3)),
       x = NULL, y = NULL
     ) +
     ggplot2::theme_minimal(base_size = 12) +
@@ -530,7 +531,7 @@ final_phytos_over20 <- final_phytos|>
 
 p_depth <- sig_grid_upper_fn(final_phytos_over20, "DCM_depth",
                              "Pairwise Differences by Year - DCM Depth")
-p_mag   <- sig_grid_upper_fn(final_phytos, "max_conc",
+p_mag   <- sig_grid_upper_fn(final_phytos_over20, "max_conc",
                              "Pairwise Differences by Year - Max Phytoplankton")
 # Stack
 sig_both <- p_depth / p_mag + plot_annotation(
@@ -543,3 +544,50 @@ sig_both
 ggsave("Figs/Significance_UpperTriangle_DCM_and_MaxConc_over20_just_for_DCM_depth.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 
+final_phytos_over20 %>%
+  group_by(Year) %>%
+  summarise(
+    n = n(),
+    median = median(max_conc, na.rm = TRUE),
+    IQR = IQR(max_conc, na.rm = TRUE),
+    mean = mean(max_conc, na.rm = TRUE),
+    sd = sd(max_conc, na.rm = TRUE)
+  )
+
+
+# Create the summary data
+summary_df <- final_phytos_over20 %>%
+  group_by(Year) %>%
+  summarise(
+    median = median(max_conc, na.rm = TRUE),
+    q25 = quantile(max_conc, 0.25, na.rm = TRUE),
+    q75 = quantile(max_conc, 0.75, na.rm = TRUE),
+    mean = mean(max_conc, na.rm = TRUE),
+    se = sd(max_conc, na.rm = TRUE) / sqrt(n())
+  )
+
+# Plot with legend
+p <- ggplot(summary_df, aes(x = factor(Year))) +
+  geom_ribbon(aes(ymin = q25, ymax = q75, fill = "IQR", group = 1), alpha = 0.4) +
+  geom_line(aes(y = median, color = "Median", group = 1), linewidth = 1.2) +
+  geom_point(aes(y = median, color = "Median"), size = 2.5) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se, color = "Mean ± SE", group = 1),
+                width = 0.15, alpha = 0.6) +
+  geom_point(aes(y = mean, color = "Mean ± SE"), shape = 21, fill = "white", size = 2) +
+  scale_color_manual(name = "Statistics", values = c(
+    "Median" = "blue",
+    "Mean ± SE" = "red"
+  )) +
+  scale_fill_manual(name = "Statistics", values = c("IQR" = "grey80")) +
+  labs(
+    y = "Max phytoplankton concentration",
+    x = "Year",
+    title = "Median and Mean ± SE by Year"
+  ) +
+  theme_classic(base_size = 13) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p)
+
+# Save the plot to a file
+ggsave("Figs/Phytos_viz/phytoplankton_summary.png", plot = p, width = 8, height = 5, dpi = 300)
