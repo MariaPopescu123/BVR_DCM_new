@@ -9,13 +9,13 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                knitr)
 
 
-source("02_Functions/interpolate_variable.R")
-source("02_Functions/data_availability_function.R")
-source("02_Functions/weekly_sum_variables.R")
-source("02_Functions/new_var_importance_shap_plots.R") #function for running RandomForest and visualizing variable importance and shap values
-source("02_Functions/jackknife.R")
-source("02_Functions/final_data_availability_plot.R")
-source("02_Functions/plot_shap_vs_value_loop.R")
+source("Functions/interpolate_variable.R")
+source("Functions/data_availability_function.R")
+source("Functions/weekly_sum_variables.R")
+source("Functions/new_var_importance_shap_plots.R") #function for running RandomForest and visualizing variable importance and shap values
+source("Functions/jackknife.R")
+source("Functions/final_data_availability_plot.R")
+source("Functions/plot_shap_vs_value_loop.R")
 
 #### Loading Data  #### 04July2025
 

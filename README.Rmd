@@ -17,8 +17,8 @@ This repository includes all workflows needed to reproduce the data frames and f
 ## Instructions to reproduce figures and analysis
 
 1.Run `01_DataDownload.R
-2. Run scripts in numerical order within `03_DataWrangling/` to fully reproduce the data products and figures used in the manuscript.
-3. Run `04_Machine_learning/RF_and_SHAP.R
+2. Run scripts in numerical order within `02_DataWrangling/` to fully reproduce the data products and figures used in the manuscript.
+3. Run `03_Machine_learning/RF_and_SHAP.R
 
 All outputs (CSVs and figures) are written to the `CSVs/` and `Figs/` directories.
 ---
@@ -28,31 +28,7 @@ All outputs (CSVs and figures) are written to the `CSVs/` and `Figs/` directorie
 ### `01_DataDownload.R`  
 Scripts and helper functions used to download the raw datasets required for this project.
 
-### `02_Functions/`  
-Reusable functions that support data processing and figure creation. These functions do not need to be run individually- they are called in using the 01_DataDownload.R file. They are used throughout the scripts. Descriptions of each are provided here.
-
-### `data_availability_function.R`
-This is for QAQC purposes and was developed so anyone can see the data availability of any variable within any dataframe. Not to produce publication-ready figures. It produces a figure that displays which days within each year that we have data available for.  
-
-### `final_data_availability_plot.R`
-This was developed to produce the final FluoroProbe Data Availability plot in the supplementary figure. 
-
-### `interpolate_variable.R`
-This function interpolates missing values for a list of water quality variables across both depth and weekly time in a reservoir. It first summarizes the raw data by date, depth, and week, then linearly interpolates values within observed depth and week ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete weekly-depth grid for each variable, ready for further analysis or modeling.
-
-### `jackknife.R`
-This function performs a jackknife-style random forest analysis to quantify the importance of each predictor variable (%IncMSE) for a response variable, separately for each year and pooled across all years. It tunes the RF parameters per year, runs leave-one-out models to estimate robustness, and then summarizes the results as mean ± SD %IncMSE, which it visualizes as a heatmap with variables on the y-axis and years on the x-axis. The output also includes numeric summaries, full jackknife distributions, overall variable rankings, and metadata about the models.
-
-### `new_var_importane_shap_plots.R`
-This function computes and visualizes variables importance (%IncMSE) and SHAP value distributions for a random forest model on a given dataset, optionally saving combined plots.
-
-### `plot_shap_vs_value_loop.R`
-For each variable in vars_to_plot, create a scatter of SHAP values vs predictor values colored by z-scaled predictor values, save individual plots, and optionally create a multi-panel figure.
-
-### `weekly_sum_variables.R`
-Summarizes one or more water-quality variables by week (Year + Week) from a depth profile dataset, returning max/min values, depths of extremes, and values at the DCM (Deep Chlorophyll Maximum).
-
-### `03_DataWrangling/`  
+### `02_DataWrangling/`  
 This folder contains a sequence of 11 scripts that build the core analysis datasets and manuscript figures. The scripts within are described below. 
 
 #### `01_water_level.R`  
@@ -93,9 +69,33 @@ This code creates correlation heatmaps for different groups of weekly variables 
 #### `11_Visualize_final_chosen_variables.R`
 This code produces a seasonal overview of the chosen environmental and depth-related variables with a custom DOY window (133-285, roughly May-October).
 
-#### `04_Machine_learning/`
+#### `03_Machine_learning/`
 This folder contains a script for running the random forest model with Shapley Additive Explanations (SHAP)
 
 #### `RF_and_SHAP.R`
 This code uses Random Forest models to predict DCM_depth and max_conc from environmental variables, then applies SHAP values to quantify each predictor’s contribution to the model. It runs separate analyses for depth and magnitude, including weather lags and water column metrics, and generates plots of variable importance, model robustness (jackknife), and SHAP interactions. The results help identify which physical, chemical, or meteorological factors most strongly influence phytoplankton dynamics.
+
+### `Functions/`  
+Reusable functions that support data processing and figure creation. These functions do not need to be run individually- they are called in using the `01_DataDownload.R` file. They are used throughout the scripts. Descriptions of each are provided here.
+
+### `data_availability_function.R`
+This is for QAQC purposes and was developed so anyone can see the data availability of any variable within any dataframe. Not to produce publication-ready figures. It produces a figure that displays which days within each year that we have data available for.  
+
+### `final_data_availability_plot.R`
+This was developed to produce the final FluoroProbe Data Availability plot in the supplementary figure. 
+
+### `interpolate_variable.R`
+This function interpolates missing values for a list of water quality variables across both depth and weekly time in a reservoir. It first summarizes the raw data by date, depth, and week, then linearly interpolates values within observed depth and week ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete weekly-depth grid for each variable, ready for further analysis or modeling.
+
+### `jackknife.R`
+This function performs a jackknife-style random forest analysis to quantify the importance of each predictor variable (%IncMSE) for a response variable, separately for each year and pooled across all years. It tunes the RF parameters per year, runs leave-one-out models to estimate robustness, and then summarizes the results as mean ± SD %IncMSE, which it visualizes as a heatmap with variables on the y-axis and years on the x-axis. The output also includes numeric summaries, full jackknife distributions, overall variable rankings, and metadata about the models.
+
+### `new_var_importane_shap_plots.R`
+This function computes and visualizes variables importance (%IncMSE) and SHAP value distributions for a random forest model on a given dataset, optionally saving combined plots.
+
+### `plot_shap_vs_value_loop.R`
+For each variable in vars_to_plot, create a scatter of SHAP values vs predictor values colored by z-scaled predictor values, save individual plots, and optionally create a multi-panel figure.
+
+### `weekly_sum_variables.R`
+Summarizes one or more water-quality variables by week (Year + Week) from a depth profile dataset, returning max/min values, depths of extremes, and values at the DCM (Deep Chlorophyll Maximum).
 
