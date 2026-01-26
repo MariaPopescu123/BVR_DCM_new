@@ -8,11 +8,10 @@ output: html_document
 
 ## About This Repository
 
-This repository contains the data downloads, processing scripts, and figure-generation code for the manuscript:
-
+This repository includes all workflows needed to reproduce the data frames and figures used in the analysis of deep chlorophyll maxima (DCM) in Beaverdam Reservoir for the project called: 
 > *WILL UPDATE THIS WITH PUBLICATION NAME*
 
-This repository includes all workflows needed to reproduce the data frames and figures used in the analysis of deep chlorophyll maxima (DCM) in Beaverdam Reservoir.
+
 
 ---
 ## Instructions to reproduce figures and analysis
