@@ -8,6 +8,9 @@ library(dplyr)
 library(lubridate)
 library(tidyr)
 
+phytos <- phytos|>
+  filter(Year > 2014, Year <2025)
+
 # casts table (as you had it)
 casts <- phytos %>%
   mutate(Date = date(DateTime)) %>%
@@ -89,36 +92,6 @@ plot_casts
 ggsave("Figs/Phytos_viz/FP_casts_2025.png", device = "png",
        height = 6, width = 10.5, units = "in")  # you will probably want to change the dimensions
 
-
-
-
-
-
-
-
-
-
-## made edits through here - after that you are on your own :-)
-
-group_biomass <- plot_dat %>%
-  group_by(FacetID, var) %>%
-  slice(which.min(abs(Depth_m - SampleDepth))) %>%
-  mutate(DepthDiff = abs(SampleDepth - Depth_m)) %>%
-  filter(CastID %in% c(1167, 1171, 1168, 1179))
-
-group_biomass_plot <- ggplot(data = group_biomass, aes(x = var, y = ugL, color = var, fill = var))+
-  geom_bar(stat = "identity")+
-  facet_wrap(facets = vars(FacetID), nrow = 1)+
-  theme_bw()+
-  scale_color_manual(name = "Variable", values = c("cyan4","chocolate4","darkolivegreen4","gray","black","goldenrod"))+
-  scale_fill_manual(name = "Variable", values = c("cyan4","chocolate4","darkolivegreen4","gray","black","goldenrod"))+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
-  geom_text(aes(x = "Bluegreens_ugL", y = 65, label = round(DepthDiff,2)), color = "black")+
-  ggtitle("Text inside each subplot is distance between FP measurement and phyto sample in meters")+
-  xlab("")
-group_biomass_plot
-#ggsave("./Desktop/FP_exploration/FP_group_biomass_at_sample_depth_2024.png", device = "png",
-#       height = 3, width = 12, units = "in") 
 
 
 

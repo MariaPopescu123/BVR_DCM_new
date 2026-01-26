@@ -12,7 +12,7 @@ pacman::p_load(tidyverse, lubridate, akima, reshape2,
 
 
 #water level
-phytos <- phytos|>
+phytos_heatmaps <- phytos|>
 left_join(water_level, by = c("Week", "Year"))
 
 ####heatmaps####
