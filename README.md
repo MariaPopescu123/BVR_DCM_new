@@ -1,9 +1,4 @@
----
-title: "README"
-author: "Maria Popescu"
-date: "2026-01-26"
-output: html_document
----
+
 # Beaverdam Deep Chlorophyll Maximum Drivers
 
 ## About This Repository
