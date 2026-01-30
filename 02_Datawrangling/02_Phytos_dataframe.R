@@ -84,6 +84,9 @@ phytosplot <- ggplot(plot_dat, aes(x = DayOfYear, y = as.factor(Year), group = Y
 
 #print(phytosplot)
 
+# Ensure output dir exists
+dir.create("Figs/Data_availability", recursive = TRUE, showWarnings = FALSE)
+
 ggsave(
   "Figs/Data_availability/TotalPhytos2025pub.png",
   phytosplot,
@@ -339,6 +342,9 @@ last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
     vjust = -0.5
   )
 print(last_plot)
+
+# Ensure output dir exists
+dir.create("Figs/Phytos_viz", recursive = TRUE, showWarnings = FALSE)
 
 ggsave(
   filename = "DCM_depths_annual_boxplot_greaterthan20.png",

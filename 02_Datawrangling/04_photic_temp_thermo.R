@@ -3,7 +3,7 @@
 # 2. temperature dataframe
 # 3. thermocline
 
-#need to have run the DataDownload first
+pacman::p_load(ISOweek)
 
 #### secchi PZ  ####
 
@@ -65,11 +65,11 @@
     mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))
 }
 
-library(ISOweek)
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
 
 write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
 
+#diagnostic plot of photic zone depth from 2014-2024?????
 ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
   geom_line(aes(group = factor(year(Date)))) +
   scale_y_reverse()
@@ -92,10 +92,6 @@ ysi_profiles <- ysi_profiles|>
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
 
 data_availability(ysi_profiles, variables)
-
-# Generate the plot
-#plot <- data_availability(ysi_profiles, variables)  
-# Save the plot with specific dimensions
 #ggsave("Figs/Data_availability/raw_ysi_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
 
 #removing PAR, ORP, cond, and pH due to limited data availability
@@ -392,5 +388,3 @@ across_year <- var_summary %>%
   )
 
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
-
-

@@ -3,6 +3,12 @@
 #2) Makes figures displaying the profiles for the day of maximum
 #phytoplankton concentration of each year
 
+pacman::p_load(
+  tidyverse, lubridate, akima, reshape2,
+  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
+  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
+  patchwork  # <- use patchwork to collect a single legend
+)
 
 phytos <- read.csv("CSVs/phytos.csv")
 
@@ -23,13 +29,6 @@ phytos_heatmaps <- phytos %>%
   filter(!is.na(TotalConc_ugL))
 
 
-pacman::p_load(
-  tidyverse, lubridate, akima, reshape2,
-  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
-  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
-  patchwork  # <- use patchwork to collect a single legend
-)
-
 # 3) heatmap only framing the timeframe
 #we are looking at displaying water level and y-adjusted####
 
@@ -38,6 +37,7 @@ global_max_val <- phytos %>%
   summarise(max_val = max(TotalConc_ugL, na.rm = TRUE)) %>%
   pull(max_val)
 
+# function to [ADD DESCRIPTION HERE!]
 flora_heatmap <- function(
     fp_data,
     year,
@@ -197,7 +197,6 @@ plots <- list(
 )
 
 # Combine with patchwork, collect only that one legend
-library(patchwork)
 
 final_with_legend <-
   (plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + plots[[5]] +

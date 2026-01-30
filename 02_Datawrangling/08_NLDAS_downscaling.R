@@ -12,10 +12,10 @@
 #8 Plot all years
 #9 export the data as a csv for use in machine learning 
 
-pacman::p_load(tidyverse, lubridate, RColorBrewer, dplyr, tidyr, ggplot2, ggthemes, patchwork)
+pacman::p_load(tidyverse, lubridate, RColorBrewer, lubridate,
+               dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
 ####1 EDI met data####
-#EDImet <- read.csv("CSVs/EDImet.csv") not needed if already loaded in
 EDImetC <- EDImet %>%
   select(
     Reservoir,
@@ -30,9 +30,6 @@ EDImetC <- EDImet %>%
   )
 
 #Weekly values
-library(dplyr)
-library(lubridate)
-
 # 1) Add date/year/week
 EDImet_wk <- EDImetC |>
   mutate(
@@ -329,7 +326,3 @@ across_year <- var_summary %>%
   )
 
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
-
-
-
-
