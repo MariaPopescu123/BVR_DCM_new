@@ -6,7 +6,7 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr,
                forecast, ggthemes, splines, readr, ggbeeswarm,
-               knitr)
+               knitr, fastshap, here)
 
 
 source("Functions/interpolate_variable.R")
@@ -57,5 +57,3 @@ bath <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06
 
 BVRbath<- bath|>
   filter(Reservoir == "BVR")
-
-
