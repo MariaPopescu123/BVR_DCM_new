@@ -34,7 +34,8 @@ full_weekly_data <- full_weekly_data |>
   relocate(wind_lag1, wind_lag2, .after = WindSpeed_Avg) |>
   relocate(precip_lag1, precip_lag2, .after = Precip_Weekly) |>
   relocate(airtemp_lag1, airtemp_lag2, .after = AirTemp_Avg)|>
-  filter(year(Date)>2014 & year(Date)<2025)
+  filter(year(Date)>2014 & year(Date)<2025)|>
+  filter(max_conc >20)
 
 
 write.csv(full_weekly_data, "CSVs/full_weekly_data.csv", row.names = FALSE)

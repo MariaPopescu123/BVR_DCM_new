@@ -6,7 +6,6 @@ library(patchwork)
 
 
 
-
 #adding columns with total_conc max and the depth at which it occurs
 phytos <- phytos_df %>% 
   filter(Reservoir == "BVR", Site == 50)%>%
@@ -298,7 +297,6 @@ final_DCM_metrics<- DCM_metrics_depth2|>
 
 
 ####boxplots depth of DCM####
-#need to use raw data for this to work 
 
 #filtering so that max_conc is greater than 20 because otherwise we can't call it a deep chlorophyll maxima 
 boxplot_Data <- final_DCM_metrics |>
@@ -367,15 +365,6 @@ print(last_plot)
 
 dir.create("Figs/Phytos_viz", recursive = TRUE, showWarnings = FALSE)
 
-# ggsave(
-#   filename = "DCM_depths_annual_boxplot_greaterthan20.png",
-#   plot = last_plot(),
-#   path = "Figs/Phytos_viz",
-#   width = 10,   
-#   height = 5,   
-#   dpi = 300     
-# )
-
 ####boxplots magnitude of DCM####
 #visualizing just one box per year
 
@@ -431,16 +420,6 @@ last_plot_mag <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
   )
 
 print(last_plot_mag)
-
-
-ggsave(
-  filename = "Peak_Magnitidues_2015_2024_boxplot_20.png",
-  plot = last_plot_mag,
-  path = "Figs/Phytos_viz",
-  width = 10,   # width in inches
-  height = 5,   # height in inches
-  dpi = 300     # optional: high resolution
-)
 
 #two panels
 panel_plot <- last_plot / last_plot_mag  

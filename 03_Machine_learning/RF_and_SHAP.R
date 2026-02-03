@@ -24,7 +24,7 @@ depth_metRF <- var_importance_shap_plots(
   variable_labels = variable_labels
 )
 #------------------------------------------------------------------------------#
-####MAGNITUDEweather lags####
+####MAGNITUDE weather lags####
 met_lags <- full_weekly_data |>
   filter(max_conc>20)|>
   select(Date, max_conc,
