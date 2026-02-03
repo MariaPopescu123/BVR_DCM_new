@@ -1,6 +1,8 @@
+# code for [add more descriptive title here!!!]
 
 #### Nutrients  ####
 
+#replacing flag 9 for (???) with NA
 chemistry_filtered <- chemistry |> #loaded in from DataDownload
   filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime), 
@@ -87,7 +89,7 @@ write.csv(final_chem, "CSVs/final_chem.csv", row.names = FALSE)
 # metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
 #updated 2025
 metalsdf <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
-#removed flags for 68 as per Cece's advice
+#removed flags for 68 (WHAT DOES THIS FLAG MEAN????) as per Cece's advice
 metals_updated <- metalsdf |>
   mutate(Date = as.Date(DateTime)) |>
   filter(Site == 50, Reservoir == "BVR", Flag_SFe_mgL != 68) |>
@@ -120,5 +122,3 @@ final_metals <- frame_weeks|> #random forest frame with metals
   left_join(metals_weekly_sum, by = c("Week", "Year"))
 
 write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)
-
-

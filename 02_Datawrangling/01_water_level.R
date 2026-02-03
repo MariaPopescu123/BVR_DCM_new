@@ -1,8 +1,6 @@
 #Maria Popescu
 #Water level for Beaverdam 
 
-#need to load this in here
-
 #Updated to incude 2024
 #waterlevel data
 wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 
@@ -10,7 +8,6 @@ wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476ab
 #waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
 #for past 2020
 BVRplatform <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
-
 
 #list of DOY for interpolation purpose
 DOY_list <- 32:334  # DOYs from February 1 to November 30
@@ -61,7 +58,6 @@ BVRplatform2_interpolated <- DOY_year_ref |>
   filter(Year > 2019, Site == 50)|>
   arrange(Year, DOY)|>
   select(Year, DOY, DateTime, LvlDepth_m_13)
-
 
 #make data frame for waterlevels
 start_date <- as.Date("2015-01-01")
