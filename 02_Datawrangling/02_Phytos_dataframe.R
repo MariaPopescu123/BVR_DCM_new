@@ -85,6 +85,9 @@ phytosplot <- ggplot(plot_dat, aes(x = DayOfYear, y = as.factor(Year), group = Y
 
 #print(phytosplot)
 
+# Ensure output dir exists
+dir.create("Figs/Data_availability", recursive = TRUE, showWarnings = FALSE)
+
 ggsave(
   "Figs/Data_availability/TotalPhytos2025pub.png",
   phytosplot,

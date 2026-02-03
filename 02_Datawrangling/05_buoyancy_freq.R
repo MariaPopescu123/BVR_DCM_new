@@ -1,4 +1,4 @@
-# buoyancy_freq
+# code to calculate weekly buoyancy_freq at the DCM from 2014-2024
 
 temp_depths_cleaned <- read.csv("CSVs/temp_depths_cleaned.csv")
 
@@ -50,5 +50,3 @@ across_year <- var_summary %>%
   )
 
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
-
-

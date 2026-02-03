@@ -3,6 +3,12 @@
 #2) Makes figures displaying the profiles for the day of maximum
 #phytoplankton concentration of each year
 
+pacman::p_load(
+  tidyverse, lubridate, akima, reshape2,
+  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
+  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
+  patchwork  # <- use patchwork to collect a single legend
+)
 
 pacman::p_load(
   tidyverse, lubridate, akima, reshape2,
