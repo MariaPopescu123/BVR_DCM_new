@@ -36,6 +36,7 @@ global_max_val <- DCM_metrics_filtered %>%
   summarise(max_val = max(TotalConc_ugL, na.rm = TRUE)) %>%
   pull(max_val)
 
+#heatmaps for phytoplankton concentration visualization across time and depth
 flora_heatmap <- function(
     fp_data,
     year,
@@ -186,6 +187,8 @@ ggsave(
 
 
 #Profile Casts####
+#to show the profiles for the day where there was the maximum phytoplankton concentration
+#each year. Produces Figure XXX
 #---------------------------------------------
 # Clean FacetID: remove "BVR" from facet labels
 # Filter phytos for the years of interest

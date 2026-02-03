@@ -3,14 +3,20 @@
 # 2. temperature dataframe
 # 3. thermocline
 
-#need to have run the DataDownload first
+library(ISOweek)
+#will save figures to these files
+if (!dir.exists("Figs/Daily_interp_Casts")) {
+  dir.create("Figs/Daily_interp_Casts", recursive = TRUE)
+}
+
+if (!dir.exists("Figs/Daily_interp_Casts")) {
+  dir.create("Figs/Daily_interp_Casts", recursive = TRUE)
+}
 
 #### secchi PZ  ####
-
-#need to load in frame weeks 
+#loads in the secchi data frame, checks for secchi data availability  
 
 {
-  
   secchi_df <- secchiframe |>
     mutate(Date = as_date(DateTime)) |>
     group_by(Date, Reservoir, Site) |>
@@ -65,7 +71,6 @@
     mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))
 }
 
-library(ISOweek)
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
 
 write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
@@ -80,11 +85,6 @@ ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
 #####YSI#####
 
 #don't need to run this if you already loaded the data
-#ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
-#updated 2025
-ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
-ysi_profiles <- read.csv("CSVs/ysi_profiles.csv")
-
 ysi_profiles <- ysi_profiles|>
   filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime))
@@ -108,16 +108,6 @@ ysi <- ysi_profiles|>
 data_availability(ysi, variables)
 
 #####CTD#####
-
-#unnecessary if you've already loaded in the data from 01_DataDownload
-#ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
-options(timeout = 999999)
-url  <- "https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1"
-dest <- "CSVs/CTD.csv"
-dir.create("CSVs", showWarnings = FALSE)
-download.file(url, dest, mode = "wb")
-CTD <- read.csv(dest)
-
 CTDfiltered <- CTD |>
   filter(Reservoir == "BVR", Site == 50) |>
   filter(!if_any(starts_with("Flag"), ~ . == 68)) |>
@@ -156,7 +146,8 @@ temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Dep
   filter(Depth_m > 0.09)|>
   select(-Temp_C.y, -Temp_C.x)
 
-#data_availability(temp_depths_coalesced, variables)
+variables<- c("Temp_C")
+data_availability(temp_depths_coalesced, variables)
 
 ####2019 fix####
 #the beginning of 2019 is missing from within the season so I am grabbing from ysi data
@@ -173,7 +164,7 @@ ysitemp2019_clean <- ysi |>
 temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
   arrange(Date, Depth_m)
 
-#data_availability(temp_depths_coalesced, variables)
+data_availability(temp_depths_coalesced, variables)
 
 #variables <- ("Temp_C")
 #temp_depths_coalesced_summarised <- weekly_sum_variables(temp_depths_coalesced, variables)

@@ -21,7 +21,12 @@ source("Functions/plot_shap_vs_value_loop.R")
 
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
 #updated 2025
-CTD <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1")
+options(timeout = 999999)
+url  <- "https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1"
+dest <- "CSVs/CTD.csv"
+dir.create("CSVs", showWarnings = FALSE)
+download.file(url, dest, mode = "wb")
+CTD <- read.csv(dest)
 
 #flora data https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.10
 #published 2026
