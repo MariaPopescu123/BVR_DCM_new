@@ -1,24 +1,12 @@
----
-title: "07_schmidt_stability"
-author: "Maria Popescu"
-date: "2025-05-30"
-output: html_document
----
+#this script calculates schmidt stability for BVR across all years 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
 #calculating schmidt stability 
-
 BVRbath <- bath|>
   filter(Reservoir == "BVR")|>
   select(Depth_m, SA_m2)
-```
-  
-Prepare data frame
-```{r}
+
+
+# Prepare data frame
 weekly_temp_profiles <- temp_depths_cleaned |>
   mutate(
     Week = week(Date),
@@ -29,16 +17,16 @@ weekly_temp_profiles <- temp_depths_cleaned |>
   group_by(Date, RoundedDepth) |>
   slice_min(abs(Depth_m - RoundedDepth), with_ties = FALSE) |>  # Select depth closest to that rounded meter
   ungroup()|>
-  left_join(water_level, by = c("Week", "Year"))
-```
+  left_join(weekly_water_level, by = c("Week", "Year"), relationship = "many-to-many")|>
+  mutate(Date = as.Date(Date))
 
-Need to make correction for different water levels and bathymetry.
-Currently the Bath frame is 0-14. 
-For each Date the max depth needs to be subtracted from 14. ex: BathDiff = 14 - max(Depth_m) [example: 2]
-Then make a column called BathAdj = Roundeddepth + BathDiff
-Then left join BVRbath to BathAdj
 
-```{r}
+# Need to make correction for different water levels and bathymetry.
+# Currently the Bath frame is 0-14. 
+# For each Date the max depth needs to be subtracted from 14. ex: BathDiff = 14 - max(Depth_m) [example: 2]
+# Then make a column called BathAdj = Roundeddepth + BathDiff
+# Then left join BVRbath to BathAdj
+
 new_bath <- weekly_temp_profiles|>
   group_by(Date)|>
   mutate(BathDiff = 14 - max(RoundedDepth), 
@@ -46,14 +34,13 @@ new_bath <- weekly_temp_profiles|>
   ungroup()|>
   left_join(BVRbath, by = c("BathAdj" = "Depth_m"))|>
   select(-RoundedDepth, -WaterLevel_m, -BathDiff, -BathAdj)
-```
 
-Yay! Now we have different bathymetry for each Date
-Let's try to calculate Schmidt stability:
-Higher Schmidt stability → more energy needed to mix → stronger stratification
-Lower Schmidt stability → less energy needed → weaker or no stratification
 
-```{r}
+# Yay! Now we have different bathymetry for each Date
+# Let's try to calculate Schmidt stability:
+# Higher Schmidt stability → more energy needed to mix → stronger stratification
+# Lower Schmidt stability → less energy needed → weaker or no stratification
+
 schmidt_frame <- new_bath|>
   group_by(Date)|>
   filter(!is.na(Temp_C))|>
@@ -62,16 +49,14 @@ schmidt_frame <- new_bath|>
   group_by(Year, Week)|>
   summarise(schmidt_stability = mean(schmidt_stability))|>
   ungroup()
-```
-```{r}
+
 final_schmidt <- frame_weeks|>
-  left_join(schmidt_frame, by = c("Week", "Year"))|>
-  select(-WaterLevel_m)
+  left_join(schmidt_frame, by = c("Week", "Year"))
 
-
+#diagnostic plot to visualize schmidt stability
 ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))) +
   geom_point() +
-  geom_line() +  # Optional: connect points by year
+  geom_line() +  
   labs(
     x = "Week of Year",
     y = "Schmidt Stability (J/m²)",
@@ -79,10 +64,7 @@ ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))
   ) +
   theme_minimal()
 
-```
 
-
-```{r}
 write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)
 
 #checking within year and across year variability
@@ -104,10 +86,9 @@ across_year <- var_summary %>%
 
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
 
-```
 
-Additional Stats
-```{r}
+
+#Additional Stats
 
 #checking within year and across year variability
 var_summary <- final_schmidt %>%
@@ -129,5 +110,4 @@ variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
 
 print(var_summary)
 print(variability_ratio)
-```
 

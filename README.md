@@ -55,7 +55,7 @@ This script calculates buoyancy frequency (stratification strength) from tempera
 
 This script processes nutrient and metal chemistry data for Beaverdam Reservoir, including filtering and flag handling, and interpolating concentrations at the deep chlorophyll maximum (DCM). The final output provides weekly aggregated values of key nutrients (SRP, NH₄) and soluble iron (SFe) for downstream analyses.
 
-#### `07_schmidt_stability.Rmd`
+#### `07_schmidt_stability.R`
 
 This script calculates Schmidt stability for Beaverdam Reservoir by combining temperature profiles with bathymetry adjusted for water level. It produces a weekly time series of Schmidt stability, which quantifies the energy required to mix the water column, reflecting stratification strength over time.
 

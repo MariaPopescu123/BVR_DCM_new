@@ -12,6 +12,7 @@
 #8 Plot all years
 #9 export the data as a csv for use in machine learning 
 
+
 pacman::p_load(tidyverse, lubridate, RColorBrewer, lubridate,
                dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
@@ -254,6 +255,9 @@ p3 <- ggplot(full_met |> filter(Year == 2015),
 
 joined_data_2015 <- (p1 / p2 / p3) + plot_layout(heights = c(1,1,1)) 
 print(joined_data_2015)
+if (!dir.exists("Figs/metdata")) {
+  dir.create("Figs/metdata", recursive = TRUE)
+}
 ggsave("Figs/metdata/joined_data_2015.png", joined_data_2015)
 
 

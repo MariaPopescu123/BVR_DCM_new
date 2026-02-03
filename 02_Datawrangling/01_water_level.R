@@ -1,14 +1,6 @@
 #Maria Popescu
 #Water level for Beaverdam 
 
-#Updated to incude 2024
-#waterlevel data
-wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 
-
-#waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
-#for past 2020
-BVRplatform <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
-
 #list of DOY for interpolation purpose
 DOY_list <- 32:334  # DOYs from February 1 to November 30
 years <- 2015:2024
