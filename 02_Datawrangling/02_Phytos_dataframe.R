@@ -1,4 +1,10 @@
 #prepping phyto dataframe
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+
+
 
 
 #adding columns with total_conc max and the depth at which it occurs
@@ -6,11 +12,6 @@ phytos <- phytos_df %>%
   filter(Reservoir == "BVR", Site == 50)%>%
   mutate(Date  = as_date(DateTime)) |> 
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
-  filter(!(CastID == 592))|> #filter out weird drop in 2017
-  filter(!(CastID == 395))|> #weird drop in 2016
-  filter(!CastID %in% c(467, 814, 856, 920, 1149, 788)) |> #make sure to remove these for heatmaps too
-  #filter(!CastID == 793)|> #this was here because in the version that is currently published (9/30/2025) this cast is blank, but in the version that is in staging as of 9/30/2025, this cast is fixed 
-  #filter(Flag_TotalConc_ugL != 2,Flag_TotalConc_ugL != 3)|> #2 is instrument malfunction and #3 is low transmission value
   mutate(Week = week(Date))|>
   mutate(Year = year(Date))|>
   mutate(DOY = yday(Date))|>
@@ -102,7 +103,6 @@ ggsave(
 #4. Average the peak metrics together (if appropriate)
 #5. New data frame with one set of peak metrics for each week that we have data
 
-
 #plot each one for cast selection 
 
 # Make sure the Figs directory exists
@@ -177,17 +177,16 @@ for (type in types) {
   }
 }
 
-#notes on casts
-#casts to remove: 467, 814, 856, 920, 1149 
-
 DCM_metrics_filtered <- DCM_metrics |>
-  filter(!CastID %in% c(467, 814, 856, 920, 1149, 788, 933)) |> 
+  filter(!CastID %in% c(788, 857,933, 1150)) |> #blank and erroneous casts
   mutate(
+    # these lines combines casts that were obviously from the same day and time
     CastID = case_when(
-      CastID %in% c(485, 486) ~ 484,    # combine 485 + 486 into 484
-      CastID %in% c(492, 493, 494) ~ 492,    # or 493 – pick ONE target
-      CastID %in% c(499, 500, 501) ~ 499,    # or 500 – pick ONE target
-      CastID %in% c(603, 604, 605) ~ 603,    # or 604 – pick ONE target
+      CastID %in% c(468, 469) ~ 468,
+      CastID %in% c(485, 486) ~ 485,    
+      CastID %in% c(493, 494) ~ 493,   
+      CastID %in% c(500, 501) ~ 500,    
+      CastID %in% c(604, 605) ~ 604,    
       TRUE ~ CastID
     )
   ) |>
@@ -216,14 +215,28 @@ for (var in pigment_vars) {
     fill(!!sym(max_col), .direction = "downup") |>
     fill(!!sym(dcm_col), .direction = "downup")
 }
-# Ungroup after loop
-DCM_metrics_depth <- DCM_metrics_depth |> ungroup()
 
-# final_DCM_metrics<- final_DCM_metrics|>
-#   #select(-peak.top, -peak.bottom, -peak.width)|>#can remove this once have peak calculations figured out
-#   group_by(CastID)|>
-#   mutate(Q3 = quantile(TotalConc_ugL, 0.75)) #25% of data falls above this value 
-# 
+
+# Ungroup after loop and make sure that it qualifies as a DCM
+# below the top 5% of the water colun depth and
+#chla at least 1.5 times average in top 5% of water column
+DCM_metrics_depth2 <- DCM_metrics_depth1 %>%
+  group_by(Reservoir, Site, Date, CastID) %>%
+  mutate(
+    top5_depth = 0.05 * WaterLevel_m,
+    top5_mean = mean(TotalConc_ugL[Depth_m <= top5_depth], na.rm = TRUE),
+    qualifies_DCM =
+      TotalConc_ugL_DCM_depth > top5_depth &
+      TotalConc_ugL_max_conc >= 1.5 * top5_mean
+  ) %>%
+  ungroup() %>%
+  filter(qualifies_DCM)
+
+#to see which casts were dropped 
+DCM_dropped <- DCM_metrics_depth2 %>%
+  anti_join(DCM_metrics_depth2, by = c("Reservoir","Site","Date","CastID"))
+
+
 #-----max_conc check-----------####
 
 # Pigments to visualize (columns that have *_DCM_depth already computed)
@@ -237,7 +250,7 @@ for (var in pigment_vars) {
   
   for (yr in years) {
     # Filter to this year
-    test <- DCM_metrics_depth |>
+    test <- DCM_metrics_depth2 |>
       filter(year(Date) == yr)
     
     if (nrow(test) == 0) next
@@ -276,14 +289,12 @@ for (var in pigment_vars) {
   }
 }
 
-#
-final_DCM_metrics<- DCM_metrics_depth|>
+
+final_DCM_metrics<- DCM_metrics_depth2|>
   mutate(max_conc = TotalConc_ugL_max_conc, 
          DCM_depth = TotalConc_ugL_DCM_depth)|>
   filter(!(CastID == 1087))|> #no real peak
-  filter(!(CastID == 1150))|> #incomplete cast
   filter(Year <2025) 
-
 
 
 ####boxplots depth of DCM####
@@ -318,11 +329,11 @@ label_data <- boxplot_Data %>%
 
 # Plot with labels for the number of data points
 last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
-  geom_boxplot(outlier.shape = NA) +   # ⬅️ this line changed
+  geom_boxplot(outlier.shape = NA) +
   geom_point(
     aes(color = max_conc),
     position = position_jitter(width = 0.2),
-    size = 2
+    size = 2.2
   ) +
   scale_color_gradientn(
     colours = c("blue","cyan", "green","yellow", "red", "red3"),
@@ -331,51 +342,64 @@ last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
     limits = c(20, 380), 
     breaks = c(20, 100, 200, 300, 380)
   ) +
-  scale_y_reverse(name = "DCM Depth (inverted)") +
-  ggtitle("DCM Depths") +
-  ylim(10, 0) +
-  labs(x = "Year", y = "DCM Depth", color = "totals ugL") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_reverse(
+    name = "DCM Depth (m)",
+    limits = c(10, 0)
+  ) +
+  ggtitle("Deep Chlorophyll Maximum (DCM) Depth") +
+  labs(x = "Year", color = "Total Chl (µg/L)") +
   geom_text(
     data = label_data,
     aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)),
-    vjust = -0.5
+    vjust = -0.5,
+    size = 3.6
+  ) +
+  theme_classic(base_size = 14) +   # 👈 bigger base text
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 12)
   )
+
 print(last_plot)
 
-# Ensure output dir exists
-dir.create("Figs/Phytos_viz", recursive = TRUE, showWarnings = FALSE)
 
-ggsave(
-  filename = "DCM_depths_annual_boxplot_greaterthan20.png",
-  plot = last_plot(),
-  path = "Figs/Phytos_viz",
-  width = 10,   # width in inches
-  height = 5,   # height in inches
-  dpi = 300     # optional: high resolution
-)
+# ggsave(
+#   filename = "DCM_depths_annual_boxplot_greaterthan20.png",
+#   plot = last_plot(),
+#   path = "Figs/Phytos_viz",
+#   width = 10,   
+#   height = 5,   
+#   dpi = 300     
+# )
 
 ####boxplots magnitude of DCM####
 #visualizing just one box per year
 
 boxplot_Data <- final_DCM_metrics |>
   filter(max_conc > 20) |>
-  mutate(Date = as.Date(Date))|>
-  filter(year(Date)>2014)|>
-  mutate(DayOfYear = yday(Date))|>
-  filter(DayOfYear>133, DayOfYear<286) |>
-  mutate(Year = year(Date), Month = month(Date))|>
-  group_by(Year, CastID)|>
-  summarise(max_conc = mean(max_conc))
-# Count points per year (after your filters/summary)
-label_data <- boxplot_Data |>
-  dplyr::group_by(Year) |>
-  dplyr::summarise(n = dplyr::n(), .groups = "drop")
+  mutate(Date = as.Date(Date)) |>
+  filter(year(Date) > 2014) |>
+  mutate(DayOfYear = yday(Date)) |>
+  filter(DayOfYear > 133, DayOfYear < 286) |>
+  mutate(Year = year(Date), Month = month(Date)) |>
+  group_by(Year, CastID) |>
+  summarise(max_conc = mean(max_conc, na.rm = TRUE), .groups = "drop")
 
-ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
+# Count points per year
+label_data <- boxplot_Data |>
+  group_by(Year) |>
+  summarise(n = n(), .groups = "drop")
+
+last_plot_mag <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
   geom_boxplot(outlier.shape = NA) +
-  geom_point(aes(color = max_conc),
-             position = position_jitter(width = 0.2), size = 2) +
+  geom_point(
+    aes(color = max_conc),
+    position = position_jitter(width = 0.2),
+    size = 2.2
+  ) +
   scale_color_gradientn(
     colours = c("blue","cyan","green","yellow","red","red3"),
     values = scales::rescale(c(0, 40, 75, 100, 200, 380)),
@@ -383,28 +407,53 @@ ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
     limits = c(20, 380),
     breaks = c(20, 100, 200, 300, 380)
   ) +
-  ggtitle("Peak Magnitudes") +
-  ylim(0, 385) +
-  labs(x = "Year", y = "Peak Magnitude", color = "Total (µg/L)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  # Top-of-column labels (per-year)
+  ggtitle("Deep Chlorophyll Maximum (DCM) Peak Magnitude") +
+  scale_y_continuous(
+    name = "Peak Chlorophyll (µg/L)",
+    limits = c(0, 385)
+  ) +
+  labs(x = "Year", color = "Total Chl (µg/L)") +
   geom_text(
     data = label_data,
-    aes(x = factor(Year), y = Inf, label = paste0("n = ", n)),
-    vjust = 2.0,           # nudge down from the top
-    size = 3.2,
+    aes(x = factor(Year), y = 380, label = paste0("n = ", n)),
+    vjust = -0.4,
+    size = 3.6,
     inherit.aes = FALSE
+  ) +
+  theme_classic(base_size = 14) +   # 👈 same base size
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 13),
+    legend.text = element_text(size = 12)
   )
+
+print(last_plot_mag)
+
+
 ggsave(
   filename = "Peak_Magnitidues_2015_2024_boxplot_20.png",
-  plot = last_plot(),
+  plot = last_plot_mag,
   path = "Figs/Phytos_viz",
   width = 10,   # width in inches
   height = 5,   # height in inches
   dpi = 300     # optional: high resolution
 )
 
-#For heatmaps go to "Extra Helpful Scripts/DCMFCRheatmaps"
+#two panels
+panel_plot <- last_plot / last_plot_mag  
+panel_plot
+
+ggsave(
+  filename = "boxplots_paneled.png",
+  plot = panel_plot,
+  path = "Figs/Phytos_viz",
+  width = 10,   # width in inches
+  height = 10,   # height in inches
+  dpi = 600     # optional: high resolution
+)
+
 
 
 #frame that will be added to for RF analysis at the end
@@ -424,17 +473,9 @@ frame_weeks <- final_phytos|>
 write.csv(frame_weeks, "CSVs/frame_weeks.csv", row.names = FALSE)
 write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #metrics for each variable that needs to be calculated 
-#depth_var_max
-#depth_var_min
-#var_max_val
-#var_min_val
-#var_mean
-#var_range (max-main)
+
+
 #-----Kruskal Wallis Test------
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(patchwork)
 
 sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) {
   df <- data %>%
@@ -495,6 +536,12 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
         is.na(p_adj) ~ "",
         p_adj < 0.05 ~ paste0(formatC(p_adj, format = "f", digits = 3), "\n", stars),
         TRUE         ~ formatC(p_adj, format = "f", digits = 3)
+      ),
+      # Text color for contrast
+      text_col = dplyr::case_when(
+        is.na(p_adj) ~ "black",
+        sig_bin == "< 0.001" ~ "white",
+        TRUE ~ "black"
       )
     )
   
@@ -507,8 +554,19 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
   
   ggplot2::ggplot(p_long, ggplot2::aes(x = Year1, y = Year2, fill = sig_bin)) +
     ggplot2::geom_tile(color = "white", linewidth = 0.4) +
-    ggplot2::geom_text(ggplot2::aes(label = label_txt), size = 3.2, lineheight = 0.9) +
-    ggplot2::scale_fill_manual(values = sig_pal, na.value = "white", drop = FALSE, name = "Adj. p (BH)") +
+    ggplot2::geom_text(
+      ggplot2::aes(label = label_txt),
+      color = p_long$text_col,   
+      size = 3.2, 
+      lineheight = 0.9,
+      show.legend = FALSE
+    )+
+    ggplot2::scale_fill_manual(
+      values = sig_pal,
+      na.value = "white",
+      drop = FALSE,
+      name = "Adj. p (BH)"
+    ) +
     ggplot2::coord_equal() +
     ggplot2::scale_x_discrete(position = "top") +
     ggplot2::labs(
@@ -529,26 +587,33 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
 
 
 # ---------- Run for both responses ----------
-# (If needed, coerce Year in your source once)
 final_phytos <- final_phytos %>% mutate(Year = as.integer(as.character(Year)))
 
-final_phytos_over20 <- final_phytos|>
-  filter(max_conc >20)
+final_phytos_over20 <- final_phytos %>%
+  filter(max_conc > 20)
 
-p_depth <- sig_grid_upper_fn(final_phytos_over20, "DCM_depth",
-                             "Pairwise Differences by Year - DCM Depth")
-p_mag   <- sig_grid_upper_fn(final_phytos_over20, "max_conc",
-                             "Pairwise Differences by Year - Max Phytoplankton")
-# Stack
-sig_both <- p_depth / p_mag + plot_annotation(
-  title = "Year-wise Pairwise Significance (BH-adjusted)",
-  theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
+p_depth <- sig_grid_upper_fn(
+  final_phytos_over20, "DCM_depth",
+  "Pairwise Differences by Year - DCM Depth"
 )
+
+# Hide legend on the second plot
+p_mag_nolegend <- p_mag + theme(legend.position = "none")
+
+# Stack plots vertically with only the first plot's legend
+sig_both <- p_depth / p_mag_nolegend +
+  plot_layout(guides = "collect") +   # collects the legend from p_depth
+  plot_annotation(
+    title = "Year-wise Pairwise Significance (BH-adjusted)",
+    theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
+  )
 
 sig_both
 
-ggsave("Figs/Significance_UpperTriangle_DCM_and_MaxConc_over20_just_for_DCM_depth.png",
+ggsave("Figs/Phytos_viz/kruskal-wallis.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
+
+#plotting stats
 
 final_phytos_over20 %>%
   group_by(Year) %>%
@@ -572,7 +637,8 @@ summary_df <- final_phytos_over20 %>%
     se = sd(max_conc, na.rm = TRUE) / sqrt(n())
   )
 
-# Plot with legend
+# Plot
+
 p <- ggplot(summary_df, aes(x = factor(Year))) +
   geom_ribbon(aes(ymin = q25, ymax = q75, fill = "IQR", group = 1), alpha = 0.4) +
   geom_line(aes(y = median, color = "Median", group = 1), linewidth = 1.2) +
@@ -580,11 +646,11 @@ p <- ggplot(summary_df, aes(x = factor(Year))) +
   geom_errorbar(aes(ymin = mean - se, ymax = mean + se, color = "Mean ± SE", group = 1),
                 width = 0.15, alpha = 0.6) +
   geom_point(aes(y = mean, color = "Mean ± SE"), shape = 21, fill = "white", size = 2) +
-  scale_color_manual(name = "Statistics", values = c(
+  scale_color_manual(name = NULL, values = c(
     "Median" = "blue",
     "Mean ± SE" = "red"
   )) +
-  scale_fill_manual(name = "Statistics", values = c("IQR" = "grey80")) +
+  scale_fill_manual(name = NULL, values = c("IQR" = "grey80")) +
   labs(
     y = "Max phytoplankton concentration",
     x = "Year",
@@ -593,7 +659,7 @@ p <- ggplot(summary_df, aes(x = factor(Year))) +
   theme_classic(base_size = 13) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-print(p)
+p
 
 # Save the plot to a file
 ggsave("Figs/Phytos_viz/phytoplankton_summary.png", plot = p, width = 8, height = 5, dpi = 300)

@@ -29,22 +29,17 @@ wtrlvl2_interpolated <- DOY_year_ref %>%
   left_join(wtrlvl2, by = c("Year", "DOY")) %>%
   group_by(Year) %>%
   mutate(
-    WaterLevel_m = zoo::na.spline(WaterLevel_m, x = DOY, na.rm = FALSE)
+    WaterLevel_m = ifelse(
+      DOY < min(DOY[!is.na(WaterLevel_m)]) | 
+        DOY > max(DOY[!is.na(WaterLevel_m)]),
+      NA,
+      zoo::na.spline(WaterLevel_m, x = DOY, na.rm = FALSE)
+    )
   ) %>%
-  filter(Year > 2013) %>%
-  arrange(Year, DOY)|>
+  filter(Year > 2014) %>%
+  arrange(Year, DOY) %>%
   select(Year, DOY, WaterLevel_m)
 
-#-----------------------------------------------------------------------------#
-# QUICK WL DIAGNOSTIC PLOT
-ggplot(wtrlvl2_interpolated, aes(x = DOY, y = WaterLevel_m)) +
-  geom_line() +
-  facet_wrap(~Year, scales = "free") +
-  theme_bw() +
-  labs(x = "Day of Year", y = "Water Level (m)")
-#note that there is something weird happening from 2021-2023 
-#if these years aren't being used from this dataset, I'd subset and make a note above so it's clear
-#-----------------------------------------------------------------------------#
 
 #now for past 2020 
 #Add DOY and Year columns to wtrlvl2, then join with DOY_year_ref
@@ -65,7 +60,7 @@ BVRplatform2_interpolated <- DOY_year_ref |>
   select(Year, DOY, DateTime, LvlDepth_m_13)
 
 #make data frame for waterlevels
-start_date <- as.Date("2014-01-01")
+start_date <- as.Date("2015-01-01")
 end_date <- as.Date("2024-12-31")
 
 weekly_dates <- data.frame(
@@ -91,7 +86,7 @@ expanded_dates <- expanded_dates %>%
 water_levelsjoined <- expanded_dates|>
   left_join(BVRplatform2_interpolated, by = c("Year", "DOY"), relationship = "many-to-many")|>
   left_join(wtrlvl2_interpolated, by = c("Year", "DOY"), relationship = "many-to-many")|>
-  filter(Year>2013)
+  filter(Year>2014)
 
 water_levelscoalesced<- water_levelsjoined|>
   mutate(WaterLevel_m = coalesce(LvlDepth_m_13,WaterLevel_m))|>
@@ -99,21 +94,25 @@ water_levelscoalesced<- water_levelsjoined|>
   group_by(Year, DOY)|>
   summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop")
 
-#this has all the depths and all the days
+#final data frames for analysis: water_level and weekly_water_level
+#this has all the depths and all the days so I can still use this for depth profile 
+#calculations later
 water_level <- expanded_dates|>
   left_join(water_levelscoalesced, by = c("Year", "DOY"))|>
   filter(!is.na(WaterLevel_m))
 
+#this is just weekly water level
 weekly_water_level <- water_level |> 
   group_by(Year, Week) |> 
   slice(1) |> 
   ungroup()|>
   select(Year, Week, WaterLevel_m)
 
+#not used in manuscript, just used for diagnostics
 wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
-  geom_line(size = 1) +  # Optional: connect points by year
+  geom_line(size = 1) +  
   labs(
-    title = "Water Level 2014-2024",
+    title = "Water Level 2015-2024",
     x = "Week of Year",
     y = "Water Level (m)",
     color = "Year"
@@ -137,6 +136,7 @@ ggsave("Figs/WaterLevel_colored_by_year.png", wtrlvl_by_year, width = 8, height 
 
 #final csv
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
+
 
 #additional stats for paper 
 
