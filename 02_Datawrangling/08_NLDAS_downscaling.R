@@ -261,7 +261,7 @@ if (!dir.exists("Figs/metdata")) {
 ggsave("Figs/metdata/joined_data_2015.png", joined_data_2015)
 
 
-####8. Plot all years for each variable####
+####8. Plot all years for each variable just for QAQC check####
 # 1. Precipitation plot
 p1 <- ggplot(full_met, aes(x = Week, y = precip_weekly, color = factor(Year), group = Year)) +
   geom_line() +
@@ -284,10 +284,12 @@ combined_plot <- (p1 | p2) / (p3)
 print(combined_plot)
 ggsave("Figs/metdata/NLDAS.png", combined_plot, width = 12, height = 8, dpi = 300)
 
-####9. Export as CSV####
+#checking to make sure I have full coverage for the time frame we are looking at 
 variables <- c("precip_weekly","weekly_airtempavg","WindSpeed_Weekly_Average_m_s")
 data_availability(full_met, variables)
 
+
+####9. Export as CSV####
 write.csv(full_met, "CSVs/final_metdata.csv", row.names = FALSE)
 
 full_met <- read.csv("CSVs/final_metdata.csv")
