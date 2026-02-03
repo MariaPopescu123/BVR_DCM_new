@@ -4,7 +4,12 @@
 #phytoplankton concentration of each year
 
 
-phytos <- read.csv("CSVs/phytos.csv")
+pacman::p_load(
+  tidyverse, lubridate, akima, reshape2,
+  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
+  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
+  patchwork  
+)
 
 
 # 1) Make water_level unique per Week-Year and keep only WL column
@@ -13,7 +18,7 @@ wl_weekly <- water_level %>%
   summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop")
 
 # 2) Join and mask below-WL values; keep numeric type with NA_real_
-phytos_heatmaps <- phytos %>%
+phytos_heatmaps <- DCM_metrics_filtered %>%
   left_join(wl_weekly, by = c("Week", "Year")) %>%
   mutate(
     TotalConc_ugL = ifelse(
@@ -23,17 +28,10 @@ phytos_heatmaps <- phytos %>%
   filter(!is.na(TotalConc_ugL))
 
 
-pacman::p_load(
-  tidyverse, lubridate, akima, reshape2,
-  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
-  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
-  patchwork  # <- use patchwork to collect a single legend
-)
-
 # 3) heatmap only framing the timeframe
 #we are looking at displaying water level and y-adjusted####
 
-global_max_val <- phytos %>%
+global_max_val <- DCM_metrics_filtered %>%
   filter(Site == 50, Year >= 2015, Year <= 2024) %>%
   summarise(max_val = max(TotalConc_ugL, na.rm = TRUE)) %>%
   pull(max_val)
@@ -55,46 +53,33 @@ flora_heatmap <- function(
   # build a year/site subset even if z is missing
   base <- fp_data %>%
     mutate(Date = as.Date(Date), DOY = lubridate::yday(Date)) %>%
-    dplyr::filter(
-      lubridate::year(Date) == year,
-      Site == site,
-      DOY >= doy_min,
-      DOY <= doy_max
-    )
+    filter(lubridate::year(Date) == year,
+           Site == site,
+           DOY >= doy_min,
+           DOY <= doy_max)
   
-  # WL series (computed from base, not from z-filtered data)
-  wl_daily <- {
-    if (nrow(base)) {
-      tmp <- base %>%
-        dplyr::select(DOY, !!rlang::sym(wl_col)) %>%
-        dplyr::rename(WL = !!rlang::sym(wl_col)) %>%
-        dplyr::filter(is.finite(DOY), is.finite(WL)) %>%
-        dplyr::group_by(DOY) %>%
-        dplyr::summarise(WL = mean(WL), .groups = "drop")
-      if (nrow(tmp)) {
-        # interpolate only over the DOY window of interest
-        a <- approx(x = tmp$DOY, y = tmp$WL,
-                    xout = seq(doy_min, doy_max),
-                    rule = 2)
-        tibble::tibble(DOY = a$x, WL = a$y)
-      } else tibble::tibble(DOY = numeric(), WL = numeric())
-    } else tibble::tibble(DOY = numeric(), WL = numeric())
-  }
+  # WL series
+  wl_daily <- if (nrow(base)) {
+    tmp <- base %>%
+      select(DOY, !!rlang::sym(wl_col)) %>%
+      rename(WL = !!rlang::sym(wl_col)) %>%
+      filter(is.finite(DOY), is.finite(WL)) %>%
+      group_by(DOY) %>%
+      summarise(WL = mean(WL), .groups = "drop")
+    
+    a <- approx(x = tmp$DOY, y = tmp$WL,
+                xout = seq(doy_min, doy_max), rule = 2)
+    tibble(DOY = a$x, WL = a$y)
+  } else tibble(DOY = numeric(), WL = numeric())
   
-  # Fixed depth extent for all plots
+  # fixed depth extent
   ymax_plot <- 12.5
   
-  # build interpolation only if we have z values
+  # interpolate z if available
   have_z <- nrow(base) && any(is.finite(base[[z]]))
   if (have_z) {
-    # clean data for interp, just in case
     base_clean <- base %>%
-      dplyr::filter(
-        is.finite(DOY),
-        is.finite(Depth_m),
-        is.finite(.data[[z]])
-      )
-    
+      filter(is.finite(DOY), is.finite(Depth_m), is.finite(.data[[z]]))
     have_z <- nrow(base_clean) && any(is.finite(base_clean[[z]]))
     
     if (have_z) {
@@ -107,79 +92,63 @@ flora_heatmap <- function(
       interp <- expand.grid(x = io$x, y = io$y)
       interp$z <- as.vector(io$z)
     } else {
-      interp <- tibble::tibble(x = numeric(), y = numeric(), z = numeric())
+      interp <- tibble(x = numeric(), y = numeric(), z = numeric())
     }
   } else {
-    interp <- tibble::tibble(x = numeric(), y = numeric(), z = numeric())
+    interp <- tibble(x = numeric(), y = numeric(), z = numeric())
   }
   
-  fig_title <- paste0("BVR ", year)
+  fig_title <- as.character(year)  # only the year, no "BVR"
   
   p <- ggplot() +
-    # heatmap (if any)
+    # heatmap
     geom_raster(data = interp, aes(x = x, y = y, fill = z)) +
-    # gray below the water level for the full y-range
-    geom_ribbon(
-      data = wl_daily, inherit.aes = FALSE,
-      aes(x = DOY, ymin = WL, ymax = ymax_plot),
-      fill = "grey70"
-    ) +
-    # WL line
-    geom_line(
-      data = wl_daily, inherit.aes = FALSE,
-      aes(x = DOY, y = WL), color = "black", linewidth = 0.8
-    ) +
-
+    # gray below water level
+    geom_ribbon(data = wl_daily, inherit.aes = FALSE,
+                aes(x = DOY, ymin = WL, ymax = ymax_plot),
+                fill = "grey70") +
+    # water level line
+    geom_line(data = wl_daily, inherit.aes = FALSE,
+              aes(x = DOY, y = WL), color = "black", linewidth = 0.8) +
+    
     scale_y_reverse(
       expand = c(0, 0),
-      limits = c(ymax_plot, 0)  # fixed 12.5 → 0 for all panels
+      limits = c(ymax_plot, 0)
     ) +
     scale_x_continuous(
       expand = c(0, 0),
-      limits = c(doy_min, doy_max),                 # only show 133–285
-      breaks = seq(doy_min, doy_max, by = 30),
-      labels = function(x) format(
-        as.Date(x - 1, origin = paste0(year, "-01-01")),
-        "%b"
-      )
+      limits = c(doy_min, doy_max),
+      breaks = seq(doy_min, doy_max, by = 30)
     ) +
     scale_fill_gradientn(
       colours = c(colorRamps::blue2green2red(60), rep("black", 12)),
-      values  = if (have_z)
-        scales::rescale(c(0, 40, 80, 110, global_max)) else NULL,
-      limits  = if (have_z) c(0, global_max) else NULL,
-      oob     = scales::squish,
+      values = if (have_z) scales::rescale(c(0, 40, 80, 110, global_max)) else NULL,
+      limits = if (have_z) c(0, global_max) else NULL,
+      oob = scales::squish,
       na.value = "grey70"
     ) +
-    labs(x = "Day of year", y = "Depth (m)", title = fig_title, fill = unitz) +
+    labs(x = "Day of Year", y = "Depth (m)", title = fig_title, fill = unitz) +
     coord_cartesian(
       xlim = c(doy_min, doy_max),
       ylim = c(ymax_plot, 0),
       expand = FALSE,
       clip = "on"
     ) +
-    theme_bw() +
-    guides(fill = guide_colorbar(
-      barwidth = .5, barheight = 15,
-      ticks.colour = "black", frame.colour = "black",
-      breaks = c(0, 20, 40, 60, 80, 100, 150, 200, 500, 1000),
-      labels = c("0","20","40","60","80","100","150","200","500","1000")
-    )) +
+    theme_bw(base_size = 14) +  # all text slightly bigger
     theme(
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10),
-      legend.key.size = unit(0.5, "cm"),
+      legend.text = element_text(size = 10),
+      legend.title = element_text(size = 12),
+      legend.key.size = unit(0.6, "cm"),
       panel.background = element_rect(fill = "grey90", colour = NA),
       plot.background  = element_rect(fill = "white",  colour = NA)
     )
   
   if (!show_legend) p <- p + theme(legend.position = "none")
   if (!have_z) p <- p + annotate("text", x = doy_min + 5, y = 0.5 * ymax_plot,
-                                 label = "(no data)", hjust = 0)
+                                 label = "(no data)", hjust = 0, size = 5)
   
   p
 }
-
 
 #### build all plots (legend ON so patchwork can collect one) ####
 # Build all plots but only the last one keeps its legend
@@ -197,7 +166,6 @@ plots <- list(
 )
 
 # Combine with patchwork, collect only that one legend
-library(patchwork)
 
 final_with_legend <-
   (plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + plots[[5]] +
@@ -214,64 +182,72 @@ ggsave(
   device = ragg::agg_png   
 )
 
-#Profile Casts
 
-phytos <- phytos|>
-  filter(Year > 2014, Year <2025)
 
-# casts table (as you had it)
+
+#Profile Casts####
+#---------------------------------------------
+# Clean FacetID: remove "BVR" from facet labels
+# Filter phytos for the years of interest
+phytos <- phytos %>%
+  filter(Year > 2014, Year < 2025)
+
+# Casts table
 casts <- phytos %>%
   mutate(Date = date(DateTime)) %>%
   select(Reservoir, Date, CastID, Site) %>%
   distinct()
 
-# 1) Max cast(s) per year
+# Max cast(s) per year
 max_phytos_annual <- phytos %>%
   group_by(Year) %>%
   filter(TotalConc_ugL == max(TotalConc_ugL, na.rm = TRUE)) %>%
   ungroup()
 
-# 2) Get the unique CastIDs for those max casts
+# Unique CastIDs for those max casts
 max_cast_ids <- unique(max_phytos_annual$CastID)
 
-# 3) Filter casts to only those CastIDs
+# Filter casts to only max CastIDs (Site 50, Reservoir BVR)
 sample_dat <- casts %>%
-  filter(
-    Reservoir == "BVR",
-    Site == 50,
-    CastID %in% max_cast_ids
-  ) %>%
+  filter(Reservoir == "BVR",
+         Site == 50,
+         CastID %in% max_cast_ids) %>%
   mutate(Date = as.Date(Date))
 
-# 4) Build plot_dat, keeping only rows whose CastID/Date/Reservoir are in sample_dat
+# Build plot_dat
 plot_dat <- phytos %>%
   mutate(Date = date(DateTime)) %>%
   filter(month(Date) != 1) %>%
   group_by(Reservoir, Date, Site, CastID) %>%
+  # Create FacetID here
   mutate(FacetID = paste(Reservoir, Date, sep = " ")) %>%
   ungroup() %>%
-  semi_join(sample_dat, by = c("Reservoir", "Date", "CastID")) %>%  # <- key line
+  semi_join(sample_dat, by = c("Reservoir", "Date", "CastID")) %>%
   select(
     CastID, FacetID,
     GreenAlgae_ugL, Bluegreens_ugL, BrownAlgae_ugL, MixedAlgae_ugL,
     TotalConc_ugL, Depth_m
-    # SampleDepth   # add here later if/when you create it
   ) %>%
   pivot_longer(
     cols = GreenAlgae_ugL:TotalConc_ugL,
     names_to = "var",
     values_to = "ugL"
   )
+
+# Now remove "BVR" from facet labels
+plot_dat <- plot_dat %>%
+  mutate(FacetID = gsub("^BVR\\s+", "", FacetID))
+
+# Build the plot
 plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
   geom_path(aes(color = var, size = var)) +
   scale_y_reverse() +
-  theme_bw() +
   facet_wrap(
     facets = vars(FacetID),
-    nrow   = 2,
-    ncol   = 5
+    nrow = 2,
+    ncol = 5
   ) +
-  xlab("micrograms per liter") +
+  xlab("Micrograms per liter") +
   ylab("Depth (m)") +
   scale_color_manual(
     name = "Variable",
@@ -293,9 +269,20 @@ plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
     ),
     guide = "none"
   ) +
-  scale_linetype_discrete(na.translate = FALSE)
+  theme_minimal(base_size = 16) +  # bigger text
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16, face = "bold"),
+    strip.text = element_text(size = 15, face = "bold"),  # facet labels
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 15, face = "bold"),
+    panel.grid.major = element_line(color = "grey80"),
+    panel.grid.minor = element_line(color = "grey90")
+  )
 
 plot_casts
 
-ggsave("Figs/Phytos_viz/FP_casts_2025.png", device = "png",
-       height = 6, width = 10.5, units = "in")  # you will probably want to change the dimensions
+ggsave("Figs/Phytos_viz/FP_casts_2025.png",
+       plot = plot_casts,
+       width = 12, height = 7, units = "in",
+       dpi = 300)  # high-res
