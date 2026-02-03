@@ -351,7 +351,7 @@ last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
     vjust = -0.5,
     size = 3.6
   ) +
-  theme_classic(base_size = 14) +   # 👈 bigger base text
+  theme_classic(base_size = 14) +   
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     plot.title = element_text(size = 16, face = "bold"),
@@ -362,6 +362,7 @@ last_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
 
 print(last_plot)
 
+dir.create("Figs/Phytos_viz", recursive = TRUE, showWarnings = FALSE)
 
 # ggsave(
 #   filename = "DCM_depths_annual_boxplot_greaterthan20.png",
