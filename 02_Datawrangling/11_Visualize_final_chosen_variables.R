@@ -1,4 +1,9 @@
 ####visualize chosen variables####
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
 
 chosen_variables <- full_weekly_data |>
   select(
@@ -53,13 +58,6 @@ variable_labels <- c(
 
 
 #----overlapping years with lines----
-library(dplyr)
-library(tidyr)
-library(lubridate)
-library(ggplot2)
-library(patchwork)
-
-
 # Subset the relevant variables and filter by DOY
 variables_plot <- full_weekly_data %>%
   select(
@@ -189,7 +187,7 @@ p_final <- (row1 / row2 / row3 / row4) +
 print(p_final)
 
 ggsave(
-  filename = "Figs/all_variables_season_DOY133_285_custom.png",
+  filename = "Figs/all_variables_visualized.png",
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 300, bg = "white"
 )

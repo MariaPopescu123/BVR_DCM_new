@@ -114,6 +114,10 @@ met_depth_corr <- full_weekly_data |>
          "WindSpeed_Avg", "wind_lag1", "wind_lag2"
   )
 
+if (!dir.exists("Figs/correlations")) {
+  dir.create("Figs/correlations", recursive = TRUE)
+}
+
 plot_correlation_matrix(
   met_depth_corr,
   "Figs/correlations/Met_depth_corr_Matrix.png",
@@ -150,3 +154,4 @@ check <- plot_correlation_matrix(
   title = "Correlation Matrix Heatmap for Variable Selection", 
   variable_labels = variable_labels,
 )
+

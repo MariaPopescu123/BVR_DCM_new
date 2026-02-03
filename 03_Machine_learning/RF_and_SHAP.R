@@ -45,6 +45,11 @@ magnitudemetRF <- var_importance_shap_plots(
 combined_RF_panels <- depth_metRF$plots$combined /
   magnitudemetRF$plots$combined
 
+if (!dir.exists("Figs/MachineLearning")) {
+  dir.create("Figs/MachineLearning", recursive = TRUE)
+}
+
+
 ggsave(
   filename = here::here("Figs", "MachineLearning", "Met_combinedRF.png"),
   plot = combined_RF_panels,
@@ -74,6 +79,13 @@ finaldepthRF_over20 <- var_importance_shap_plots(
 )
 
 #####Jackknife#####
+if (!dir.exists("Figs/MachineLearning/Depth")) {
+  dir.create("Figs/MachineLearning/Depth", recursive = TRUE)
+}
+if (!dir.exists("Figs/MachineLearning/Magnitude")) {
+  dir.create("Figs/MachineLearning/Magnitude", recursive = TRUE)
+}
+
 #this is for viewing to see how robust the model is across years
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = depth_analysis_over20,
@@ -172,6 +184,11 @@ vars_to_plot <- c(
   "wind_lag1",
   "airtemp_lag2"
 )
+
+if (!dir.exists("Figs/MachineLearning/SHAP_interaction/Depth")) {
+  dir.create("Figs/MachineLearning/SHAP_interaction/Depth", recursive = TRUE)
+}
+
 plot_shap_vs_value_loop(
   shap_df = depthshap,
   vars_to_plot = vars_to_plot,
@@ -197,6 +214,11 @@ vars_to_plot <- c(
   "airtemp_lag1",
   "wind_lag1"
 )
+
+if (!dir.exists("Figs/MachineLearning/SHAP_interaction/Magnitude")) {
+  dir.create("Figs/MachineLearning/SHAP_interaction/Magnitude", recursive = TRUE)
+}
+
 plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
   vars_to_plot = vars_to_plot,
