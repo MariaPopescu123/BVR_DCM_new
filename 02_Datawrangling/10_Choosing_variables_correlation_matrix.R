@@ -38,8 +38,6 @@ variable_labels <- c(
 plot_correlation_matrix <- function(df, file_name, cutoff = 0.6, 
                                     title = "Correlation Matrix Heatmap", 
                                     variable_labels = NULL) {
-  library(ggplot2)
-  library(dplyr)
   
   # Compute correlation matrix (exclude first column, assuming it's Date)
   cor_matrix <- cor(df[, 2:ncol(df)], 
@@ -154,4 +152,3 @@ check <- plot_correlation_matrix(
   title = "Correlation Matrix Heatmap for Variable Selection", 
   variable_labels = variable_labels,
 )
-
