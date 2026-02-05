@@ -14,13 +14,14 @@ BVRbath <- bath|>
 
 
 # Prepare data frame
-weekly_temp_profiles <- temp_depths_interp |>
+weekly_temp_profiles <- temp_depths_cleaned |>
   mutate(
     Week = week(Date),
     Day = day(Date),
     Year = year(Date),
     RoundedDepth = round(Depth_m)  # Round to the nearest meter
   ) |>
+  filter(DOY >= 133, DOY <= 285)|>
   group_by(Date, RoundedDepth) |>
   slice_min(abs(Depth_m - RoundedDepth), with_ties = FALSE) |>  # Select depth closest to that rounded meter
   ungroup()|>
@@ -60,7 +61,7 @@ final_schmidt <- frame_weeks|>
   left_join(schmidt_frame, by = c("Week", "Year"))
 
 #diagnostic plot to visualize schmidt stability
-ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))) +
+schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year), group = Year)) +
   geom_point() +
   geom_line() +  
   labs(
@@ -69,6 +70,8 @@ ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))
     color = "Year"
   ) +
   theme_minimal()
+
+ggsave(filename = "Figs/schmidt.png", plot = schmidt_plot, width = 10, height = 6, dpi = 300)
 
 #this is the final dataframe that will be used in RF analysis
 write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)
