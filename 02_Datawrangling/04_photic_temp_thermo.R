@@ -1,9 +1,13 @@
-#this calculates
+#Maria Popescu
+
+#this script calculates:
 # 1. photic zone
-# 2. temperature dataframe
+# 2. temperature dataframe that will later also be used to calculate schdmit stabiltiy and buoyancy frequency
 # 3. thermocline
+# 4. and then produces the data frame final_photic_thermo which will be used in RF analysis
 
 library(ISOweek)
+
 #will save figures to these files
 if (!dir.exists("Figs/Daily_interp_Casts")) {
   dir.create("Figs/Daily_interp_Casts", recursive = TRUE)
@@ -14,7 +18,7 @@ if (!dir.exists("Figs/Daily_interp_Casts")) {
 }
 
 #### secchi PZ  ####
-#loads in the secchi data frame, checks for secchi data availability  
+#checking for secchi data availability  
 
 {
   secchi_df <- secchiframe |>
@@ -57,7 +61,6 @@ if (!dir.exists("Figs/Daily_interp_Casts")) {
   
   # Adding Secchi
   frame_weeks <- read.csv("CSVs/frame_weeks.csv")
-  
   weekly_secchi <- frame_weeks|> #RF frame w metals and secchi
     left_join(secchi_interpolated, by = c("Year", "Week"))
   
@@ -72,7 +75,6 @@ if (!dir.exists("Figs/Daily_interp_Casts")) {
 }
 
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
-
 write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
 
 #diagnostic plot of photic zone depth from 2014-2024?????
@@ -80,28 +82,22 @@ ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
   geom_line(aes(group = factor(year(Date)))) +
   scale_y_reverse()
 
-####Adding PAR, DO, DOsat_percent, cond, ORP, pH, temp ####
-#I don't end up using any of these variables, because we don't have consistent data through all years, 
-#but also they are very correlated to other variables that are included
-#####YSI#####
+####choosing data based on data availability####
 
-#don't need to run this if you already loaded the data
+#####YSI#####
 ysi_profiles <- ysi_profiles|>
   filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime))
-
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", "pH", "Temp_C")
-
 data_availability(ysi_profiles, variables)
-#ggsave("Figs/Data_availability/raw_ysi_availability.png", plot = plot, width = 20, height = 15, dpi = 300)
 
-#removing PAR, ORP, cond, and pH due to limited data availability
+#removing PAR, ORP, cond, oxygen, and pH due to limited data availability
 #keeping temp because YSI has the most temp
 
-variables <- c("DO_mgL","DOsat_percent", "Temp_C")
 ysi <- ysi_profiles|>
   select(-ORP_mV, -Cond_uScm, -pH)|>
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))
+variables <- c("Temp_C")
 data_availability(ysi, variables)
 
 #####CTD#####
@@ -116,18 +112,16 @@ CTDfiltered <- CTD |>
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", 
                "pH", "Temp_C")
-CTDdata <- data_availability(CTDfiltered, variables)
-
-ggsave("Figs/Data_availability/CTDdata_availability.png", plot = CTDdata, width = 20, height = 15, dpi = 300)
-
-
+data_availability(CTDfiltered, variables)
 #can't use many of the variables because not enough data for every year
-#can use Temp from CTD for 2014, 2015, 2016, 2019, 2022, 2023, and 2024
-#can use Temp from YSI for 2017, 2018, 2020
+
+
+#can use Temp from CTD for 2014, 2015, 2016, 2019, 2021, 2022, 2023, and 2024
+#can use Temp from YSI for 2017, 2018, 2020, 2021
 
 CTDtemp<- CTDfiltered|>
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2014, 2015, 2016,2019,2021, 2022, 2023, 2024))|> 
+  filter(Year %in% c(2014, 2015, 2016, 2019, 2021, 2022, 2023, 2024))|> 
   select(Date, Year, Week, Temp_C, Depth_m)
 
 ysitemp<- ysi%>%
@@ -146,8 +140,7 @@ temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Dep
 variables<- c("Temp_C")
 data_availability(temp_depths_coalesced, variables)
 
-####2019 fix####
-#the beginning of 2019 is missing from within the season so I am grabbing from ysi data
+#the beginning of 2019 is missing from within the season we want, so grabbing from ysi data
 #before 160
 ysitemp2019_clean <- ysi |>
   mutate(Date = as_date(Date),
@@ -163,17 +156,7 @@ temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
 
 data_availability(temp_depths_coalesced, variables)
 
-#variables <- ("Temp_C")
-#temp_depths_coalesced_summarised <- weekly_sum_variables(temp_depths_coalesced, variables)
 
-#probably this isn't the most useful information for Temp^^^
-#instead I will calculate: VWT, SurfTemp (average of first meter),
-#thermocline depth, epilimnion, metalimnion, hypolimnion mean temperatures
-#temp range (mean(top 1m)- mean(bottom 1m))
-#standard deviation of temp 
-#max and min temp
-#schmidt stability
-#buoyancy freq
 ####Temp calculations####
 temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
   filter(!is.na(Temp_C)) |>
@@ -239,6 +222,9 @@ for (yr in years) {
 write.csv(temp_depths_cleaned, "CSVs/temp_depths_cleaned.csv", row.names = FALSE)
 
 #temp_weekly_sum <- weekly_sum_variables(temp_depths_cleaned, "Temp_C") don't need this anymore
+
+
+
 
 ####Thermocline####
 

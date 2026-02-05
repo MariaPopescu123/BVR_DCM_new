@@ -1,14 +1,9 @@
-#this script:
-#1) Makes heatmaps for phytoplankton 2014-2024
-#2) Makes figures displaying the profiles for the day of maximum
-#phytoplankton concentration of each year
+#Maria Popescu
 
-pacman::p_load(
-  tidyverse, lubridate, akima, reshape2,
-  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
-  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
-  patchwork  # <- use patchwork to collect a single legend
-)
+#This script:
+#1. Makes heatmaps for phytoplankton 2014-2024
+#2. Makes figures displaying the profiles for the day of maximum
+#phytoplankton concentration of each year
 
 pacman::p_load(
   tidyverse, lubridate, akima, reshape2,
@@ -17,13 +12,14 @@ pacman::p_load(
   patchwork  
 )
 
+#1. Heatmap for Figure XXX ####
 
 # 1) Make water_level unique per Week-Year and keep only WL column
 wl_weekly <- water_level %>%
   group_by(Year, Week) %>%
   summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop")
 
-# 2) Join and mask below-WL values; keep numeric type with NA_real_
+# 2) Join water level, and keep phytoplankton concentration as NA if below reservoir depth (for when the FP hits the bottom of the reservoir) 
 phytos_heatmaps <- DCM_metrics_filtered %>%
   left_join(wl_weekly, by = c("Week", "Year")) %>%
   mutate(
@@ -35,14 +31,15 @@ phytos_heatmaps <- DCM_metrics_filtered %>%
 
 
 # 3) heatmap only framing the timeframe
-#we are looking at displaying water level and y-adjusted####
+#we want to display water level####
 
+#to help set the scale for the heatmap
 global_max_val <- DCM_metrics_filtered %>%
   filter(Site == 50, Year >= 2015, Year <= 2024) %>%
   summarise(max_val = max(TotalConc_ugL, na.rm = TRUE)) %>%
   pull(max_val)
 
-#heatmaps for phytoplankton concentration visualization across time and depth
+#Function to make heatmaps for total phytoplankton concentration visualization across time and depth
 flora_heatmap <- function(
     fp_data,
     year,
@@ -53,7 +50,7 @@ flora_heatmap <- function(
     show_legend = TRUE,
     wl_col = "WaterLevel_m"
 ) {
-  # DOY window you care about
+  # DOY window I want
   doy_min <- 133
   doy_max <- 285
   
@@ -105,7 +102,7 @@ flora_heatmap <- function(
     interp <- tibble(x = numeric(), y = numeric(), z = numeric())
   }
   
-  fig_title <- as.character(year)  # only the year, no "BVR"
+  fig_title <- as.character(year)  # Year for each panel
   
   p <- ggplot() +
     # heatmap
@@ -124,7 +121,7 @@ flora_heatmap <- function(
     ) +
     scale_x_continuous(
       expand = c(0, 0),
-      limits = c(doy_min, doy_max),
+      limits = c(doy_min, doy_max), #so we are looking at the time frame we want
       breaks = seq(doy_min, doy_max, by = 30)
     ) +
     scale_fill_gradientn(
@@ -150,14 +147,14 @@ flora_heatmap <- function(
       plot.background  = element_rect(fill = "white",  colour = NA)
     )
   
-  if (!show_legend) p <- p + theme(legend.position = "none")
+  if (!show_legend) p <- p + theme(legend.position = "none") #so I can optionally show a legend and only have one figure legend
   if (!have_z) p <- p + annotate("text", x = doy_min + 5, y = 0.5 * ymax_plot,
                                  label = "(no data)", hjust = 0, size = 5)
   
   p
 }
 
-#### build all plots (legend ON so patchwork can collect one) ####
+# build all plots
 # Build all plots but only the last one keeps its legend
 plots <- list(
   flora_heatmap(phytos_heatmaps, 2015, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
@@ -173,7 +170,6 @@ plots <- list(
 )
 
 # Combine with patchwork, collect only that one legend
-
 final_with_legend <-
   (plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + plots[[5]] +
      plots[[6]] + plots[[7]] + plots[[8]] + plots[[9]] + plots[[10]]) +
@@ -192,10 +188,11 @@ ggsave(
 
 
 
-#Profile Casts####
-#to show the profiles for the day where there was the maximum phytoplankton concentration
-#each year. Produces Figure XXX
-#---------------------------------------------
+#2. Profile Casts for Figure XXX ####
+#this produces a 10-panel figure- each figure shows the profile 
+#for the day when maximum phytoplankton concentration
+#occurred each year
+
 # Clean FacetID: remove "BVR" from facet labels
 # Filter phytos for the years of interest
 phytos <- phytos %>%

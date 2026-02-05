@@ -1,6 +1,6 @@
 #Maria Popescu
 
-#This dataframe:
+#This script:
 # 1. plots FluoroProbe data availability
 # 2. plots cast profiles for QAQC purposes to remove erroneous casts
 # 3. Calculate DCM depth and magnitude
@@ -8,6 +8,7 @@
 # 5. reproduces boxplots for figures XXX and XXX
 # 6. creates the final_phytos dataframe that will be used for RF analysis
 # 7. performs a Kruskal Wallis test for SI XXX
+# 8. calculates and plots phytoplankton statistics for SI XXX
 
 
 #prepping phyto dataframe
@@ -470,6 +471,8 @@ write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 
 #7. Kruskal Wallis test for SI XXX ----
 
+
+#this function runs the KW test and also creates the figures for SI XXX and XXX
 sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) {
   df <- data %>%
     mutate(Year_num = as.integer(as.character(Year))) %>%
@@ -606,7 +609,7 @@ sig_both
 ggsave("Figs/Phytos_viz/kruskal-wallis.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 
-#plotting stats
+#8. Plotting statistics for phytoplankton concentration -----####
 
 final_phytos_over20 %>%
   group_by(Year) %>%
