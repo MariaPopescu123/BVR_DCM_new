@@ -97,13 +97,13 @@ This was developed to produce the final FluoroProbe Data Availability plot in th
 
 #### `interpolate_variable.R`
 
-This function interpolates missing values for a list of water quality variables across both depth and weekly time in a reservoir. It first summarizes the raw data by date, depth, and week, then linearly interpolates values within observed depth and week ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete weekly-depth grid for each variable, ready for further analysis or modeling.
+This function interpolates missing values for a list of water quality variables across both depth and weeks in a reservoir. It first summarizes the raw data by date, depth, and week, then linearly interpolates values within observed depth and week ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete weekly-depth grid for each variable, ready for further analysis or modeling.
 
 #### `jackknife.R`
 
 This function performs a jackknife-style random forest analysis to quantify the importance of each predictor variable (%IncMSE) for a response variable, separately for each year and pooled across all years. It tunes the RF parameters per year, runs leave-one-out models to estimate robustness, and then summarizes the results as mean ± SD %IncMSE, which it visualizes as a heatmap with variables on the y-axis and years on the x-axis. The output also includes numeric summaries, full jackknife distributions, overall variable rankings, and metadata about the models.
 
-#### `new_var_importane_shap_plots.R`
+#### `new_var_importance_shap_plots.R`
 
 This function computes and visualizes variables importance (%IncMSE) and SHAP value distributions for a random forest model on a given dataset, optionally saving combined plots.
 

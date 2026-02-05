@@ -51,7 +51,6 @@ DCMmedian <- full_weekly_data %>%
     median_plus_1sd  = median_max_conc + sd_max_conc,
     n = sum(!is.na(max_conc))
   )
-DCMmedian
 
 DCM_depth_stats <- full_weekly_data %>%
   filter(max_conc > 20) %>%
@@ -62,6 +61,3 @@ DCM_depth_stats <- full_weekly_data %>%
     median_plus_1sd  = median_DCM_depth + sd_DCM_depth,
     n = sum(!is.na(DCM_depth))
   )
-
-DCM_depth_stats
-
