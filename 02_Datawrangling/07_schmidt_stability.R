@@ -1,4 +1,11 @@
-#this script calculates schmidt stability for BVR across all years 
+#Maria Popescu
+
+#this script:
+# 1. calculates schmidt stability for BVR across all years
+# 2. provides a diagnostic plot to visualize schmidt stability
+# 3. makes a dataframe (final_schmidt) that will be used in final analysis
+# 4. calculates statistics included in the paper
+
 
 #calculating schmidt stability 
 BVRbath <- bath|>
@@ -7,7 +14,7 @@ BVRbath <- bath|>
 
 
 # Prepare data frame
-weekly_temp_profiles <- temp_depths_cleaned |>
+weekly_temp_profiles <- temp_depths_interp |>
   mutate(
     Week = week(Date),
     Day = day(Date),
@@ -35,9 +42,8 @@ new_bath <- weekly_temp_profiles|>
   left_join(BVRbath, by = c("BathAdj" = "Depth_m"))|>
   select(-RoundedDepth, -WaterLevel_m, -BathDiff, -BathAdj)
 
-
-# Yay! Now we have different bathymetry for each Date
-# Let's try to calculate Schmidt stability:
+# Now we have different bathymetry for each Date
+# Let's calculate Schmidt stability:
 # Higher Schmidt stability → more energy needed to mix → stronger stratification
 # Lower Schmidt stability → less energy needed → weaker or no stratification
 
@@ -64,7 +70,7 @@ ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year))
   ) +
   theme_minimal()
 
-
+#this is the final dataframe that will be used in RF analysis
 write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)
 
 #checking within year and across year variability
