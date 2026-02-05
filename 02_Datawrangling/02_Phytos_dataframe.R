@@ -1,9 +1,20 @@
+#Maria Popescu
+
+#This dataframe:
+# 1. plots FluoroProbe data availability
+# 2. plots cast profiles for QAQC purposes to remove erroneous casts
+# 3. Calculate DCM depth and magnitude
+# 4. visualizes DCM metrics to ensure quality
+# 5. reproduces boxplots for figures XXX and XXX
+# 6. creates the final_phytos dataframe that will be used for RF analysis
+# 7. performs a Kruskal Wallis test for SI XXX
+
+
 #prepping phyto dataframe
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(patchwork)
-
 
 
 #adding columns with total_conc max and the depth at which it occurs
@@ -19,7 +30,7 @@ phytos <- phytos_df %>%
 write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
 phytos <- read.csv("CSVs/phytos.csv")
 
-####flora instrument data availability####
+####1. flora instrument data availability####
 # 1. Build plotting data
 plot_dat <- phytos %>%
   filter(!is.na(TotalConc_ugL)) %>%
@@ -95,14 +106,14 @@ ggsave(
   dpi = 400
 )
 #see that the data is dispersed at random intervals
-####choosing casts and calculating peaks####
-#1. Look at every cast for every year and remove casts that do not make sense
-#2. Calculate peak metrics for each cast (peak depth, width, and magnitude)
-#3. Visually check all casts and each metric to make sure it makes sense
-#4. Average the peak metrics together (if appropriate)
-#5. New data frame with one set of peak metrics for each week that we have data
+#-------choosing casts and calculating peaks
+#- Look at every cast for every year and remove casts that do not make sense
+#- Calculate peak metrics for each cast (peak depth, width, and magnitude)
+#- Visually check all casts and each metric to make sure it makes sense
+#- Average the peak metrics together (if appropriate)
+#- New data frame with one set of peak metrics for each week that we have data
 
-#plot each one for cast selection 
+#2. plots cast profiles for QAQC purposes to remove erroneous casts####
 
 # Make sure the Figs directory exists
 if (!dir.exists("Figs")) {
@@ -192,7 +203,7 @@ DCM_metrics_filtered <- DCM_metrics |>
   mutate(DOY = yday(Date), Year = year(Date)) 
   
 
-####Peak.depth and max_conc####
+####3. Calculate DCM depth and magnitude####
 # Define pigment variables to loop over
 pigment_vars <- c("TotalConc_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
@@ -236,7 +247,7 @@ DCM_dropped <- DCM_metrics_depth2 %>%
   anti_join(DCM_metrics_depth2, by = c("Reservoir","Site","Date","CastID"))
 
 
-#-----max_conc check-----------####
+#4. Visualize DCM metrics to ensure quality####
 
 # Pigments to visualize (columns that have *_DCM_depth already computed)
 pigment_vars <- c("TotalConc_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
@@ -295,8 +306,9 @@ final_DCM_metrics<- DCM_metrics_depth2|>
   filter(!(CastID == 1087))|> #no real peak
   filter(Year <2025) 
 
+#5. Reproduce boxplots for figures XXX and XXX ####
 
-####boxplots depth of DCM####
+####boxplots depth of DCM
 
 #filtering so that max_conc is greater than 20 because otherwise we can't call it a deep chlorophyll maxima 
 boxplot_Data <- final_DCM_metrics |>
@@ -305,7 +317,7 @@ boxplot_Data <- final_DCM_metrics |>
     Year = year(Date),
     Month = month(Date)
   ) |>
-  filter(DayOfYear > 133, DayOfYear < 286) |>
+  filter(DayOfYear > 133, DayOfYear < 286) |> #time frame for which the analysis will be performed
   select(CastID, Date, Year, Month, DCM_depth, max_conc) |>
   # Remove exact duplicates BEFORE grouping
   distinct() |>
@@ -365,7 +377,7 @@ print(last_plot)
 
 dir.create("Figs/Phytos_viz", recursive = TRUE, showWarnings = FALSE)
 
-####boxplots magnitude of DCM####
+####boxplots magnitude of DCM
 #visualizing just one box per year
 
 boxplot_Data <- final_DCM_metrics |>
@@ -410,7 +422,7 @@ last_plot_mag <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
     size = 3.6,
     inherit.aes = FALSE
   ) +
-  theme_classic(base_size = 14) +   # 👈 same base size
+  theme_classic(base_size = 14) +   
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     plot.title = element_text(size = 16, face = "bold"),
@@ -436,6 +448,7 @@ ggsave(
 
 
 
+#6. Create the final_phytos dataframe that will be used for RF analysis####
 #frame that will be added to for RF analysis at the end
 #one measurement for each week that we have data available for 
 final_phytos <- final_DCM_metrics|>
@@ -455,7 +468,7 @@ write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #metrics for each variable that needs to be calculated 
 
 
-#-----Kruskal Wallis Test------
+#7. Kruskal Wallis test for SI XXX ----
 
 sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) {
   df <- data %>%
@@ -566,7 +579,7 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
 }
 
 
-# ---------- Run for both responses ----------
+#Run for both responses
 final_phytos <- final_phytos %>% mutate(Year = as.integer(as.character(Year)))
 
 final_phytos_over20 <- final_phytos %>%
