@@ -1,13 +1,17 @@
 #Maria Popescu
-#Water level for Beaverdam 
+
+#This script compiles Water level for Beaverdam using sensor data
+#and historical observation records
 
 #list of DOY for interpolation purpose
 DOY_list <- 32:334  # DOYs from February 1 to November 30
-years <- 2015:2024
+years <- 2015:2024 #we are looking within this range
 DOY_year_ref <- expand.grid(Year = years, DOY = DOY_list)|>
   arrange(Year, DOY)
 
-#add water level to data frame to use as the max depth for creating sequence of depths to interpolate each cast to
+#add water level to data frame to use as the max depth for creating
+#sequence of depths to interpolate each cast to
+
 ####Waterlevel####
 wtrlvl <- wtrlvl |> 
   mutate(Date = as_date(DateTime))
@@ -19,18 +23,28 @@ wtrlvl2 <- wtrlvl |>
 #join and interpolate WaterLevel_m for each DOY in each year
 wtrlvl2_interpolated <- DOY_year_ref %>%
   left_join(wtrlvl2, by = c("Year", "DOY")) %>%
+  group_by(Year, DOY) %>%
+  summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop") %>%
   group_by(Year) %>%
   mutate(
-    WaterLevel_m = ifelse(
-      DOY < min(DOY[!is.na(WaterLevel_m)]) | 
-        DOY > max(DOY[!is.na(WaterLevel_m)]),
-      NA,
-      zoo::na.spline(WaterLevel_m, x = DOY, na.rm = FALSE)
-    )
+    WaterLevel_m = {
+      if (all(is.na(WaterLevel_m))) {
+        WaterLevel_m   # leave as all NA for that year
+      } else {
+        ifelse(
+          DOY < min(DOY[!is.na(WaterLevel_m)]) |
+            DOY > max(DOY[!is.na(WaterLevel_m)]),
+          NA_real_,
+          zoo::na.spline(WaterLevel_m, x = DOY, na.rm = FALSE)
+        )
+      }
+    }
   ) %>%
-  filter(Year > 2014) %>%
+  filter(Year > 2014) %>% 
   arrange(Year, DOY) %>%
   select(Year, DOY, WaterLevel_m)
+#ignore the years past 2020 for now they will be fixed
+#with the next code (not enough data for interpolation), but still using earlier values of 2020
 
 
 #now for past 2020 
@@ -137,7 +151,7 @@ water2022 <- water_level|>
   filter(Year == 2022)
 
 #checking within year and across year variability
-var_summary <- water_level %>%
+var_summary <- weekly_water_level %>%
   group_by(Year) %>%
   summarise(
     n = n(),
@@ -151,13 +165,16 @@ across_year <- var_summary %>%
     sd_across   = sd(mean_val),
     cv_across   = sd_across / mean_across
   )
-
 variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
 
+print(var_summary)
+print(across_year)
+print(variability_ratio)
+
 #water level ranges before and after 2022
-before2022 <- water_levelscoalesced %>%
+before2022 <- weekly_water_level %>%
   filter(Year < 2022)
-after2022 <- water_levelscoalesced %>%
+after2022 <- weekly_water_level %>%
   filter(Year > 2022)
 before2022 %>%
   summarise(

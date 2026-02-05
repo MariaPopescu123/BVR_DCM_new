@@ -20,13 +20,12 @@ source("Functions/plot_shap_vs_value_loop.R")
 #### Loading Data  #### 
 
 #Updated to incude 2024
-#waterlevel data
+#waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
+#BVR water level from the staff gauge and converted to reservoir depth
 wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 
 
-#waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
-#for past 2020
+#for past 2020 using pressure sensors
 BVRplatform <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
-
 
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
 #updated 2025
