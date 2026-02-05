@@ -205,7 +205,7 @@ DCM_metrics_filtered <- DCM_metrics |>
 
 ####3. Calculate DCM depth and magnitude####
 # Define pigment variables to loop over
-pigment_vars <- c("TotalConc_ugL") #if you want add these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
+pigment_vars <- c("TotalConc_ugL") #if you want explore these "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
 # Start from your filtered data
 DCM_metrics_depth <- DCM_metrics_filtered |> group_by(CastID)
