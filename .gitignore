@@ -1,6 +1,7 @@
 .Rproj.user
 .Rhistory
 .RData
+*.RDataTmp
 .Ruserdata
 secchiframe.csv
 PAR_profiles.csv
@@ -23,3 +24,5 @@ phytos_for_heatmaps
 *.RDataTmp2
 *.RDataTmp
 *.Rproj.user/
+.RDataTmp5
+.gitignore
