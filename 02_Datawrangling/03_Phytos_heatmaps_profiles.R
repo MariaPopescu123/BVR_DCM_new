@@ -1,9 +1,9 @@
 #Maria Popescu
 
 #This script:
-#1. Makes heatmaps for phytoplankton 2014-2024
-#2. Makes figures displaying the profiles for the day of maximum
-#phytoplankton concentration of each year
+#1. Makes heatmaps for phytoplankton 2014-2024 (Figure 2)
+#2. Makes figures displaying the profiles for the day of maximum 
+# phytoplankton concentration of each year (Figure 3)
 
 pacman::p_load(
   tidyverse, lubridate, akima, reshape2,
@@ -12,7 +12,7 @@ pacman::p_load(
   patchwork  
 )
 
-#1. Heatmap for Figure XXX ####
+#1. Heatmap for Figure 2 ####
 
 # 1) Make water_level unique per Week-Year and keep only WL column
 wl_weekly <- water_level %>%
@@ -31,8 +31,7 @@ phytos_heatmaps <- DCM_metrics_filtered %>%
 
 
 # 3) heatmap only framing the timeframe
-#we want to display water level####
-
+#we want to display water level
 #to help set the scale for the heatmap
 global_max_val <- DCM_metrics_filtered %>%
   filter(Site == 50, Year >= 2015, Year <= 2024) %>%
@@ -168,6 +167,7 @@ plots <- list(
   flora_heatmap(phytos_heatmaps, 2023, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
   flora_heatmap(phytos_heatmaps, 2024, 50, "TotalConc_ugL", "ug/L", global_max_val, TRUE)   # only this keeps legend
 )
+#warnings are ok
 
 # Combine with patchwork, collect only that one legend
 final_with_legend <-
@@ -175,8 +175,6 @@ final_with_legend <-
      plots[[6]] + plots[[7]] + plots[[8]] + plots[[9]] + plots[[10]]) +
   plot_layout(ncol = 5, guides = "collect") +
   plot_annotation(theme = theme(legend.position = "right"))
-
-print(final_with_legend)
 
 ggsave(
   filename = "Figs/Phytos_viz/final_phytos_heatmap_plot.png",
@@ -186,9 +184,7 @@ ggsave(
 )
 
 
-
-
-#2. Profile Casts for Figure XXX ####
+#2. Profile Casts for Figure 3 ####
 #this produces a 10-panel figure- each figure shows the profile 
 #for the day when maximum phytoplankton concentration
 #occurred each year
@@ -282,13 +278,15 @@ plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
     strip.text = element_text(size = 15, face = "bold"),  # facet labels
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 15, face = "bold"),
-    panel.grid.major = element_line(color = "grey80"),
-    panel.grid.minor = element_line(color = "grey90")
+    panel.grid.major = element_line(color = "grey80", linewidth = .2),
+    panel.grid.minor = element_line(color = "grey90", linewidth = .1), 
+    panel.spacing = unit(1, "cm")
   )
+
 
 plot_casts
 
 ggsave("Figs/Phytos_viz/FP_casts_2025.png",
        plot = plot_casts,
-       width = 12, height = 7, units = "in",
+       width = 13, height = 7, units = "in",
        dpi = 300)  # high-res
