@@ -115,6 +115,7 @@ weekly_water_level <- water_level |>
   select(Year, Week, WaterLevel_m)
 
 #not used in manuscript, just used for diagnostics
+#warnings are ok
 wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
   geom_line(size = 1) +  
   labs(
