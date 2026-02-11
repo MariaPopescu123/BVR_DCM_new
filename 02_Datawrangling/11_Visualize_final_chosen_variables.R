@@ -191,5 +191,3 @@ ggsave(
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 300, bg = "white"
 )
-
-

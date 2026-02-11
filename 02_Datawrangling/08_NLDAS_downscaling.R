@@ -292,8 +292,6 @@ data_availability(full_met, variables)
 ####9. Export as CSV####
 write.csv(full_met, "CSVs/final_metdata.csv", row.names = FALSE)
 
-full_met <- read.csv("CSVs/final_metdata.csv")
-
 #checking within year and across year variability
 var_summary <- full_met %>%
   group_by(Year) %>%
