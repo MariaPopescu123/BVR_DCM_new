@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .Rproj.user
 .Rhistory
 .RData
@@ -26,3 +27,31 @@ phytos_for_heatmaps
 *.Rproj.user/
 .RDataTmp5
 .gitignore
+=======
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+secchiframe.csv
+PAR_profiles.csv
+bath.csv
+CTD.csv
+chemistry.csv
+current_df.csv
+ghgs.csv
+metalsdf.csv
+metdata.csv
+wtrlvl.csv
+final_data0.csv
+BVRplatform.csv
+DCM_final.csv
+final_data0.csv
+ysi_profiles.csv
+*.png
+*.csv
+phytos_for_heatmaps
+*.RDataTmp2
+*.RDataTmp
+*.Rproj.user/
+.DS_Store
+>>>>>>> 6c2b68b4553297adff59c01f1bca83964bb55856
