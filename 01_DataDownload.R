@@ -59,14 +59,24 @@ write.csv(ysi_profiles, "CSVs/ysi_profiles.csv")
 chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
 
 #meteorological data from FCR https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=389&revision=9
-options(timeout = 999999)
+options(timeout = 9999999)
 url  <- "https://pasta.lternet.edu/package/data/eml/edi/389/9/62647ecf8525cdfc069b8aaee14c0478"
 dest <- "CSVs/EDImet.csv"
-download.file(url, dest, mode = "wb")
-EDImet <- read.csv(dest)
+# Attempt to download the file using a different method
+download.file(
+  url, 
+  dest, 
+  method = "auto", 
+  mode = "wb", 
+  quiet = TRUE
+)
+
+EDI_met <- read.csv("CSVs/EDImet.csv")
+
 
 #bathymetry data for BVR https://portal.edirepository.org/nis/metadataviewer?packageid=edi.1254.1
 bath <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")
 
 BVRbath<- bath|>
   filter(Reservoir == "BVR")
+
