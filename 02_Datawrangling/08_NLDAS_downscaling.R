@@ -94,7 +94,7 @@ EDImet_0 <- EDImet_wk |>
     .groups = "drop"
   )
 
-
+write.csv(EDImet_0, "CSVs/EDImet0.csv")
 
 ####2 NLDAS met data####
 
@@ -258,7 +258,6 @@ print(joined_data_2015)
 if (!dir.exists("Figs/metdata")) {
   dir.create("Figs/metdata", recursive = TRUE)
 }
-ggsave("Figs/metdata/joined_data_2015.png", joined_data_2015)
 
 
 ####8. Plot all years for each variable just for QAQC check####

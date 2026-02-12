@@ -14,7 +14,7 @@ BVRbath <- bath|>
 
 
 # Prepare data frame
-weekly_temp_profiles <- temp_depths_cleaned |>
+weekly_temp_profiles <- temp_depths_interp |>
   mutate(
     Week = week(Date),
     Day = day(Date),
@@ -70,6 +70,7 @@ schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color
     color = "Year"
   ) +
   theme_minimal()
+schmidt_plot
 
 ggsave(filename = "Figs/schmidt.png", plot = schmidt_plot, width = 10, height = 6, dpi = 300)
 
