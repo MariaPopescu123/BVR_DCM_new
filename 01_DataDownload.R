@@ -16,6 +16,8 @@ source("Functions/new_var_importance_shap_plots.R") #function for running Random
 source("Functions/jackknife.R")
 source("Functions/final_data_availability_plot.R")
 source("Functions/plot_shap_vs_value_loop.R")
+source("Functions/find_depths.R")
+
 
 #### Loading Data  #### 
 
@@ -25,7 +27,7 @@ source("Functions/plot_shap_vs_value_loop.R")
 wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 
 
 #for past 2020 using pressure sensors
-BVRplatform <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
+BVRplatform <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
 
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
 #updated 2025
@@ -59,11 +61,9 @@ write.csv(ysi_profiles, "CSVs/ysi_profiles.csv")
 chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
 
 #meteorological data from FCR https://portal.edirepository.org/nis/codeGeneration?packageId=edi.389.10&statisticalFileType=r
-#meteorological data from FCR https://portal.edirepository.org/nis/mapbrowse?packageid=edi.389.8
-options(timeout = 300)
-metdata <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/389/8/d4c74bbb3b86ea293e5c52136347fbb0")
-
-
+options(timeout = 9999999)
+metdata <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
+EDImet <- metdata
 
 #bathymetry data for BVR https://portal.edirepository.org/nis/metadataviewer?packageid=edi.1254.1
 bath <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")

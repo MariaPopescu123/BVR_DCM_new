@@ -150,18 +150,24 @@ variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV",
                "pH", "Temp_C")
 data_availability(CTDfiltered, variables)
 #can't use many of the variables because not enough data for every year
-#can use Temp from CTD for 2015, 2016, 2019, 2021, 2022, 2023, and 2024
-#can use Temp from YSI for 2017, 2018, 2020, 2021
+#can use Temp from CTD for 2015, 2016, 2019, 2022, 2023, and 2024
+#can use Temp from YSI for 2017, 2018, 2020
+#will use Temp from BVR platform sensorstring
 
 CTDtemp<- CTDfiltered|>
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2015, 2016, 2019, 2021, 2022, 2023, 2024))|> 
+  filter(Year %in% c(2015, 2016, 2019, 2022, 2023, 2024))|> 
   select(Date, Year, Week, Temp_C, Depth_m)
+
+variables<- c("Temp_C")
+data_availability(CTDtemp, variables)
 
 ysitemp<- ysi%>%
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2017, 2018, 2020, 2021))|>
+  filter(Year %in% c(2017, 2018, 2020))|>
   select(Date, Year, Week, Temp_C, Depth_m)
+data_availability(ysitemp, variables)
+
 #coalesce 
 
 temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Depth_m", "Week"))|>
@@ -188,7 +194,24 @@ ysitemp2019_clean <- ysi |>
 temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
   arrange(Date, Depth_m)
 
-data_availability(temp_depths_coalesced, variables)
+#now using BVR sensorstring for 2021, because both YSI and CTD not sufficient for 2021
+bvrdata2021 <- find_depths (data_file = BVRplatform, # data_file = the file of most recent data either from EDI or GitHub. Currently reads in the L1 file
+                         depth_offset = "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",  # depth_offset = the file of depth of each sensor relative to each other. This file for BVR is on GitHub
+                         output = NULL, # output = the path where you would like the data saved
+                         round_digits = 2, #round_digits = number of digits you would like to round to
+                         bin_width = 0.1, # bin width in m
+                         wide_data = F)  
+
+bvrdata2021cleaned <- bvrdata2021|>
+  filter(variable == "ThermistorTemp", 
+         year(DateTime) == 2021)|>
+  mutate(Temp_C = observation, 
+         Depth_m = rounded_depth)|>
+  select(DateTime, Depth_m, Temp_C)
+
+#make sure to only select noon time
+
+data_availability(bvrdata2021cleaned, variables)
 
 
 ####Temp calculations####
@@ -275,7 +298,7 @@ temp_depths_cleaned2 <- cleaned|> #remove the weirdos
 variables <- c("Temp_C")
 temp_depths_interp <- interpolate_variable(temp_depths_cleaned2, variables) #this will be used for buoyancy frequency
 
-#look at the daily casts
+#look at the daily casts to check again and make sure they are clean before calculating thermocline
 for (yr in years) {
   
   # Filter data for the year
@@ -315,56 +338,66 @@ for (yr in years) {
 just_thermocline <- temp_depths_interp |>
   filter(!is.na(Temp_C)) |>
   group_by(Date, Depth_m) |>
-  mutate(Temp_C = mean(Temp_C), na.rm = TRUE) |>
-  ungroup() |>
+  summarize(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop") |>
   group_by(Date) |>
   group_modify(~ {
-    max_depth <- max(.x$Depth_m[!is.na(.x$Temp_C)], na.rm = TRUE)
+    max_depth <- max(.x$Depth_m, na.rm = TRUE)
+    
+    # --- Tunable parameters ---
+    shallow_threshold <- 0.2
+    deep_filter       <- 0.25
+    reject_shallow    <- 0.15
+    reject_deep       <- 0.85
+    smin_default      <- 1
+    smin_relaxed      <- 0.5
     
     # --- 1) First pass: standard thermo.depth ---
     thermocline_depth <- thermo.depth(
       .x$Temp_C,
       .x$Depth_m,
-      Smin = 1,
+      Smin = smin_default,
       seasonal = TRUE,
       index = FALSE,
-      mixed.cutoff = 0.25 * max_depth
+      mixed.cutoff = deep_filter * max_depth
     )
     
-    # --- 2) If it's too shallow, ignore surface and recalc deeper ---
-    if (!is.na(thermocline_depth) && thermocline_depth < 0.2 * max_depth) {
-      
-      # Remove mixed layer entirely
-      .x_deep <- .x |> filter(Depth_m > 0.25 * max_depth)
+    method <- "standard"
+    
+    # --- 2) If too shallow, ignore surface and recalc deeper ---
+    if (!is.na(thermocline_depth) && thermocline_depth < shallow_threshold * max_depth) {
+      .x_deep <- .x |> filter(Depth_m > deep_filter * max_depth)
       
       if (nrow(.x_deep) >= 3) {
         thermocline_depth <- tryCatch(
           thermo.depth(
             .x_deep$Temp_C,
             .x_deep$Depth_m,
-            Smin = 0.5,
+            Smin = smin_relaxed,
             seasonal = TRUE,
             index = FALSE
           ),
           error = function(e) NA_real_
         )
+        method <- "deep_recalc"
       }
     }
     
-    # --- 3) Final sanity: still reject noise ---
-    thermocline_depth <- ifelse(
-      is.na(thermocline_depth) | thermocline_depth < 0.15 * max_depth,
-      NA,
-      thermocline_depth
-    )
+    # --- 3) Final sanity: reject noise ---
+    if (is.na(thermocline_depth) ||
+        thermocline_depth < reject_shallow * max_depth ||
+        thermocline_depth > reject_deep * max_depth) {
+      thermocline_depth <- NA_real_
+      method <- "rejected"
+    }
     
-    tibble(Date = .x$Date[1], thermocline_depth = thermocline_depth)
+    tibble(thermocline_depth = thermocline_depth, method = method)
   }) |>
   ungroup() |>
   mutate(
     Week = week(Date),
     Year = year(Date)
   )
+#warnings are ok
 
 #####individual date thermocline check####
 #join thermocline to temp profiles so that I can plot them 

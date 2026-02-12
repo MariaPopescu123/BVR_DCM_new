@@ -127,17 +127,7 @@ plot_correlation_matrix(
   variable_labels = variable_labels,
 )
 
-#####Physics#####
-physics_depth_corr <- full_weekly_data |>
-  select(Date, DCM_depth, max_conc, thermocline_depth, schmidt_stability, N_at_DCM 
-  )
-plot_correlation_matrix(
-  physics_depth_corr,
-  "Figs/correlations/physics_corr_Matrix.png",
-  title = "Physical Variables Correlation Matrix Heatmap", 
-  variable_labels = variable_labels,
-)
-
+#looking at the remainder of the variables to choose which are redundant
 ####chosen variables####
 full_weekly_data <- full_weekly_data|>
   select(
