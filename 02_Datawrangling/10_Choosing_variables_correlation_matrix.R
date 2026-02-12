@@ -6,8 +6,10 @@ full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
 
 ####visualize chosen variables####
 
+#REMEMBER TO INCREASE LEGEND SIZE FOR THE CORRELATION MATRIX AND INCLUDE NO2/NO3!!!
+
 variable_labels <- c(
-  max_conc = "Max Total Phytoplankton (µg/L)",
+  max_conc = "DCM Magnitude (µg/L)",
   DCM_depth = "DCM Depth (m)",
   WaterLevel_m = "Water Level (m)",
   PZ = "Photic Zone Depth (m)",
@@ -18,9 +20,11 @@ variable_labels <- c(
   SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
   SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
   NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
+  NO3NO2_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM", 
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
+  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)", 
   Precip_Weekly  = "Precipitation Weekly Sum",
   precip_lag1    = "Precipitation Weekly Sum (Lag 1 wk)",
   precip_lag2    = "Precipitation Weekly Sum (Lag 2 wk)",

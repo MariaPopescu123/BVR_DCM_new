@@ -10,8 +10,6 @@ final_chem <- read.csv("CSVs/final_chem.csv")
 final_schmidt <- read.csv("CSVs/final_schmidt.csv")
 final_metdata <- read.csv("CSVs/final_metdata.csv")
 
-
-
 full_weekly_data <- frame_weeks %>%
   left_join(final_phytos, by = c("Year", "Week")) %>%
   left_join(weekly_water_level, by = c("Year", "Week"))%>%
