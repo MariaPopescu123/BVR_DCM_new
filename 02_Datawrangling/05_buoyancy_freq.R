@@ -1,9 +1,8 @@
 # code to calculate weekly buoyancy_freq at the DCM from 2014-2024
 
-temp_depths_cleaned <- read.csv("CSVs/temp_depths_cleaned.csv")
 
 ####Buoyancy Frequency ####
-buoyancy_frame <- temp_depths_cleaned|> #temp_depths_cleaned was loaded in from 04_photic_temp_thermo
+buoyancy_frame <- temp_depths_interp|> #temp_depths_interp was loaded in from 04_photic_temp_thermo
   mutate(buoyancy_freq = c(buoyancy.freq(Temp_C, Depth_m), NA))|>#added for padding for the last value
   select(Date, buoyancy_freq, Depth_m)|>
   mutate(Week = week(Date), 
@@ -41,6 +40,7 @@ var_summary <- final_buoyancy %>%
     sd_within = sd(N_at_DCM, na.rm = TRUE),
     cv_within = sd_within / mean_val
   )
+print(var_summary)
 
 across_year <- var_summary %>%
   summarise(

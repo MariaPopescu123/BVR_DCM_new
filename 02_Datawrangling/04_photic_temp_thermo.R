@@ -2,7 +2,7 @@
 
 #this script calculates:
 # 1. photic zone
-# 2. temperature dataframe that will later also be used to calculate schdmit stabiltiy and buoyancy frequency
+# 2. temp_depths_interp dataframe that will later also be used to calculate schdmit stability and buoyancy frequency
 # 3. thermocline
 # 4. and then produces the data frame final_photic_thermo which will be used in RF analysis
 
@@ -71,13 +71,14 @@ if (!dir.exists("Figs/Daily_interp_Casts")) {
     mutate(sec_K_d = 1.7/Secchi_m) |>
     mutate(PZ = 4.065 /sec_K_d)|>
     group_by(Year, Week)|>
-    mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))
+    mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))|>
+    filter(Year >2014, Year <2025)
 }
 
 photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
 write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
 
-#diagnostic plot of photic zone depth from 2014-2024?????
+#diagnostic plot of photic zone depth from 2014-2025
 ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
   geom_line(aes(group = factor(year(Date)))) +
   scale_y_reverse()
@@ -94,34 +95,67 @@ data_availability(ysi_profiles, variables)
 #removing PAR, ORP, cond, oxygen, and pH due to limited data availability
 #keeping temp because YSI has the most temp
 
-ysi <- ysi_profiles|>
+ysi_noon <- ysi_profiles |>
+  mutate(DateTime = as.POSIXct(DateTime)) |>
+  filter(!is.na(DateTime)) |>
+  arrange(DateTime) |>
+  mutate(
+    Date = as.Date(DateTime),
+    cast_id = cumsum(c(TRUE, diff(as.numeric(DateTime)) > 3600)) #an hour between the last measurement and new indicates new cast
+  ) |>
+  group_by(cast_id) |>
+  mutate(
+    cast_median = as.POSIXct(median(as.numeric(DateTime)), origin = "1970-01-01", tz = tz(DateTime)),
+    noon_diff = abs(as.numeric(difftime(cast_median,
+                                        as.POSIXct(paste(Date, "12:00:00"), tz = tz(DateTime)), units = "mins")))
+  ) |>
+  group_by(Date) |>
+  filter(noon_diff == min(noon_diff)) |>
+  ungroup() |>
+  select(-cast_id, -cast_median, -noon_diff)
+
+ysi <- ysi_noon|>
   select(-ORP_mV, -Cond_uScm, -pH)|>
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))
 variables <- c("Temp_C")
 data_availability(ysi, variables)
 
 #####CTD#####
-CTDfiltered <- CTD |>
+CTD_noon <- CTD |>
   filter(Reservoir == "BVR", Site == 50) |>
-  filter(!if_any(starts_with("Flag"), ~ . == 68)) |>
+  mutate(DateTime = as.POSIXct(DateTime)) |>
+  filter(!is.na(DateTime)) |>
+  arrange(DateTime) |>
   mutate(
-    DateTime = ymd_hms(DateTime, tz = "UTC"),
-    Date = as_date(DateTime)
+    Date = as.Date(DateTime),
+    cast_id = cumsum(c(TRUE, diff(as.numeric(DateTime)) > 3600)) #an hour between the last measurement and new indicates new cast
   ) |>
-  filter(hour(DateTime) >= 8, hour(DateTime) <= 18)
+  group_by(cast_id) |>
+  mutate(
+    cast_median = as.POSIXct(median(as.numeric(DateTime)), origin = "1970-01-01", tz = tz(DateTime)),
+    noon_diff = abs(as.numeric(difftime(cast_median,
+                                        as.POSIXct(paste(Date, "12:00:00"), tz = tz(DateTime)), units = "mins")))
+  ) |>
+  group_by(Date) |>
+  filter(noon_diff == min(noon_diff)) |>
+  ungroup() |>
+  select(-cast_id, -cast_median, -noon_diff)
+
+CTDfiltered <- CTD_noon |>
+  mutate(
+    Date = as_date(DateTime)
+  ) 
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", 
                "pH", "Temp_C")
 data_availability(CTDfiltered, variables)
 #can't use many of the variables because not enough data for every year
-
-
-#can use Temp from CTD for 2014, 2015, 2016, 2019, 2021, 2022, 2023, and 2024
+#can use Temp from CTD for 2015, 2016, 2019, 2021, 2022, 2023, and 2024
 #can use Temp from YSI for 2017, 2018, 2020, 2021
 
 CTDtemp<- CTDfiltered|>
   mutate(Year = year(Date), Week = week(Date))|>
-  filter(Year %in% c(2014, 2015, 2016, 2019, 2021, 2022, 2023, 2024))|> 
+  filter(Year %in% c(2015, 2016, 2019, 2021, 2022, 2023, 2024))|> 
   select(Date, Year, Week, Temp_C, Depth_m)
 
 ysitemp<- ysi%>%
@@ -141,7 +175,7 @@ variables<- c("Temp_C")
 data_availability(temp_depths_coalesced, variables)
 
 #the beginning of 2019 is missing from within the season we want, so grabbing from ysi data
-#before 160
+#before DOY 160
 ysitemp2019_clean <- ysi |>
   mutate(Date = as_date(Date),
          Year = year(Date),
@@ -158,39 +192,51 @@ data_availability(temp_depths_coalesced, variables)
 
 
 ####Temp calculations####
-temp_depths_cleaned <- temp_depths_coalesced |> #adding buoyancy freq here
+temp_depths_cleaned <- temp_depths_coalesced |>
   filter(!is.na(Temp_C)) |>
+  mutate(Depth_m = floor(Depth_m * 10) / 10) |>
   group_by(Date, Depth_m) |>
-  summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop")|>
-  mutate(Reservoir = "BVR", Site = 50, DateTime = Date) #remove these after interpolating, this is just required for the function
+  summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop") |>
+  group_by(Date) |>
+  arrange(Depth_m, .by_group = TRUE) |>
+  mutate(
+    temp_diff = Temp_C - lag(Temp_C),
+    prev_diff = lag(temp_diff),
+    # Flag: direction reversed AND the reversal is large (points that don't make sense and are obvious error removed)
+    reversal = !is.na(temp_diff) & !is.na(prev_diff) &
+      sign(temp_diff) != sign(prev_diff) &
+      abs(temp_diff) > 2
+  ) |>
+  filter(!reversal) |>
+  ungroup() |>
+  select(-temp_diff, -prev_diff, -reversal) |>
+  mutate(DOY = yday(Date)) |>
+  mutate(Reservoir = "BVR", Site = 50, DateTime = Date) |>
+  filter(DOY >= 133, DOY <= 285)
 
-#join the first half of 2019 from ysi data to 
+#removing outliers 
+cleaned <- temp_depths_cleaned |>
+  group_by(Date) |>
+  arrange(Depth_m, .by_group = TRUE) |>
+  mutate(
+    # Rolling median of Temp_C over a window of nearby depth observations
+    Temp_rolling_median = rollapply(Temp_C, width = 7, FUN = median, 
+                                    fill = NA, align = "center"),
+    # Absolute deviation from the local median
+    temp_deviation = abs(Temp_C - Temp_rolling_median)
+  ) |>
+  # Remove points that deviate more than 2°C from the local median
+  filter(is.na(temp_deviation) | temp_deviation < 2) |>
+  ungroup() |>
+  select(-Temp_rolling_median, -temp_deviation)
 
-
-variables <- c("Temp_C")
-
-temp_depths_interp <- interpolate_variable(temp_depths_cleaned, variables)
-
-#CRAZY POINTS DEF NOT REAL, JUST REMOVE
-#2021-08-04 
-#2021-08-11
-#2021-08-18
-#2022 waterlevel
-
-temp_depths_cleaned <- temp_depths_interp|> #remove the weirdos
-  filter(!(Date == as.Date("2021-08-04") & Depth_m > 9 & Depth_m <= 10))|>
-  filter(!(Date == as.Date("2021-08-11") & Depth_m > 9 & Depth_m <= 10))|>
-  filter(!(Date == as.Date("2021-08-18") & Depth_m > 9 & Depth_m <= 10))|>
-  filter(!(Date >= as.Date("2022-07-06") & Date <= as.Date("2022-12-14") & Depth_m >= 7.5))
-
-looking <- temp_depths_cleaned|>
-  filter(Date %in% c("2021-08-04"))
+#write.csv(temp_depths_cleaned, "CSVs/temp_depths_cleaned.csv")
 
 #look at the daily casts
 for (yr in years) {
   
   # Filter data for the year
-  test <- temp_depths_cleaned |>
+  test <- cleaned |>
     filter(year(Date) == yr)
   
   # Skip if there's no data
@@ -219,17 +265,54 @@ for (yr in years) {
          dpi = 300)
 }
 
-write.csv(temp_depths_cleaned, "CSVs/temp_depths_cleaned.csv", row.names = FALSE)
 
-#temp_weekly_sum <- weekly_sum_variables(temp_depths_cleaned, "Temp_C") don't need this anymore
+#incomplete cast remove
+#2020-09-19
 
+temp_depths_cleaned2 <- cleaned|> #remove the weirdos
+  filter(!(Date == as.Date("2020-09-19")))
 
+variables <- c("Temp_C")
+temp_depths_interp <- interpolate_variable(temp_depths_cleaned2, variables) #this will be used for buoyancy frequency
 
+#look at the daily casts
+for (yr in years) {
+  
+  # Filter data for the year
+  test <- temp_depths_interp |>
+    filter(year(Date) == yr)
+  
+  # Skip if there's no data
+  if (nrow(test) == 0) next
+  
+  # Create plot
+  plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
+    geom_path() +
+    geom_point(size = 0.8, alpha = 0.8) +  # Small points at each observation
+    # Light blue grid lines for every whole meter
+    geom_hline(yintercept = seq(0, max(test$Depth_m, na.rm = TRUE), by = 1), 
+               color = "lightblue", linetype = "dotted", linewidth = 0.3) +
+    # Vertical lines for concentrations
+    scale_y_reverse(breaks = seq(0, max(test$Depth_m, na.rm = TRUE), by = 1)) +
+    theme_bw() +
+    facet_wrap(vars(Date)) +
+    xlab("Temp") +
+    ylab("Depth (m)") +
+    ggtitle(paste(yr, "Temp Profiles"))
+  
+  # Save plot
+  ggsave(filename = paste0("Figs/Daily_interp_Casts/", yr, "_raw_casts.png"),
+         plot = plot_casts,
+         width = 12,
+         height = 10,
+         dpi = 300)
+}
+#warnings are ok
 
 ####Thermocline####
 
 # Dataframe with thermocline
-just_thermocline <- temp_depths_cleaned |>
+just_thermocline <- temp_depths_interp |>
   filter(!is.na(Temp_C)) |>
   group_by(Date, Depth_m) |>
   mutate(Temp_C = mean(Temp_C), na.rm = TRUE) |>
@@ -285,7 +368,7 @@ just_thermocline <- temp_depths_cleaned |>
 
 #####individual date thermocline check####
 #join thermocline to temp profiles so that I can plot them 
-thermocline_and_depth_profiles <- temp_depths_cleaned|>
+thermocline_and_depth_profiles <- temp_depths_interp|>
   left_join(just_thermocline, by = c("Date"))|>
   group_by(Date)|>
   fill(thermocline_depth, .direction = "updown")|>
@@ -328,6 +411,9 @@ for (yr in years) {
          height = 10,
          dpi = 300)
 }
+
+
+
 
 #keep in mind I will only be analyzing data within the may-october window
 just_thermocline <- just_thermocline|>

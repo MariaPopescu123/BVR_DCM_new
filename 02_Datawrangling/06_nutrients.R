@@ -11,12 +11,12 @@ chemistry_filtered <- chemistry |> #loaded in from DataDownload
   filter(Reservoir == "BVR", Site == 50)|>
   mutate(Date = as_date(DateTime), 
          DateTime = as.POSIXct(DateTime))|>
-  select(Date, Depth_m, NH4_ugL, SRP_ugL)|>
+  select(Date, Depth_m, NH4_ugL, SRP_ugL, NO3NO2_ugL)|>
   mutate(Week = week(Date), 
          Year = year(Date))
 
 #checking availability
-variables <- c("SRP_ugL", "NH4_ugL")
+variables <- c("SRP_ugL", "NH4_ugL", "NO3NO2_ugL")
 data_availability(chemistry_filtered, variables)
 #we have sufficient data
 
@@ -29,7 +29,7 @@ chem_w_DCM <- chemistry_filtered|>
 # 2. Interpolate and summarize data for final frame ----
 
 #interpolate so that I can get the estimated value of nutrients at DCM depth
-variables <- c("SRP_ugL", "NH4_ugL")
+variables <- c("SRP_ugL", "NH4_ugL", "NO3NO2_ugL")
 chem_interpolated <- interpolate_variable(chem_w_DCM, variables)
 
 chem_interpolated2 <- chem_interpolated |>
@@ -44,7 +44,7 @@ chem_interpolated3 <- chem_interpolated2|>
 
 ####summarize variables to find depth at which the nutrient is at its max,
 #as well as the concentration of the nutrient at DCM depth
-variables <- c("SRP_ugL", "NH4_ugL")
+variables <- c("SRP_ugL", "NH4_ugL", "NO3NO2_ugL")
 chem_weekly_sum <- weekly_sum_variables(chem_interpolated3, variables)
 
 #join to frame with correct dates
