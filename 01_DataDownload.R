@@ -21,7 +21,7 @@ source("Functions/find_depths.R")
 
 #### Loading Data  #### 
 
-#Updated to incude 2024
+#Updated to include 2024
 #waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
 #BVR water level from the staff gauge and converted to reservoir depth
 wtrlvl <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 

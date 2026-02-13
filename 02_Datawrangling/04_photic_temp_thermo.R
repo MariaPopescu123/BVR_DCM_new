@@ -149,7 +149,7 @@ CTDfiltered <- CTD_noon |>
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", 
                "pH", "Temp_C")
 data_availability(CTDfiltered, variables)
-#can't use many of the variables because not enough data for every year
+#can't use many of the variables because not enough data for every year. 
 #can use Temp from CTD for 2015, 2016, 2019, 2022, 2023, and 2024
 #can use Temp from YSI for 2017, 2018, 2020
 #will use Temp from BVR platform sensorstring
@@ -194,47 +194,75 @@ ysitemp2019_clean <- ysi |>
 temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
   arrange(Date, Depth_m)
 
-#now using BVR sensorstring for 2021, because both YSI and CTD not sufficient for 2021
-bvrdata2021 <- find_depths (data_file = BVRplatform, # data_file = the file of most recent data either from EDI or GitHub. Currently reads in the L1 file
-                         depth_offset = "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",  # depth_offset = the file of depth of each sensor relative to each other. This file for BVR is on GitHub
-                         output = NULL, # output = the path where you would like the data saved
-                         round_digits = 2, #round_digits = number of digits you would like to round to
-                         bin_width = 0.1, # bin width in m
-                         wide_data = F)  
+#Sensorstrings------
+#using BVR sensorstrings for what is available (2021-2024)
+bvrdatasensorstring <- find_depths (data_file = BVRplatform, # data_file = the file of most recent data either from EDI or GitHub. Currently reads in the L1 file
+                                    depth_offset = "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",  # depth_offset = the file of depth of each sensor relative to each other. This file for BVR is on GitHub
+                                    output = NULL, # output = the path where you would like the data saved
+                                    round_digits = 2, #round_digits = number of digits you would like to round to
+                                    bin_width = 0.1, # bin width in m
+                                    wide_data = F)  
 
-bvrdata2021cleaned <- bvrdata2021|>
+#choosing the cast closest to noon
+bvrdatasensorstring2 <- bvrdatasensorstring |>
   filter(variable == "ThermistorTemp", 
-         year(DateTime) == 2021)|>
+         year(DateTime) == 2021) |>
   mutate(Temp_C = observation, 
-         Depth_m = rounded_depth)|>
-  select(DateTime, Depth_m, Temp_C)
+         Depth_m = rounded_depth,
+         Year = year(DateTime),
+         Date = as.Date(DateTime),
+         Week = week(Date),
+         mins_from_noon = abs(as.numeric(difftime(DateTime, 
+                                                  as.POSIXct(paste(Date, "12:00:00"), tz = tz(DateTime)), 
+                                                  units = "mins")))) |>
+  group_by(Year, Week) |>
+  filter(Date == min(Date)) |> #to get the first date for each week
+  group_by(Week, Date) |>
+  filter(mins_from_noon == min(mins_from_noon)) |>
+  ungroup() |>
+  select(Date, DateTime, Depth_m, Temp_C)
 
-#make sure to only select noon time
+data_availability(bvrdatasensorstring2, "Temp_C")
 
-data_availability(bvrdata2021cleaned, variables)
+#bind sensorstring data to the rest
+all_years_temp <- bind_rows(temp_depths_coalesced, bvrdatasensorstring2) |>
+  arrange(Date, Depth_m)
+
+data_availability(all_years_temp, variables)
 
 
 ####Temp calculations####
-temp_depths_cleaned <- temp_depths_coalesced |>
+# Clean temperature profiles for BVR Site 50 during stratified season
+temp_depths_cleaned <- all_years_temp |>
+  # Remove missing temperature readings
   filter(!is.na(Temp_C)) |>
+  # Round depths to nearest 0.1m to bin close measurements together
   mutate(Depth_m = floor(Depth_m * 10) / 10) |>
+  # Average duplicate readings at the same date and depth
   group_by(Date, Depth_m) |>
   summarise(Temp_C = mean(Temp_C, na.rm = TRUE), .groups = "drop") |>
+  # Within each date, sort by depth and detect temperature spike artifacts
   group_by(Date) |>
   arrange(Depth_m, .by_group = TRUE) |>
   mutate(
+    # Temperature change from previous depth
     temp_diff = Temp_C - lag(Temp_C),
+    # Temperature change at the depth above
     prev_diff = lag(temp_diff),
-    # Flag: direction reversed AND the reversal is large (points that don't make sense and are obvious error removed)
+    # Flag points where temperature sharply reverses direction (>2°C)
+    # relative to the previous gradient — likely sensor errors
     reversal = !is.na(temp_diff) & !is.na(prev_diff) &
       sign(temp_diff) != sign(prev_diff) &
       abs(temp_diff) > 2
   ) |>
+  # Remove flagged spike points
   filter(!reversal) |>
   ungroup() |>
   select(-temp_diff, -prev_diff, -reversal) |>
+  # Add day of year and metadata columns
   mutate(DOY = yday(Date)) |>
   mutate(Reservoir = "BVR", Site = 50, DateTime = Date) |>
+  # Restrict to stratified season (~May 13 to ~Oct 12)
   filter(DOY >= 133, DOY <= 285)
 
 #removing outliers 
@@ -382,12 +410,48 @@ just_thermocline <- temp_depths_interp |>
       }
     }
     
-    # --- 3) Final sanity: reject noise ---
-    if (is.na(thermocline_depth) ||
-        thermocline_depth < reject_shallow * max_depth ||
+    # --- 3) Final sanity: reject noise, but try to recalculate ---
+    if (!is.na(thermocline_depth) &&
+        thermocline_depth < reject_shallow * max_depth) {
+      .x_mid <- .x |> filter(Depth_m > reject_shallow * max_depth,
+                             Depth_m < reject_deep * max_depth)
+      if (nrow(.x_mid) >= 3) {
+        thermocline_depth <- tryCatch(
+          thermo.depth(
+            .x_mid$Temp_C,
+            .x_mid$Depth_m,
+            Smin = smin_relaxed,
+            seasonal = TRUE,
+            index = FALSE
+          ),
+          error = function(e) NA_real_
+        )
+        method <- "reject_recalc_shallow"
+      } else {
+        thermocline_depth <- NA_real_
+        method <- "rejected"
+      }
+    }
+    
+    if (!is.na(thermocline_depth) &&
         thermocline_depth > reject_deep * max_depth) {
-      thermocline_depth <- NA_real_
-      method <- "rejected"
+      .x_upper <- .x |> filter(Depth_m < reject_deep * max_depth)
+      if (nrow(.x_upper) >= 3) {
+        thermocline_depth <- tryCatch(
+          thermo.depth(
+            .x_upper$Temp_C,
+            .x_upper$Depth_m,
+            Smin = smin_relaxed,
+            seasonal = TRUE,
+            index = FALSE
+          ),
+          error = function(e) NA_real_
+        )
+        method <- "reject_recalc_deep"
+      } else {
+        thermocline_depth <- NA_real_
+        method <- "rejected"
+      }
     }
     
     tibble(thermocline_depth = thermocline_depth, method = method)
@@ -397,8 +461,7 @@ just_thermocline <- temp_depths_interp |>
     Week = week(Date),
     Year = year(Date)
   )
-#warnings are ok
-
+    
 #####individual date thermocline check####
 #join thermocline to temp profiles so that I can plot them 
 thermocline_and_depth_profiles <- temp_depths_interp|>
@@ -444,8 +507,7 @@ for (yr in years) {
          height = 10,
          dpi = 300)
 }
-
-
+#warnings are ok
 
 
 #keep in mind I will only be analyzing data within the may-october window
@@ -459,9 +521,7 @@ final_photic_thermo <- photic_zone_frame|>
   mutate(PZ_prop = PZ/WaterLevel_m)|>
   select(-WaterLevel_m)
 
-variables <- c("PZ")
-
-data_availability(final_photic_thermo, variables)
+data_availability(final_photic_thermo, "thermocline_depth")
 
 write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
 
