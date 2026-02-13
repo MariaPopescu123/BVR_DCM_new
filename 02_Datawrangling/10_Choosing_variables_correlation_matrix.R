@@ -75,6 +75,11 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
   nvars <- length(unique(cor_long$Var1))
   scale_factor <- sqrt(42 / nvars)
   
+  # Legend sizing: target ~half the matrix height
+  legend_height <- nvars / 2
+  legend_key_height <- unit(legend_height / 5, "lines")
+  legend_key_width <- unit(legend_height / 8, "lines")
+  
   # Subset for "X" marks where abs(correlation) >= cutoff
   cor_x <- cor_long %>% filter(abs(Correlation) >= cutoff)
   
@@ -94,10 +99,16 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
       panel.grid = element_blank(),
       plot.background = element_rect(fill = "white", color = NA),
       panel.background = element_rect(fill = "white", color = NA),
-      plot.title = element_text(size = 20 * scale_factor, hjust = 0.5)
+      plot.title = element_text(size = 20 * scale_factor, hjust = 0.5),
+      # Legend sizing - approximately half the matrix height
+      legend.key.height = legend_key_height,
+      legend.key.width = legend_key_width,
+      legend.title = element_text(size = 14 * scale_factor),
+      legend.text = element_text(size = 12 * scale_factor),
+      legend.margin = ggplot2::margin(l = 10)
     ) +
     scale_x_discrete(position = "top") +
-    scale_y_discrete(limits = rev(levels(cor_long$Var2))) +  # use the factor levels for y-axis
+    scale_y_discrete(limits = rev(levels(cor_long$Var2))) +
     coord_fixed() +
     labs(title = title)
   
@@ -106,27 +117,7 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
   return(p)
 }
 
-
-
-#####Met Data#####
-met_depth_corr <- full_weekly_data |>
-  select(Date, DCM_depth, max_conc, 
-         "Precip_Weekly", "precip_lag1", "precip_lag2",
-         "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
-         "WindSpeed_Avg", "wind_lag1", "wind_lag2"
-  )
-
-if (!dir.exists("Figs/correlations")) {
-  dir.create("Figs/correlations", recursive = TRUE)
-}
-
-plot_correlation_matrix(
-  met_depth_corr,
-  "Figs/correlations/Met_depth_corr_Matrix.png",
-  title = "Meteorological Variables Correlation Matrix Heatmap", 
-  variable_labels = variable_labels,
-)
-
+#ADD NO2/NO3 HERE
 #looking at the remainder of the variables to choose which are redundant
 ####chosen variables####
 full_weekly_data <- full_weekly_data|>
@@ -134,7 +125,7 @@ full_weekly_data <- full_weekly_data|>
     "Date", "WaterLevel_m", "DCM_depth", "max_conc",
      "PZ", "thermocline_depth","schmidt_stability",
     "PZ_prop", "N_at_DCM", "depth_SRP_ugL_max", "SRP_ugL_at_DCM",
-    "depth_NH4_ugL_max", "NH4_ugL_at_DCM",
+    "depth_NH4_ugL_max", "NH4_ugL_at_DCM","depth_NO3NO2_ugL_max", "NO3NO2_ugL_at_DCM",
     "depth_SFe_mgL_max", "SFe_mgL_at_DCM",
     "Precip_Weekly", "precip_lag1", "precip_lag2",
     "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",

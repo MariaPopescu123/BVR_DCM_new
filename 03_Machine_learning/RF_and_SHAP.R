@@ -65,7 +65,7 @@ depth_analysis_over20 <- full_weekly_data|>
   select(
     Date, DCM_depth,
     PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
-    depth_NH4_ugL_max, depth_SRP_ugL_max, depth_SFe_mgL_max,
+    depth_NH4_ugL_max,depth_NO3NO2_ugL_max,depth_SRP_ugL_max, depth_SFe_mgL_max,
     airtemp_lag2, wind_lag1)
 
 finaldepthRF_over20 <- var_importance_shap_plots(
@@ -104,7 +104,7 @@ print(depth_jackknife_over20$plot)
 ####------magnitude-------####
 magnitude_analysis_over20 <- full_weekly_data|>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
-         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, 
+         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM, 
          airtemp_lag1, wind_lag1, precip_lag1)|>
   filter(max_conc>20)
 
@@ -163,12 +163,6 @@ print(finalmagnitudeRF_over20$shap_long_filtered)
 print(finalmagnitudeRF_over20$model_details)
 print(finalmagnitudeRF_over20$counts)
 
-
-
-
-
-
-
 ####-----interaction plots for SHAP vs value----####
 
 ####----depth####
@@ -179,6 +173,7 @@ vars_to_plot <- c(
   "schmidt_stability",
   "WaterLevel_m",
   "depth_NH4_ugL_max",
+  "depth_NO3NO2_ugL_max",
   "depth_SRP_ugL_max",
   "depth_SFe_mgL_max",
   "wind_lag1",
@@ -209,6 +204,7 @@ vars_to_plot <- c(
   "N_at_DCM",
   "SFe_mgL_at_DCM",
   "NH4_ugL_at_DCM",
+  "NO3NO2_ugL_at_DCM",
   "SRP_ugL_at_DCM",
   "precip_lag1",
   "airtemp_lag1",
@@ -226,4 +222,89 @@ plot_shap_vs_value_loop(
   prefix = "magnitude",
   analysis_label = "Magnitude Analysis", 
   var_labels = variable_labels
+)
+
+
+
+
+####MIGHT REMOVE SI Plots####
+#######With max_conc >20######
+
+#------depth------####
+depth_analysis_over20 <- full_weekly_data|>
+  filter(max_conc>20)|>
+  select(
+    Date, DCM_depth,
+    PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
+    depth_NH4_ugL_max,depth_NO3NO2_ugL_max,depth_SRP_ugL_max, depth_SFe_mgL_max,
+    airtemp_lag2, wind_lag1)
+
+SIdepthRF_over20 <- var_importance_shap_plots(
+  Xdataframe      = depth_analysis_over20,
+  XYear           = 2015,
+  XYear2          = 2024,
+  whichvars       = "with Nitrite/Nitrate",
+  response_var    = "DCM_depth",
+  save_dir        = "Depth",
+  variable_labels = variable_labels
+)
+
+#####Jackknife#####
+#this is for viewing to see how robust the model is across years
+depth_jackknife_over20 <- jackknife_incMSE_heatmap(
+  Xdataframe     = depth_analysis_over20,
+  year_min       = 2015,
+  year_max       = 2024,
+  metric = "DCM Depth with Nitrite/Nitrate",
+  var_order = SIdepthRF_over20$var_order,
+  response_var   = "DCM_depth",
+  whichvars_label= "over20",
+  save_path      = here::here("Figs","MachineLearning","Depth","SI_Jackknife_Heatmap.png"), 
+  variable_labels = variable_labels
+)
+
+print(depth_jackknife_over20$plot)
+
+####------magnitude-------####
+magnitude_analysis_over20 <- full_weekly_data|>
+  select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
+         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM, 
+         airtemp_lag1, wind_lag1, precip_lag1)|>
+  filter(max_conc>20)
+
+SImagnitudeRF_over20 <- var_importance_shap_plots(
+  Xdataframe      = magnitude_analysis_over20,
+  XYear           = 2015,
+  XYear2          = 2024,
+  whichvars       = "with Nitrite/Nitrate",
+  response_var    = "max_conc",
+  save_dir        = "Magnitude",
+  variable_labels = variable_labels
+)
+
+
+magnitude_jackknife_over20 <- jackknife_incMSE_heatmap(
+  Xdataframe     = magnitude_analysis_over20,
+  year_min       = 2015,
+  year_max       = 2024,
+  metric = "DCM Magnitude",
+  var_order = SImagnitudeRF_over20$var_order,
+  response_var   = "max_conc",
+  whichvars_label= "",
+  save_path      = here::here("Figs","MachineLearning","Magnitude","SIMagnitudeJackknife_Heatmap.png"), 
+  variable_labels = variable_labels
+)
+#if you want to view
+#res$plot
+#res$summary %>% as.data.frame() %>% head()
+
+#now to combine the two plots from depth and magnitude
+combined_RF_panels <- finaldepthRF_over20$plots$combined /
+  finalmagnitudeRF_over20$plots$combined
+print(combined_RF_panels)
+
+ggsave(
+  filename = here::here("Figs", "MachineLearning", "SICombined_Depth_Magnitude_RF.png"),
+  plot = combined_RF_panels,
+  width = 14, height = 10, dpi = 600, bg = "white"
 )

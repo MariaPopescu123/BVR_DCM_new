@@ -59,3 +59,4 @@ DCM_depth_stats <- full_weekly_data %>%
     median_plus_1sd  = median_DCM_depth + sd_DCM_depth,
     n = sum(!is.na(DCM_depth))
   )
+

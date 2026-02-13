@@ -72,8 +72,6 @@ schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color
   theme_minimal()
 schmidt_plot
 
-ggsave(filename = "Figs/schmidt.png", plot = schmidt_plot, width = 10, height = 6, dpi = 300)
-
 #this is the final dataframe that will be used in RF analysis
 write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)
 
