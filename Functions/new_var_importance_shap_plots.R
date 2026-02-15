@@ -10,7 +10,7 @@ library(patchwork)
 library(here)
 
 # Put this near the top of the function (after library calls is fine)
-axis_only_theme <- theme_classic(base_size = 10) +
+axis_only_theme <- theme_classic(base_size = 12) +
   theme(
     panel.border = element_blank(),     # no full border
     axis.line    = element_line(color = "black", linewidth = 0.4),
@@ -192,8 +192,8 @@ var_importance_shap_plots <- function(Xdataframe,
     geom_point(size = 3) +
     geom_text(
       aes(label = sprintf("%.2f", `%IncMSE`)),
-      hjust = -0.2,
-      size = 3.5
+      hjust = -0.5,
+      size = 4.0
     ) +
     labs(
       title = paste0(save_dir, " Variable Importance (%IncMSE) ", XYear, "-", XYear2),
@@ -204,8 +204,8 @@ var_importance_shap_plots <- function(Xdataframe,
     scale_y_discrete(labels = pretty_lab) +
     axis_only_theme +
     theme(
-      plot.title = element_text(face = "bold"),
-      plot.subtitle = element_text(size = 9)
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      plot.subtitle = element_text(size = 11)
     )+
   scale_x_continuous(expand = expansion(mult = c(0.02, 0.15)))
   
@@ -320,3 +320,4 @@ var_importance_shap_plots <- function(Xdataframe,
     shap_long_filtered = df_shap_f
   ))
 }
+

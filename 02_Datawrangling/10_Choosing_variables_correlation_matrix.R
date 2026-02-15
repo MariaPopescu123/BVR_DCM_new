@@ -20,7 +20,7 @@ variable_labels <- c(
   SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
   SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
   NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
-  NO3NO2_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM", 
+  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ at DCM", 
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
@@ -113,8 +113,8 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
     labs(title = title)
   
   ggsave(file_name, plot = p, width = 20, height = 20, units = "in", dpi = 300, bg = "white")
+  return(list(plot = p, correlations = cor_long))
   
-  return(p)
 }
 
 #ADD NO2/NO3 HERE
@@ -137,3 +137,4 @@ check <- plot_correlation_matrix(
   title = "Correlation Matrix Heatmap for Variable Selection", 
   variable_labels = variable_labels,
 )
+View(check$correlations)

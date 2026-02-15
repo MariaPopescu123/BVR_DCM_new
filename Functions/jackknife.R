@@ -16,7 +16,8 @@ jackknife_incMSE_heatmap <- function(
     var_order = NULL, response_var,
     whichvars_label = "", save_path = NULL,
     seed_base = 20240601,
-    variable_labels = NULL
+    variable_labels = NULL,
+    panel_label = NULL
 ) {
   
   # ---------- 0) Prep & cleaning ----------
@@ -215,7 +216,7 @@ jackknife_incMSE_heatmap <- function(
     geom_text(
       aes(label = sprintf("%.1f±%.1f", mean_incMSE, sd_incMSE),
           color = mean_incMSE < 2),
-      size = 2.8
+      size = 3.2
     ) +
     viridis::scale_fill_viridis(
       name = "Mean %IncMSE",
@@ -231,16 +232,20 @@ jackknife_incMSE_heatmap <- function(
     ) +
     scale_y_discrete(labels = y_lab_fun) +
     labs(
+      tag = panel_label,
       title = paste0(metric," Average variable importance based on %IncMSE (", year_min, " - ", year_max, ")"),
       subtitle = whichvars_label,
       x = "Year (n after cleaning)",
       y = "Variables (ordered by overall mean %IncMSE)"
     ) +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 13) +
     theme(
       panel.grid = element_blank(),
       axis.text.x = element_text(lineheight = 0.9),
-      plot.title = element_text(face = "bold")
+      plot.title = element_text(face = "bold", size = 15),
+      plot.subtitle = element_text(size = 12),
+      plot.tag = element_text(size = 18, face = "bold"),
+      plot.tag.position = c(0.01, 0.98)
     )
   # ---------- 2b) Overall importance across years ----------
   overall_importance <- imp_summary %>%
@@ -275,7 +280,7 @@ jackknife_incMSE_heatmap <- function(
   
   invisible(list(
     plot              = heat,
-    plot_df           = plot_df,        # what you already called "summary"
+    plot_df           = plot_df,        # "summary"
     imp_summary       = imp_summary,    # numeric mean±sd by Year × Variable
     imp_long          = imp_long,       # full jackknife distribution
     overall_importance = overall_importance, # cross-year ranking
