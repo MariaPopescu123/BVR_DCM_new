@@ -8,26 +8,26 @@ library(patchwork)
 chosen_variables <- full_weekly_data |>
   select(
     Date,
-    max_conc,                     # Maximum phytoplankton concentration (µg/L)
-    DCM_depth,                    # Deep Chlorophyll Maximum depth (m)
-    WaterLevel_m,                 # Reservoir water level (m)
-    PZ,                           # Photic zone depth (m)
-    N_at_DCM,                     # Buoyancy Frequency at DCM (s⁻¹)
-    schmidt_stability,            # Schmidt stability (J/m²)
-    thermocline_depth,            # Thermocline depth (m)
-    SFe_mgL_at_DCM,               # SFe (mg/L) at DCM
-    SRP_ugL_at_DCM,              # SRP (µg/L) at DCM
-    NH4_ugL_at_DCM,              # NH4 (µg/L) at DCM
-    depth_SFe_mgL_max,            # Depth of max soluble Fe (m)
-    depth_SRP_ugL_max,            # Depth of max SRP (m)
-    depth_NH4_ugL_max,            # Depth of max ammonium (m)
-    Precip_Weekly,                  # 1-week lag precipitation (mm)
-    AirTemp_Avg,                 # 2-week lag air temperature (°C)
-    WindSpeed_Avg                     # 1-week lag wind speed (m/s)
+    max_conc,
+    DCM_depth,
+    WaterLevel_m,
+    PZ,
+    N_at_DCM,
+    schmidt_stability,
+    thermocline_depth,
+    SFe_mgL_at_DCM,
+    SRP_ugL_at_DCM,
+    NH4_ugL_at_DCM,
+    depth_SFe_mgL_max,
+    depth_SRP_ugL_max,
+    depth_NH4_ugL_max,
+    Precip_Weekly,
+    AirTemp_Avg,
+    WindSpeed_Avg
   )
 
 variable_labels <- c(
-  max_conc = "Max Total Phytoplankton (µg/L)",
+  max_conc = "DCM Magnitude (µg/L)",
   DCM_depth = "DCM Depth (m)",
   WaterLevel_m = "Water Level (m)",
   PZ = "Photic Zone Depth (m)",
@@ -37,9 +37,11 @@ variable_labels <- c(
   SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
   SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
   NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
+  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ (µg/L) at DCM",
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
+  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
   Precip_Weekly  = "Precipitation Weekly Sum",
   precip_lag1    = "Precipitation Weekly Sum (Lag 1 wk)",
   precip_lag2    = "Precipitation Weekly Sum (Lag 2 wk)",
@@ -48,17 +50,11 @@ variable_labels <- c(
   airtemp_lag2   = "Air Temperature Weekly Average (Lag 2 wk)",
   WindSpeed_Avg  = "Wind Speed Weekly Average",
   wind_lag1      = "Wind Speed Weekly Average (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)", 
-  SO4_ugL_max_val = "Sulfate Max (µg/L)",
-  SO4_ugL_min_val = "Sulfate Min (µg/L)",
-  SO4_ugL_at_DCM  = "Sulfate (µg/L) at DCM",
-  depth_SO4_ugL_min = "Depth of Min Sulfate (m)",
-  depth_SO4_ugL_max = "Depth of Max Sulfate (m)"
+  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)"
 )
 
-
 #----overlapping years with lines----
-# Subset the relevant variables and filter by DOY
+
 variables_plot <- full_weekly_data %>%
   select(
     Date, DCM_depth, max_conc,
@@ -80,24 +76,34 @@ variables_plot <- full_weekly_data %>%
 # Keep only variable labels that exist in the dataset
 facet_vars <- intersect(names(variable_labels), colnames(variables_plot))
 
-# Pivot to long format and map pretty labels
+# Remove max_conc from pivot vars so it stays as a column for filtering
+pivot_vars <- setdiff(facet_vars, "max_conc")
+
+# Pivot everything except max_conc
 variables_plot_long <- variables_plot %>%
   pivot_longer(
-    cols = all_of(facet_vars),
+    cols = all_of(pivot_vars),
     names_to = "Variable",
     values_to = "Value"
   ) %>%
   mutate(
     Variable_label = factor(
       Variable,
-      levels = facet_vars,
-      labels = variable_labels[facet_vars]
+      levels = pivot_vars,
+      labels = variable_labels[pivot_vars]
     )
   )
 
-# Month ticks for May–October
-month_starts <- yday(as.Date(paste0("2001-", 5:10, "-01")))
-month_labs   <- month.abb[5:10]
+# Add max_conc rows back so it gets its own panel
+max_conc_rows <- variables_plot %>%
+  transmute(
+    Date, Year, DOY, Leap, DOY_season, max_conc,
+    Variable = "max_conc",
+    Value = max_conc,
+    Variable_label = factor("DCM Magnitude (µg/L)")
+  )
+
+variables_plot_long <- bind_rows(variables_plot_long, max_conc_rows)
 
 # Panels to reverse
 rev_labels <- c(
@@ -115,11 +121,14 @@ one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE) {
   d <- variables_plot_long %>%
     filter(Variable_label == label_text)
   
+  # For DCM Depth, only keep rows where max_conc > 20
+  if (label_text == "DCM Depth (m)") {
+    d <- d %>% filter(max_conc > 20)
+  }
+  
   p <- ggplot(d, aes(DOY_season, Value, color = Year, group = Year)) +
     geom_line(linewidth = 0.7, alpha = 0.9) +
     scale_x_continuous(
-      breaks = month_starts,
-      labels = month_labs,
       limits = c(133, 285),
       expand = expansion(mult = c(0.01, 0.01))
     ) +
@@ -167,7 +176,7 @@ row3 <- (
 
 # Row 4
 row4 <- (
-  R("Max Total Phytoplankton (µg/L)") +
+  R("DCM Magnitude (µg/L)") +
     R("SFe (mg/L) at DCM") +
     R("SRP (µg/L) at DCM") +
     R("NH₄⁺ (µg/L) at DCM")
@@ -184,10 +193,10 @@ p_final <- (row1 / row2 / row3 / row4) +
     )
   )
 
-print(p_final)
-
 ggsave(
   filename = "Figs/all_variables_visualized.png",
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 300, bg = "white"
 )
+#warnings are ok
+

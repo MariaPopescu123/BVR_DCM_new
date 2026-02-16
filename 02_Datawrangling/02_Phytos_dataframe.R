@@ -591,7 +591,7 @@ p_depth <- sig_grid_upper_fn(
 )
 
 p_mag <- sig_grid_upper_fn(
-  final_phytos_over20, "max_conc",
+  final_phytos, "max_conc",
   "B   Pairwise Differences by Year - DCM Magnitude"
 )
 
@@ -659,7 +659,7 @@ d <- ggplot(summary_df, aes(x = factor(Year))) +
 d
 
 #magnitude----
-final_phytos_over20 %>%
+final_phytos %>%
   group_by(Year) %>%
   summarise(
     n = n(),
@@ -670,7 +670,7 @@ final_phytos_over20 %>%
   )
 
 # Create the summary data
-summary_df <- final_phytos_over20 %>%
+summary_df <- final_phytos %>%
   group_by(Year) %>%
   summarise(
     median = median(max_conc, na.rm = TRUE),

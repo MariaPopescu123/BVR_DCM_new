@@ -77,7 +77,7 @@ depth_analysis_over20 <- full_weekly_data|>
     Date, DCM_depth,
     PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
     depth_NH4_ugL_max,depth_NO3NO2_ugL_max,depth_SRP_ugL_max, depth_SFe_mgL_max,
-    airtemp_lag2, wind_lag1)
+    airtemp_lag2, wind_lag2)
 
 finaldepthRF_over20 <- var_importance_shap_plots(
   Xdataframe      = depth_analysis_over20,
@@ -114,14 +114,13 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
 print(depth_jackknife_over20$plot)
 
 ####------magnitude-------####
-magnitude_analysis_over20 <- full_weekly_data|>
+magnitude_analysis <- full_weekly_data|>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
          SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM, 
-         airtemp_lag1, wind_lag1, precip_lag1)|>
-  filter(max_conc>20)
+         airtemp_lag1, wind_lag1, precip_lag1)
 
-finalmagnitudeRF_over20 <- var_importance_shap_plots(
-  Xdataframe      = magnitude_analysis_over20,
+finalmagnitudeRF <- var_importance_shap_plots(
+  Xdataframe      = magnitude_analysis,
   XYear           = 2015,
   XYear2          = 2024,
   whichvars       = "",
@@ -131,15 +130,15 @@ finalmagnitudeRF_over20 <- var_importance_shap_plots(
 )
 
 
-magnitude_jackknife_over20 <- jackknife_incMSE_heatmap(
-  Xdataframe     = magnitude_analysis_over20,
+magnitude_jackknife <- jackknife_incMSE_heatmap(
+  Xdataframe     = magnitude_analysis,
   year_min       = 2015,
   year_max       = 2024,
   metric = "B DCM Magnitude",
-  var_order = finalmagnitudeRF_over20$var_order,
+  var_order = finalmagnitudeRF$var_order,
   response_var   = "max_conc",
   whichvars_label= "",
-  save_path      = here::here("Figs","MachineLearning","Magnitude","OVER20MagnitudeJackknife_Heatmap.png"), 
+  save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png"), 
   variable_labels = variable_labels, 
   panel_label = "B"
 )
@@ -159,8 +158,8 @@ other_theme <- theme(
 
 p1 <- finaldepthRF_over20$plots$importance + labs(tag = "A") + tag_theme
 p2 <- finaldepthRF_over20$plots$shap + labs(tag = "B") + other_theme
-p3 <- finalmagnitudeRF_over20$plots$importance + labs(tag = "C") + tag_theme
-p4 <- finalmagnitudeRF_over20$plots$shap + labs(tag = "D") + other_theme
+p3 <- finalmagnitudeRF$plots$importance + labs(tag = "C") + tag_theme
+p4 <- finalmagnitudeRF$plots$shap + labs(tag = "D") + other_theme
 
 combined_RF_panels <- (p1 + p2) / (p3 + p4)
 
@@ -181,12 +180,12 @@ print(finaldepthRF_over20$counts)
 
 
 
-print(finalmagnitudeRF_over20$tuning_scores)
-print(finalmagnitudeRF_over20$importance_table) #most helpful
-print(finalmagnitudeRF_over20$shap_long)
-print(finalmagnitudeRF_over20$shap_long_filtered)
-print(finalmagnitudeRF_over20$model_details)
-print(finalmagnitudeRF_over20$counts)
+print(finalmagnitudeRF$tuning_scores)
+print(finalmagnitudeRF$importance_table) #most helpful
+print(finalmagnitudeRF$shap_long)
+print(finalmagnitudeRF$shap_long_filtered)
+print(finalmagnitudeRF$model_details)
+print(finalmagnitudeRF$counts)
 
 ####-----interaction plots for SHAP vs value----####
 
@@ -225,7 +224,7 @@ vars_to_plot <- c(
   "thermocline_depth", 
   "schmidt_stability",
   "depth_NO3NO2_ugL_max",
-  "wind_lag1",
+  "wind_lag2",
   "airtemp_lag2"
 )
 
@@ -241,7 +240,7 @@ plot_shap_vs_value_loop(
 
 
 #----magnitude----
-magnitudeshap <- finalmagnitudeRF_over20$shap_long
+magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- c(
   "WaterLevel_m",
   "N_at_DCM",
@@ -266,7 +265,7 @@ plot_shap_vs_value_loop(
 
 #for all variables S9----
 
-magnitudeshap <- finalmagnitudeRF_over20$shap_long
+magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- c(
   "WaterLevel_m",
   "N_at_DCM",

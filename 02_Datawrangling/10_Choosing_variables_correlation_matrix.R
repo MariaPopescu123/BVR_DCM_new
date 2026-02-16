@@ -138,3 +138,169 @@ check <- plot_correlation_matrix(
   variable_labels = variable_labels,
 )
 View(check$correlations)
+
+
+#Stats to produce Table S2 summary statistics----
+# ── Variable labels (display order) ──
+variable_labels <- c(
+  DCM_depth = "DCM Depth (m)",
+  max_conc = "DCM Magnitude (µg/L)",
+  WaterLevel_m = "Water Level (m)",
+  PZ = "Photic Zone Depth (m)",
+  PZ_prop = "PZ / Water Level Proportion",
+  thermocline_depth = "Thermocline Depth (m)",
+  schmidt_stability = "Schmidt Stability (J/m²)",
+  N_at_DCM = "Buoyancy Frequency at DCM (s⁻¹)",
+  SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
+  depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
+  SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
+  depth_SRP_ugL_max = "Depth of Max SRP (m)",
+  NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
+  depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
+  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ (µg/L) at DCM",
+  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
+  Precip_Weekly = "Weekly Precipitation Sum",
+  AirTemp_Avg = "Air Temperature Weekly Avg",
+  WindSpeed_Avg = "Wind Speed Weekly Avg")
+
+# ── Read data ──
+full_weekly_data <- full_weekly_data %>%
+  mutate(Date = as.Date(Date),
+         Year = year(Date))
+
+# ── Compute overall summary ──
+vars_to_use <- names(variable_labels)[names(variable_labels) %in% names(full_weekly_data)]
+overall_summary <- bind_rows(lapply(vars_to_use, function(v) {
+  
+  # Apply filter ONLY for DCM depth
+  if (v == "dcm_depth") {
+    data_used <- full_weekly_data %>%
+      filter(max_conc > 20)
+    
+    var_label <- paste0(variable_labels[v], "*")
+    
+  } else {
+    data_used <- full_weekly_data
+    var_label <- variable_labels[v]
+  }
+  
+  s <- data_used[[v]]
+  s_clean <- s[!is.na(s)]
+  
+  # Yearly stats
+  yearly <- data_used %>%
+    filter(!is.na(.data[[v]])) %>%
+    group_by(Year) %>%
+    summarise(
+      yr_mean = mean(.data[[v]], na.rm = TRUE),
+      yr_sd = sd(.data[[v]], na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # Min row
+  min_row <- data_used %>%
+    filter(!is.na(.data[[v]])) %>%
+    filter(.data[[v]] == min(.data[[v]], na.rm = TRUE)) %>%
+    slice(1)
+  
+  # Max row
+  max_row <- data_used %>%
+    filter(!is.na(.data[[v]])) %>%
+    filter(.data[[v]] == max(.data[[v]], na.rm = TRUE)) %>%
+    slice(1)
+  
+  min_val <- round(min_row[[v]], 3)
+  min_year <- min_row$Year
+  
+  max_val <- round(max_row[[v]], 3)
+  max_year <- max_row$Year
+  
+  # Lowest yearly mean
+  lowest_year <- yearly %>%
+    filter(yr_mean == min(yr_mean, na.rm = TRUE)) %>%
+    slice(1)
+  
+  lowest_year_text <- paste0(
+    lowest_year$Year, " (",
+    round(lowest_year$yr_mean, 3), " ± ",
+    round(lowest_year$yr_sd, 3), ")"
+  )
+  
+  # Highest yearly mean
+  highest_year <- yearly %>%
+    filter(yr_mean == max(yr_mean, na.rm = TRUE)) %>%
+    slice(1)
+  
+  highest_year_text <- paste0(
+    highest_year$Year, " (",
+    round(highest_year$yr_mean, 3), " ± ",
+    round(highest_year$yr_sd, 3), ")"
+  )
+  
+  tibble(
+    Variable = unname(var_label),
+    Mean = round(mean(s_clean), 3),
+    Median = round(median(s_clean), 3),
+    SD = round(sd(s_clean), 3),
+    `CV (%)` = round(sd(s_clean) / mean(s_clean) * 100, 1),
+    
+    Min = paste0(min_val, " (", min_year, ")"),
+    Max = paste0(max_val, " (", max_year, ")"),
+    
+    Range = round(max(s_clean) - min(s_clean), 3),
+    Q25 = round(quantile(s_clean, 0.25), 3),
+    Q75 = round(quantile(s_clean, 0.75), 3),
+    IQR = round(IQR(s_clean), 3),
+    
+    `Within-Year SD` = round(mean(yearly$yr_sd, na.rm = TRUE), 3),
+    `Between-Year SD` = round(sd(yearly$yr_mean, na.rm = TRUE), 3),
+    
+    `Lowest Yearly Mean` = lowest_year_text,
+    `Highest Yearly Mean` = highest_year_text
+  )
+  
+}))
+
+# save as CSV
+write.csv(overall_summary, "CSVs/summary_statistics_overall.csv", row.names = FALSE)
+
+#yearly stats----
+
+stats <- full_weekly_data|>
+  mutate(Year = year(Date))
+
+yearly_stats <- bind_rows(lapply(vars_to_use, function(v) {
+  # Apply filter ONLY for DCM_depth
+  if (v == "DCM_depth") {
+    data_used <- stats %>%
+      filter(max_conc > 20)
+  } else {
+    data_used <- stats
+  }
+  data_used %>%
+    filter(!is.na(.data[[v]])) %>%
+    group_by(Year) %>%
+    summarise(
+      Variable = v,
+      N = n(),
+      Mean = mean(.data[[v]], na.rm = TRUE),
+      SD = sd(.data[[v]], na.rm = TRUE),
+      CV_percent = (SD / Mean) * 100,
+      Min = min(.data[[v]], na.rm = TRUE),
+      Max = max(.data[[v]], na.rm = TRUE),
+      Range = Max - Min,
+      Median = median(.data[[v]], na.rm = TRUE),
+      Q25 = quantile(.data[[v]], 0.25, na.rm = TRUE),
+      Q75 = quantile(.data[[v]], 0.75, na.rm = TRUE),
+      IQR = IQR(.data[[v]], na.rm = TRUE),
+      .groups = "drop"
+    )
+}))
+
+write.csv(
+  yearly_stats,
+  "CSVs/yearly_variable_stats.csv",
+  row.names = FALSE
+)
+
+
