@@ -25,7 +25,7 @@ phytos <- phytos_df %>%
   mutate(Week = week(Date))|>
   mutate(Year = year(Date))|>
   mutate(DOY = yday(Date))|>
-  filter(year(Date) >2014)
+  filter(year(Date) >2014, year(Date) <2025)
 
 write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
 phytos <- read.csv("CSVs/phytos.csv")
@@ -119,6 +119,11 @@ ggsave(
 if (!dir.exists("Figs")) {
   dir.create("Figs")
 }
+
+if (!dir.exists("Figs/Phytos_viz")) {
+  dir.create("Figs/Phytos_viz")
+}
+
 
 # Prepare your data with FacetID
 DCM_metrics <- phytos |>
@@ -379,6 +384,7 @@ depth_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
 
 ####boxplots magnitude of DCM
 #visualizing just one box per year
+dir.create("Figs/Data_availability", recursive = TRUE, showWarnings = FALSE)
 
 boxplot_Data <- final_DCM_metrics |>
   filter(max_conc > 20) |>
@@ -649,7 +655,7 @@ d <- ggplot(summary_df, aes(x = factor(Year))) +
   scale_y_reverse() +
   scale_fill_manual(name = NULL, values = c("IQR" = "grey80")) +
   labs(
-    y = "Max phytoplankton concentration",
+    y = "DCM depth (m)",
     x = "Year",
     title = "A   DCM Depth Median and Mean ± SE by Year"
   ) +

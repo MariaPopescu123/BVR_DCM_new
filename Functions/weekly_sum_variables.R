@@ -98,11 +98,11 @@ weekly_sum_variables <- function(df, variables) {
     
     df_filtered |>
       summarise(
-        !!paste0("depth_", var, "_max") := .depth_at_extreme(cur_data(), var, "max"),
-        !!paste0("depth_", var, "_min") := .depth_at_extreme(cur_data(), var, "min"),
+        !!paste0("depth_", var, "_max") := .depth_at_extreme(pick(everything()), var, "max"),
+        !!paste0("depth_", var, "_min") := .depth_at_extreme(pick(everything()), var, "min"),
         !!paste0(var, "_max_val")       := max_na(!!var_sym),
         !!paste0(var, "_min_val")       := min_na(!!var_sym),
-        !!paste0(var, "_at_DCM")        := .value_at_dcm(cur_data(), var),
+        !!paste0(var, "_at_DCM")        := .value_at_dcm(pick(everything()), var),
         .groups = "drop"
       )
   })

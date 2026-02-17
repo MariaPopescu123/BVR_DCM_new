@@ -1,8 +1,8 @@
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-
 full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
+
+if (!dir.exists("Figs/correlations")){
+  dir.create("Figs/correlations")
+}
 
 ####visualize chosen variables####
 

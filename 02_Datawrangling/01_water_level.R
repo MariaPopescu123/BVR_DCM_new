@@ -64,6 +64,8 @@ BVRplatform2_interpolated <- DOY_year_ref |>
   filter(Year > 2019, Site == 50)|>
   arrange(Year, DOY)|>
   select(Year, DOY, DateTime, LvlDepth_m_13)
+#warnings ok
+
 
 #make data frame for waterlevels
 start_date <- as.Date("2015-01-01")
@@ -138,40 +140,11 @@ wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = fa
 
 print(wtrlvl_by_year)
 
-ggsave("Figs/WaterLevel_colored_by_year.png", wtrlvl_by_year, width = 8, height = 5, dpi = 600, bg = "white")
-
-
 #final csv
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
 
 
 #additional stats for paper 
-
-#How much did water level drop in 2022 
-water2022 <- water_level|>
-  filter(Year == 2022)
-
-#checking within year and across year variability
-var_summary <- weekly_water_level %>%
-  group_by(Year) %>%
-  summarise(
-    n = n(),
-    mean_val = mean(WaterLevel_m, na.rm = TRUE),
-    sd_within = sd(WaterLevel_m, na.rm = TRUE),
-    cv_within = sd_within / mean_val
-  )
-across_year <- var_summary %>%
-  summarise(
-    mean_across = mean(mean_val),
-    sd_across   = sd(mean_val),
-    cv_across   = sd_across / mean_across
-  )
-variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
-
-print(var_summary)
-print(across_year)
-print(variability_ratio)
-
 #water level ranges before and after 2022
 before2022 <- weekly_water_level %>%
   filter(Year < 2022)

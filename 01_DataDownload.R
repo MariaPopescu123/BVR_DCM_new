@@ -54,7 +54,6 @@ secchiframe <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/3
 #ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
 ysi_profiles <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
-write.csv(ysi_profiles, "CSVs/ysi_profiles.csv")
 
 ##chemistry: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
 #updated 2025

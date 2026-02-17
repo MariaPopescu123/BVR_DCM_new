@@ -290,3 +290,118 @@ ggsave("Figs/Phytos_viz/FP_casts_2025.png",
        plot = plot_casts,
        width = 13, height = 7, units = "in",
        dpi = 300)  # high-res
+
+#----alternative Heatmap----
+flora_heatmap <- function(
+    fp_data, year, site, z, unitz, global_max,
+    show_legend = TRUE, wl_col = "WaterLevel_m",
+    max_depth = 12.5
+) {
+  doy_min <- 133
+  doy_max <- 285
+  
+  base <- fp_data %>%
+    mutate(Date = as.Date(Date), DOY = lubridate::yday(Date)) %>%
+    filter(lubridate::year(Date) == year, Site == site,
+           DOY >= doy_min, DOY <= doy_max)
+  
+  # Flip depth: 0 = lake bed, WaterLevel = surface
+  base <- base %>%
+    mutate(Depth_flipped = .data[[wl_col]] - Depth_m)
+  
+  have_z <- nrow(base) && any(is.finite(base[[z]]))
+  if (have_z) {
+    base_clean <- base %>%
+      filter(is.finite(DOY), is.finite(Depth_flipped), is.finite(.data[[z]]))
+    have_z <- nrow(base_clean) && any(is.finite(base_clean[[z]]))
+    if (have_z) {
+      io <- akima::interp(
+        x = base_clean$DOY, y = base_clean$Depth_flipped, z = base_clean[[z]],
+        duplicate = "mean", nx = 200, ny = 200
+      )
+      interp <- expand.grid(x = io$x, y = io$y)
+      interp$z <- as.vector(io$z)
+    } else {
+      interp <- tibble(x = numeric(), y = numeric(), z = numeric())
+    }
+  } else {
+    interp <- tibble(x = numeric(), y = numeric(), z = numeric())
+  }
+  
+  fig_title <- as.character(year)
+  
+  p <- ggplot() +
+    geom_raster(data = interp, aes(x = x, y = y, fill = z)) +
+    scale_y_continuous(
+      expand = c(0, 0),
+      limits = c(0, max_depth),
+      breaks = seq(0, max_depth, by = 2)
+    ) +
+    scale_x_continuous(
+      expand = c(0, 0),
+      limits = c(doy_min, doy_max),
+      breaks = seq(doy_min, doy_max, by = 30)
+    ) +
+    scale_fill_gradientn(
+      colours = c(colorRamps::blue2green2red(60), rep("black", 12)),
+      values  = if (have_z) scales::rescale(c(0, 40, 80, 110, global_max)) else NULL,
+      limits  = if (have_z) c(0, global_max) else NULL,
+      oob     = scales::squish,
+      na.value = "grey70"
+    ) +
+    labs(
+      x = "Day of Year",
+      y = "Height above bed (m)",
+      title = fig_title,
+      fill = unitz
+    ) +
+    coord_cartesian(
+      xlim = c(doy_min, doy_max),
+      ylim = c(0, max_depth),
+      expand = FALSE, clip = "on"
+    ) +
+    theme_bw(base_size = 14) +
+    theme(
+      legend.text       = element_text(size = 10),
+      legend.title      = element_text(size = 12),
+      legend.key.size   = unit(0.6, "cm"),
+      panel.background  = element_rect(fill = "white", colour = NA),
+      plot.background   = element_rect(fill = "white", colour = NA)
+    )
+  
+  if (!show_legend) p <- p + theme(legend.position = "none")
+  if (!have_z) p <- p + annotate("text", x = doy_min + 5, y = 0.5 * max_depth,
+                                 label = "(no data)", hjust = 0, size = 5)
+  p
+}
+
+
+# build all plots
+# Build all plots but only the last one keeps its legend
+plots <- list(
+  flora_heatmap(phytos_heatmaps, 2015, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2016, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2017, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2018, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2019, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2020, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2021, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2022, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2023, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
+  flora_heatmap(phytos_heatmaps, 2024, 50, "TotalConc_ugL", "ug/L", global_max_val, TRUE)   # only this keeps legend
+)
+#warnings are ok
+
+# Combine with patchwork, collect only that one legend
+final_with_legend <-
+  (plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + plots[[5]] +
+     plots[[6]] + plots[[7]] + plots[[8]] + plots[[9]] + plots[[10]]) +
+  plot_layout(ncol = 5, guides = "collect") +
+  plot_annotation(theme = theme(legend.position = "right"))
+
+ggsave(
+  filename = "Figs/Phytos_viz/anchored_final_phytos_heatmap_plot.png",
+  plot = final_with_legend,
+  width = 20, height = 7, dpi = 300, bg = "white",
+  device = ragg::agg_png   
+)

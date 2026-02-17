@@ -71,51 +71,7 @@ schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color
   ) +
   theme_minimal()
 schmidt_plot
+#warnings ok
 
 #this is the final dataframe that will be used in RF analysis
 write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)
-
-#checking within year and across year variability
-var_summary <- final_schmidt %>%
-  group_by(Year) %>%
-  summarise(
-    n = n(),
-    mean_val = mean(schmidt_stability, na.rm = TRUE),
-    sd_within = sd(schmidt_stability, na.rm = TRUE),
-    cv_within = sd_within / mean_val
-  )
-
-across_year <- var_summary %>%
-  summarise(
-    mean_across = mean(mean_val),
-    sd_across   = sd(mean_val),
-    cv_across   = sd_across / mean_across
-  )
-
-variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
-
-
-
-#Additional Stats
-
-#checking within year and across year variability
-var_summary <- final_schmidt %>%
-  group_by(Year) %>%
-  summarise(
-    n = n(),
-    mean_val = mean(schmidt_stability, na.rm = TRUE),
-    sd_within = sd(schmidt_stability, na.rm = TRUE),
-    cv_within = sd_within / mean_val
-  )
-across_year <- var_summary %>%
-  summarise(
-    mean_across = mean(mean_val),
-    sd_across   = sd(mean_val),
-    cv_across   = sd_across / mean_across
-  )
-
-variability_ratio <- mean(var_summary$sd_within) / across_year$sd_across
-
-print(var_summary)
-print(variability_ratio)
-

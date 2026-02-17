@@ -8,6 +8,18 @@
 #response_var (either DCM_depth or max_conc)
 #save_dir = either "Depth" or "Magnitude"
 
+dirs <- c(
+  "Figs/MachineLearning",
+  "Figs/MachineLearning/Depth",
+  "Figs/MachineLearning/Magnitude",
+  "Figs/MachineLearning/SHAP_interaction/Depth",
+  "Figs/MachineLearning/SHAP_interaction/Magnitude"
+)
+
+for (d in dirs) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+}
+
 ####DEPTH weather lags to produce Figure S4####
 met_lags <- full_weekly_data |>
   filter(max_conc>20)|>
@@ -26,7 +38,6 @@ depth_metRF <- var_importance_shap_plots(
 #------------------------------------------------------------------------------#
 ####MAGNITUDE weather lags####
 met_lags <- full_weekly_data |>
-  filter(max_conc>20)|>
   select(Date, max_conc,
          precip_lag1, precip_lag2,
          airtemp_lag1, airtemp_lag2,
@@ -58,10 +69,6 @@ p4 <- magnitudemetRF$plots$shap + labs(tag = "D") + other_theme
 
 combined_RF_panels <- (p1 + p2) / (p3 + p4)
 
-if (!dir.exists("Figs/MachineLearning")) {
-  dir.create("Figs/MachineLearning", recursive = TRUE)
-}
-
 ggsave(
   filename = here::here("Figs", "MachineLearning", "Met_combinedRF.png"),
   plot = combined_RF_panels,
@@ -90,19 +97,12 @@ finaldepthRF_over20 <- var_importance_shap_plots(
 )
 
 #####Jackknife#####
-if (!dir.exists("Figs/MachineLearning/Depth")) {
-  dir.create("Figs/MachineLearning/Depth", recursive = TRUE)
-}
-if (!dir.exists("Figs/MachineLearning/Magnitude")) {
-  dir.create("Figs/MachineLearning/Magnitude", recursive = TRUE)
-}
-
 #this is for viewing to see how robust the model is across years
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = depth_analysis_over20,
   year_min       = 2015,
   year_max       = 2024,
-  metric = "A DCM Depth",
+  metric = "DCM Depth",
   var_order = finaldepthRF_over20$var_order,
   response_var   = "DCM_depth",
   whichvars_label= "",
@@ -117,7 +117,7 @@ print(depth_jackknife_over20$plot)
 magnitude_analysis <- full_weekly_data|>
   select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
          SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM, 
-         airtemp_lag1, wind_lag1, precip_lag1)
+         airtemp_lag1, wind_lag1)
 
 finalmagnitudeRF <- var_importance_shap_plots(
   Xdataframe      = magnitude_analysis,
@@ -134,7 +134,7 @@ magnitude_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = magnitude_analysis,
   year_min       = 2015,
   year_max       = 2024,
-  metric = "B DCM Magnitude",
+  metric = "DCM Magnitude",
   var_order = finalmagnitudeRF$var_order,
   response_var   = "max_conc",
   whichvars_label= "",
@@ -201,9 +201,6 @@ vars_to_plot <- c(
   "thermocline_depth"
 )
 
-if (!dir.exists("Figs/MachineLearning/SHAP_interaction/Depth")) {
-  dir.create("Figs/MachineLearning/SHAP_interaction/Depth", recursive = TRUE)
-}
 
 plot_shap_vs_value_loop(
   shap_df = depthshap,
@@ -250,10 +247,6 @@ vars_to_plot <- c(
   "NH4_ugL_at_DCM"
 )
 
-if (!dir.exists("Figs/MachineLearning/SHAP_interaction/Magnitude")) {
-  dir.create("Figs/MachineLearning/SHAP_interaction/Magnitude", recursive = TRUE)
-}
-
 plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
   vars_to_plot = vars_to_plot,
@@ -277,14 +270,11 @@ vars_to_plot <- c(
   "SFe_mgL_at_DCM",
   "NO3NO2_ugL_at_DCM",
   "SRP_ugL_at_DCM",
-  "precip_lag1",
   "airtemp_lag1"
 )
 
 
-if (!dir.exists("Figs/MachineLearning/SHAP_interaction/Magnitude")) {
-  dir.create("Figs/MachineLearning/SHAP_interaction/Magnitude", recursive = TRUE)
-}
+
 
 plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
