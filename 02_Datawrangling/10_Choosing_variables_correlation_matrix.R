@@ -1,3 +1,9 @@
+# #this script:
+# 1) creates labels for ML figures
+# 2) visualizes chosen variables for figure S1
+# 3) summarizes statistics for Table S2 and Table S3
+
+
 full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
 
 if (!dir.exists("Figs/correlations")){
@@ -261,7 +267,7 @@ overall_summary <- bind_rows(lapply(vars_to_use, function(v) {
   
 }))
 
-# save as CSV
+# save as CSV for Table S2
 write.csv(overall_summary, "CSVs/summary_statistics_overall.csv", row.names = FALSE)
 
 #yearly stats----
@@ -297,6 +303,7 @@ yearly_stats <- bind_rows(lapply(vars_to_use, function(v) {
     )
 }))
 
+#save as CSV for Table S3
 write.csv(
   yearly_stats,
   "CSVs/yearly_variable_stats.csv",
