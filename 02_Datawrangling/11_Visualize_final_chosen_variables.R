@@ -21,15 +21,15 @@ variable_labels <- c(
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
   depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
-  Precip_Weekly  = "Precipitation Weekly Sum",
-  precip_lag1    = "Precipitation Weekly Sum (Lag 1 wk)",
-  precip_lag2    = "Precipitation Weekly Sum (Lag 2 wk)",
-  AirTemp_Avg    = "Air Temperature Weekly Average",
-  airtemp_lag1   = "Air Temperature Weekly Average (Lag 1 wk)",
-  airtemp_lag2   = "Air Temperature Weekly Average (Lag 2 wk)",
-  WindSpeed_Avg  = "Wind Speed Weekly Average",
-  wind_lag1      = "Wind Speed Weekly Average (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)"
+  Precip_Weekly  = "Precipitation Weekly Sum (mm)",
+  precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
+  precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
+  AirTemp_Avg    = "Air Temperature Weekly Average (\u00b0C)",
+  airtemp_lag1   = "Air Temperature Weekly Average \u00b0C (Lag 1 wk)",
+  airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
+  WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
+  wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
+  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
 )
 
 # ---- helper: standard DOY_season + filtering ----
@@ -171,9 +171,9 @@ row1 <- (
 
 row2 <- (
   R("Buoyancy Frequency at DCM (s⁻¹)") +
-    R("Precipitation Weekly Sum") +
-    R("Air Temperature Weekly Average") +
-    R("Wind Speed Weekly Average")
+    R("Precipitation Weekly Sum (mm)") +
+    R("Air Temperature Weekly Average (\u00b0C)") +
+    R("Wind Speed Weekly Average (m/s)")
 ) + plot_layout(ncol = 4)
 
 row3 <- (
