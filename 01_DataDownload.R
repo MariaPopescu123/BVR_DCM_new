@@ -61,7 +61,7 @@ chemistry <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f0
 
 #meteorological data from FCR https://portal.edirepository.org/nis/codeGeneration?packageId=edi.389.10&statisticalFileType=r
 options(timeout = 9999999)
-metdata <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
+metdata <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
 EDImet <- metdata
 
 #bathymetry data for BVR https://portal.edirepository.org/nis/metadataviewer?packageid=edi.1254.1
