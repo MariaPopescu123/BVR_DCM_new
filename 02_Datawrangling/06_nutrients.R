@@ -48,8 +48,7 @@ variables <- c("SRP_ugL", "NH4_ugL", "NO3NO2_ugL")
 chem_weekly_sum <- weekly_sum_variables(chem_interpolated3, variables)
 
 #join to frame with correct dates
-final_chem <- frame_weeks|>
-  left_join(chem_weekly_sum, by = c("Week", "Year"))
+final_chem <- chem_weekly_sum
 
 write.csv(final_chem, "CSVs/final_chem.csv", row.names = FALSE)
 
@@ -85,7 +84,6 @@ metals_interpolated3 <- metals_interpolated2|>
 variables <- c("SFe_mgL")
 metals_weekly_sum <- weekly_sum_variables(metals_interpolated3, variables)
 
-final_metals <- frame_weeks|> #random forest frame with metals
-  left_join(metals_weekly_sum, by = c("Week", "Year"))
+final_metals <- metals_weekly_sum
 
 write.csv(final_metals, "CSVs/final_metals.csv", row.names = FALSE)

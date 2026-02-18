@@ -25,7 +25,6 @@ buoyancy_with_dcm <- joined_df |>
   summarise(N_at_DCM = mean(N_at_DCM, na.rm = TRUE))|>
   ungroup()
 
-final_buoyancy <- frame_weeks|>
-  left_join(buoyancy_with_dcm, by = c("Week", "Year"))
+final_buoyancy <- buoyancy_with_dcm
 
 write.csv(final_buoyancy, "CSVs/final_buoyancy.csv", row.names = FALSE)

@@ -5,27 +5,6 @@ library(lubridate)
 library(ggplot2)
 library(patchwork)
 
-chosen_variables <- full_weekly_data |>
-  select(
-    Date,
-    max_conc,
-    DCM_depth,
-    WaterLevel_m,
-    PZ,
-    N_at_DCM,
-    schmidt_stability,
-    thermocline_depth,
-    SFe_mgL_at_DCM,
-    SRP_ugL_at_DCM,
-    NH4_ugL_at_DCM,
-    depth_SFe_mgL_max,
-    depth_SRP_ugL_max,
-    depth_NH4_ugL_max,
-    Precip_Weekly,
-    AirTemp_Avg,
-    WindSpeed_Avg
-  )
-
 variable_labels <- c(
   max_conc = "DCM Magnitude (µg/L)",
   DCM_depth = "DCM Depth (m)",
@@ -53,49 +32,81 @@ variable_labels <- c(
   wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)"
 )
 
-#----overlapping years with lines----
+# ---- helper: standard DOY_season + filtering ----
+prep_for_plot <- function(df, date_col = "Date") {
+  df %>%
+    mutate(
+      Date       = as.Date(.data[[date_col]]),
+      Week       = week(Date),
+      Year       = factor(year(Date)),
+      DOY        = yday(Date),
+      Leap       = leap_year(year(Date)),
+      DOY_season = (Week - 1) * 7 + 4
+    ) %>%
+    filter(year(Date) > 2014, year(Date) < 2025) %>%
+    filter(DOY_season > 133, DOY_season < 285)
+}
 
-variables_plot <- full_weekly_data %>%
-  select(
-    Date, DCM_depth, max_conc,
-    WaterLevel_m, PZ, schmidt_stability, thermocline_depth, N_at_DCM,
-    SFe_mgL_at_DCM, SRP_ugL_at_DCM, NH4_ugL_at_DCM,
-    depth_SFe_mgL_max, depth_SRP_ugL_max, depth_NH4_ugL_max,
-    Precip_Weekly, AirTemp_Avg, WindSpeed_Avg
-  ) %>%
-  filter(year(Date) > 2014) %>%
-  mutate(
-    Date       = as.Date(Date),
-    Year       = factor(year(Date)),
-    DOY        = yday(Date),
-    Leap       = leap_year(year(Date)),
-    DOY_season = if_else(Leap & DOY > 59, DOY - 1L, DOY)
-  ) %>%
-  filter(DOY_season > 133, DOY_season < 285)
-
-# Keep only variable labels that exist in the dataset
-facet_vars <- intersect(names(variable_labels), colnames(variables_plot))
-
-# Remove max_conc from pivot vars so it stays as a column for filtering
-pivot_vars <- setdiff(facet_vars, "max_conc")
-
-# Pivot everything except max_conc
-variables_plot_long <- variables_plot %>%
-  pivot_longer(
-    cols = all_of(pivot_vars),
-    names_to = "Variable",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Variable_label = factor(
-      Variable,
-      levels = pivot_vars,
-      labels = variable_labels[pivot_vars]
+make_long <- function(df, vars) {
+  df %>%
+    pivot_longer(
+      cols = all_of(vars),
+      names_to = "Variable",
+      values_to = "Value"
+    ) %>%
+    mutate(
+      Variable_label = factor(Variable,
+                              levels = vars,
+                              labels = variable_labels[vars]
+      )
     )
-  )
+}
 
-# Add max_conc rows back so it gets its own panel
-max_conc_rows <- variables_plot %>%
+# ---- 1. Met variables (~52 wks/yr) ----
+met_vars <- c("Precip_Weekly", "AirTemp_Avg", "WindSpeed_Avg")
+
+met_long <- final_metdata %>%
+  rename(
+    AirTemp_Avg   = weekly_airtempavg,
+    WindSpeed_Avg = WindSpeed_Weekly_Average_m_s,
+    Precip_Weekly = precip_weekly
+  ) %>%
+  prep_for_plot() %>%
+  make_long(met_vars) %>%
+  mutate(max_conc = NA_real_)
+
+# ---- 2. Photic zone & thermocline (53 wks/yr) ----
+photic_vars <- c("PZ", "thermocline_depth")
+
+photic_long <- final_photic_thermo %>%
+  mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1)) %>%
+  prep_for_plot() %>%
+  make_long(photic_vars) %>%
+  mutate(max_conc = NA_real_)
+
+# ---- 3. Schmidt stability (~19-22 wks/yr) ----
+schmidt_vars <- c("schmidt_stability")
+
+schmidt_long <- final_schmidt %>%
+  # schmidt has no Date, build one from Year + Week
+  mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1)) %>%
+  prep_for_plot() %>%
+  make_long(schmidt_vars) %>%
+  mutate(max_conc = NA_real_)
+
+# ---- 4. Sampling-frequency variables (from full_weekly_data) ----
+sampling_vars <- c(
+  "DCM_depth", "WaterLevel_m", "N_at_DCM",
+  "SFe_mgL_at_DCM", "SRP_ugL_at_DCM", "NH4_ugL_at_DCM",
+  "depth_SFe_mgL_max", "depth_SRP_ugL_max", "depth_NH4_ugL_max"
+)
+
+sampling_base <- full_weekly_data %>% prep_for_plot()
+
+sampling_long <- sampling_base %>% make_long(sampling_vars)
+
+# max_conc as its own panel
+max_conc_rows <- sampling_base %>%
   transmute(
     Date, Year, DOY, Leap, DOY_season, max_conc,
     Variable = "max_conc",
@@ -103,9 +114,13 @@ max_conc_rows <- variables_plot %>%
     Variable_label = factor("DCM Magnitude (µg/L)")
   )
 
-variables_plot_long <- bind_rows(variables_plot_long, max_conc_rows)
+# ---- 5. Combine all ----
+variables_plot_long <- bind_rows(
+  sampling_long, max_conc_rows,
+  met_long, photic_long, schmidt_long
+)
 
-# Panels to reverse
+# ---- Plotting ----
 rev_labels <- c(
   "Water Level (m)",
   "Photic Zone Depth (m)",
@@ -116,12 +131,10 @@ rev_labels <- c(
   "Depth of Max NH₄⁺ (m)"
 )
 
-# Single-panel plotting helper
 one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE) {
   d <- variables_plot_long %>%
     filter(Variable_label == label_text)
   
-  # For DCM Depth, only keep rows where max_conc > 20
   if (label_text == "DCM Depth (m)") {
     d <- d %>% filter(max_conc > 20)
   }
@@ -149,8 +162,6 @@ one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE) {
 R <- function(lbl, show_legend = FALSE) one_panel(lbl, lbl %in% rev_labels, show_legend)
 
 # ---- Build 4x4 layout ----
-
-# Row 1
 row1 <- (
   R("Water Level (m)", show_legend = TRUE) +
     R("Photic Zone Depth (m)") +
@@ -158,7 +169,6 @@ row1 <- (
     R("Schmidt Stability (J/m²)")
 ) + plot_layout(ncol = 4)
 
-# Row 2
 row2 <- (
   R("Buoyancy Frequency at DCM (s⁻¹)") +
     R("Precipitation Weekly Sum") +
@@ -166,7 +176,6 @@ row2 <- (
     R("Wind Speed Weekly Average")
 ) + plot_layout(ncol = 4)
 
-# Row 3
 row3 <- (
   R("DCM Depth (m)") +
     R("Depth of Max Soluble Fe (m)") +
@@ -174,7 +183,6 @@ row3 <- (
     R("Depth of Max NH₄⁺ (m)")
 ) + plot_layout(ncol = 4)
 
-# Row 4
 row4 <- (
   R("DCM Magnitude (µg/L)") +
     R("SFe (mg/L) at DCM") +
@@ -182,7 +190,6 @@ row4 <- (
     R("NH₄⁺ (µg/L) at DCM")
 ) + plot_layout(ncol = 4)
 
-# Final combined plot
 p_final <- (row1 / row2 / row3 / row4) +
   plot_layout(guides = "collect") +
   plot_annotation(
@@ -198,5 +205,4 @@ ggsave(
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 300, bg = "white"
 )
-#warnings are ok
-
+# warnings are ok

@@ -63,16 +63,9 @@ if (!dir.exists("Figs/Thermocline")) {
     group_by(Year ,Week)|>
     summarise(Secchi_m = mean(Secchi_m, na.rm = TRUE))
   
-  
-  # Adding Secchi
-  frame_weeks <- read.csv("CSVs/frame_weeks.csv")
-  weekly_secchi <- frame_weeks|> #RF frame w metals and secchi
-    left_join(secchi_interpolated, by = c("Year", "Week"))
-  
-  
   # Calculating K_d and light availability from secchi
   
-  photic_zone_frame <- weekly_secchi |> #add light
+  photic_zone_frame <- secchi_interpolated |> #add light
     mutate(sec_K_d = 1.7/Secchi_m) |>
     mutate(PZ = 4.065 /sec_K_d)|>
     group_by(Year, Week)|>

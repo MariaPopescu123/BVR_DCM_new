@@ -57,8 +57,7 @@ schmidt_frame <- new_bath|>
   summarise(schmidt_stability = mean(schmidt_stability))|>
   ungroup()
 
-final_schmidt <- frame_weeks|>
-  left_join(schmidt_frame, by = c("Week", "Year"))
+final_schmidt <- schmidt_frame
 
 #diagnostic plot to visualize schmidt stability
 schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year), group = Year)) +

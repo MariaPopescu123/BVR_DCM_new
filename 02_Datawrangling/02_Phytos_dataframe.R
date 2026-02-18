@@ -387,7 +387,6 @@ depth_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
 dir.create("Figs/Data_availability", recursive = TRUE, showWarnings = FALSE)
 
 boxplot_Data <- final_DCM_metrics |>
-  filter(max_conc > 20) |>
   mutate(Date = as.Date(Date)) |>
   filter(year(Date) > 2014) |>
   mutate(DayOfYear = yday(Date)) |>
@@ -463,7 +462,7 @@ final_phytos <- final_DCM_metrics|>
     .groups = "drop"
   )
 
-#everything else will be joined to this dataframe
+#everything else will be joined to this dataframe later
 frame_weeks <- final_phytos|>
   distinct(Year, Week)
 
