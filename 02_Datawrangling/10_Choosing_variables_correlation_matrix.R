@@ -25,15 +25,15 @@ variable_labels <- c(
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
   depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)", 
-  Precip_Weekly  = "Precipitation Weekly Sum",
-  precip_lag1    = "Precipitation Weekly Sum (Lag 1 wk)",
-  precip_lag2    = "Precipitation Weekly Sum (Lag 2 wk)",
-  AirTemp_Avg    = "Air Temperature Weekly Average",
-  airtemp_lag1   = "Air Temperature Weekly Average (Lag 1 wk)",
-  airtemp_lag2   = "Air Temperature Weekly Average (Lag 2 wk)",
-  WindSpeed_Avg  = "Wind Speed Weekly Average",
-  wind_lag1      = "Wind Speed Weekly Average (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average (Lag 2 wk)"
+  Precip_Weekly  = "Precipitation Weekly Sum (mm)",
+  precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
+  precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
+  AirTemp_Avg    = "Air Temperature Weekly Average (\u00b0C)",
+  airtemp_lag1   = "Air Temperature Weekly Average \u00b0C (Lag 1 wk)",
+  airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
+  WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
+  wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
+  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
 )
 
 
@@ -159,9 +159,9 @@ variable_labels <- c(
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
   NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ (µg/L) at DCM",
   depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
-  Precip_Weekly = "Weekly Precipitation Sum",
-  AirTemp_Avg = "Air Temperature Weekly Avg",
-  WindSpeed_Avg = "Wind Speed Weekly Avg")
+  Precip_Weekly = "Weekly Precipitation Sum (mm)",
+  AirTemp_Avg = "Air Temperature Weekly Avg (\u00b0C)",
+  WindSpeed_Avg = "Wind Speed Weekly Avg (m/s)")
 
 # ── Read data ──
 full_weekly_data <- full_weekly_data %>%
@@ -173,7 +173,7 @@ vars_to_use <- names(variable_labels)[names(variable_labels) %in% names(full_wee
 overall_summary <- bind_rows(lapply(vars_to_use, function(v) {
   
   # Apply filter ONLY for DCM depth
-  if (v == "dcm_depth") {
+  if (v == "DCM_depth") {
     data_used <- full_weekly_data %>%
       filter(max_conc > 20)
     
