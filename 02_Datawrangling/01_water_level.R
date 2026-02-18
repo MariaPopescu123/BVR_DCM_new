@@ -149,7 +149,7 @@ write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
 before2022 <- weekly_water_level %>%
   filter(Year < 2022)
 after2022 <- weekly_water_level %>%
-  filter(Year > 2022)
+  filter(Year >= 2022)
 before2022 %>%
   summarise(
     min_waterlevel = min(WaterLevel_m, na.rm = TRUE),
