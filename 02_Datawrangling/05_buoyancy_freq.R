@@ -3,9 +3,11 @@
 
 ####Buoyancy Frequency ####
 buoyancy_frame <- temp_depths_interp|> #temp_depths_interp was loaded in from 04_photic_temp_thermo
+  group_by(Date) |>
   mutate(buoyancy_freq = c(buoyancy.freq(Temp_C, Depth_m), NA))|>#added for padding for the last value
+  ungroup() |>
   select(Date, buoyancy_freq, Depth_m)|>
-  mutate(Week = week(Date), 
+  mutate(Week = week(Date),
          Year = year(Date))
 
 joined_df <- buoyancy_frame |>
