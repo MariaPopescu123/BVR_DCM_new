@@ -67,7 +67,7 @@ if (!dir.exists("Figs/Thermocline")) {
   
   photic_zone_frame <- secchi_interpolated |> #add light
     mutate(sec_K_d = 1.7/Secchi_m) |>
-    mutate(PZ = 4.065 /sec_K_d)|>
+    mutate(PZ = 4.605 /sec_K_d)|>
     group_by(Year, Week)|>
     mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))|>
     filter(Year >2014, Year <2025)
