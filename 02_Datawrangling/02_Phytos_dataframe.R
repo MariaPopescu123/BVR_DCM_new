@@ -206,8 +206,8 @@ DCM_metrics_filtered <- DCM_metrics |>
       TRUE ~ CastID
     )
   ) |>
-  mutate(DOY = yday(Date), Year = year(Date)) 
-  
+  mutate(DOY = yday(Date), Year = year(Date)) |>
+  filter(DOY >= 133, DOY <= 286)
 
 ####3. Calculate DCM depth and magnitude####
 # Define pigment variables to loop over
@@ -251,11 +251,6 @@ DCM_metrics_depth2 <- DCM_metrics_depth1 %>%
   ) %>%
   ungroup() %>%
   filter(qualifies_DCM)
-
-#to see which casts were dropped 
-DCM_dropped <- DCM_metrics_depth1 %>%
-  anti_join(DCM_metrics_depth2, by = c("Reservoir","Site","Date","CastID"))
-print(DCM_dropped) #none were dropped
 
 #4. Visualize DCM metrics to ensure quality, not for publication####
 
@@ -326,7 +321,6 @@ boxplot_Data <- final_DCM_metrics |>
     Year = year(Date),
     Month = month(Date)
   ) |>
-  filter(DayOfYear > 133, DayOfYear < 286) |> #time frame for which the analysis will be performed
   select(CastID, Date, Year, Month, DCM_depth, max_conc) |>
   # Remove exact duplicates BEFORE grouping
   distinct() |>
@@ -390,7 +384,6 @@ boxplot_Data <- final_DCM_metrics |>
   mutate(Date = as.Date(Date)) |>
   filter(year(Date) > 2014) |>
   mutate(DayOfYear = yday(Date)) |>
-  filter(DayOfYear > 133, DayOfYear < 286) |>
   mutate(Year = year(Date), Month = month(Date)) |>
   group_by(Year, CastID) |>
   summarise(max_conc = mean(max_conc, na.rm = TRUE), .groups = "drop")
