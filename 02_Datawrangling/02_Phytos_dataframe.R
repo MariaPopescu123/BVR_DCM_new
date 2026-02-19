@@ -253,7 +253,7 @@ DCM_metrics_depth2 <- DCM_metrics_depth1 %>%
   filter(qualifies_DCM)
 
 #to see which casts were dropped 
-DCM_dropped <- DCM_metrics_depth2 %>%
+DCM_dropped <- DCM_metrics_depth1 %>%
   anti_join(DCM_metrics_depth2, by = c("Reservoir","Site","Date","CastID"))
 print(DCM_dropped) #none were dropped
 
