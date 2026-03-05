@@ -6,7 +6,7 @@ plot_shap_vs_value_loop <- function(shap_df,
                                     var_labels = NULL,
                                     width = 6,
                                     height = 4,
-                                    dpi = 300,
+                                    dpi = 900,
                                     panel_ncol = 3,
                                     panel_width = NULL,
                                     panel_height = NULL) {
@@ -54,8 +54,7 @@ plot_shap_vs_value_loop <- function(shap_df,
     panel_letter <- LETTERS[panel_idx]
     
     v_pretty <- pretty_label(v)
-    title_txt <- paste0(analysis_label, ": SHAP vs ", v_pretty)
-    
+
     p <- ggplot2::ggplot(df_v, ggplot2::aes(x = value_num, y = shap, color = value_z)) +
       ggplot2::geom_point(alpha = 0.75, size = 1.5) +
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
@@ -66,17 +65,20 @@ plot_shap_vs_value_loop <- function(shap_df,
       ) +
       ggplot2::labs(
         tag = panel_letter,
-        title = title_txt,
+        title = v_pretty,
         x = v_pretty,
         y = "SHAP value",
         color = "z-scaled\nvalue"
       ) +
-      ggplot2::theme_classic(base_size = 10) +
+      ggplot2::theme_classic(base_size = 13) +
       ggplot2::theme(
-        plot.title = ggplot2::element_text(face = "bold", size = 11),
-        plot.tag = ggplot2::element_text(size = 14, face = "bold"),
+        plot.title = ggplot2::element_text(face = "bold", size = 13),
+        plot.tag = ggplot2::element_text(size = 16, face = "bold"),
         plot.tag.position = c(0.02, 0.98),
-        legend.position = "right"
+        legend.position = "right",
+        legend.title = ggplot2::element_text(size = 12),
+        legend.text  = ggplot2::element_text(size = 11),
+        legend.key.height = ggplot2::unit(1.2, "cm")
       )
     
     plot_list[[v]] <- p
@@ -103,7 +105,13 @@ plot_shap_vs_value_loop <- function(shap_df,
       ggplot2::theme(legend.position = "right")
     
     panel_plot <- patchwork::wrap_plots(plot_list_collected, ncol = panel_ncol) +
-      patchwork::plot_layout(guides = "collect")
+      patchwork::plot_layout(guides = "collect") +
+      patchwork::plot_annotation(
+        title = analysis_label,
+        theme = ggplot2::theme(
+          plot.title = ggplot2::element_text(size = 16, face = "bold", hjust = 0.5)
+        )
+      )
     
     panel_file <- paste0(prefix, "_", safe_name(analysis_label),
                          "_PANEL_", panel_ncol, "col_", n_panels, "plots.png")
