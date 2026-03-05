@@ -1,4 +1,5 @@
 ####visualize chosen variables####
+####compute statistics####
 library(dplyr)
 library(tidyr)
 library(lubridate)
@@ -206,3 +207,144 @@ ggsave(
   width = 20, height = 14, units = "in", dpi = 300, bg = "white"
 )
 # warnings are ok
+
+####Summary Statistics (Table S2 & S3)####
+# Uses a full stratified-season spine (all Year+Week combos within DOY 133-285)
+# so that environmental variables get their full data coverage,
+# not limited to weeks when phyto casts were taken.
+# DCM depth and magnitude will be NA for non-phyto weeks (correct behaviour).
+
+# ── Full spine of all stratified-season weeks 2015-2024 ──
+stats_spine <- expand.grid(Year = 2015:2024, Week = 1:53) %>%
+  mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1),
+         DOY  = yday(Date)) %>%
+  filter(DOY > 133, DOY < 286) %>%
+  select(Year, Week)
+
+# ── Read source CSVs ──
+stats_waterlevel <- read.csv("CSVs/water_level.csv") %>%
+  group_by(Year, Week) %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(Year, Week, WaterLevel_m)
+
+stats_photic  <- read.csv("CSVs/final_photic_thermo.csv") %>%
+  select(Year, Week, PZ, thermocline_depth)
+
+stats_buoyancy <- read.csv("CSVs/final_buoyancy.csv") %>%
+  select(-any_of("Date"))
+
+stats_chem    <- read.csv("CSVs/final_chem.csv") %>%
+  select(-any_of("Date"))
+
+stats_metals  <- read.csv("CSVs/final_metals.csv") %>%
+  select(-any_of("Date"))
+
+stats_schmidt <- read.csv("CSVs/final_schmidt.csv") %>%
+  select(-any_of("Date"))
+
+stats_metdata <- read.csv("CSVs/final_metdata.csv") %>%
+  rename(
+    AirTemp_Avg   = weekly_airtempavg,
+    WindSpeed_Avg = WindSpeed_Weekly_Average_m_s,
+    Precip_Weekly = precip_weekly
+  )
+
+stats_phytos  <- read.csv("CSVs/final_phytos.csv") %>%
+  select(Year, Week, DCM_depth, max_conc)
+
+# ── Join everything to full spine ──
+full_stats_data <- stats_spine %>%
+  left_join(stats_phytos,    by = c("Year", "Week")) %>%
+  left_join(stats_waterlevel, by = c("Year", "Week")) %>%
+  left_join(stats_metals,    by = c("Year", "Week")) %>%
+  left_join(stats_photic,    by = c("Year", "Week")) %>%
+  left_join(stats_buoyancy,  by = c("Year", "Week")) %>%
+  left_join(stats_chem,      by = c("Year", "Week")) %>%
+  left_join(stats_schmidt,   by = c("Year", "Week")) %>%
+  left_join(stats_metdata,   by = c("Year", "Week")) %>%
+  mutate(Year = as.integer(Year))
+
+vars_to_use <- names(variable_labels)[names(variable_labels) %in% names(full_stats_data)]
+
+# ── Overall summary statistics ──
+overall_summary <- bind_rows(lapply(vars_to_use, function(v) {
+
+  if (v == "DCM_depth") {
+    data_used <- full_stats_data %>% filter(max_conc > 20)
+    var_label <- paste0(variable_labels[v], "*")
+  } else {
+    data_used <- full_stats_data
+    var_label <- variable_labels[v]
+  }
+
+  s       <- data_used[[v]]
+  s_clean <- s[!is.na(s)]
+  if (length(s_clean) == 0) return(NULL)
+
+  yearly <- data_used %>%
+    filter(!is.na(.data[[v]])) %>%
+    group_by(Year) %>%
+    summarise(yr_mean = mean(.data[[v]], na.rm = TRUE),
+              yr_sd   = sd(.data[[v]],   na.rm = TRUE),
+              .groups = "drop")
+
+  min_row <- data_used %>%
+    filter(!is.na(.data[[v]]), .data[[v]] == min(.data[[v]], na.rm = TRUE)) %>% slice(1)
+  max_row <- data_used %>%
+    filter(!is.na(.data[[v]]), .data[[v]] == max(.data[[v]], na.rm = TRUE)) %>% slice(1)
+
+  lowest_year  <- yearly %>% filter(yr_mean == min(yr_mean, na.rm = TRUE)) %>% slice(1)
+  highest_year <- yearly %>% filter(yr_mean == max(yr_mean, na.rm = TRUE)) %>% slice(1)
+
+  tibble(
+    Variable              = unname(var_label),
+    Mean                  = round(mean(s_clean), 3),
+    Median                = round(median(s_clean), 3),
+    SD                    = round(sd(s_clean), 3),
+    `CV (%)`              = round(sd(s_clean) / mean(s_clean) * 100, 1),
+    Min                   = paste0(round(min_row[[v]], 3), " (", min_row$Year, ")"),
+    Max                   = paste0(round(max_row[[v]], 3), " (", max_row$Year, ")"),
+    Range                 = round(max(s_clean) - min(s_clean), 3),
+    Q25                   = round(quantile(s_clean, 0.25), 3),
+    Q75                   = round(quantile(s_clean, 0.75), 3),
+    IQR                   = round(IQR(s_clean), 3),
+    `Within-Year SD`      = round(mean(yearly$yr_sd, na.rm = TRUE), 3),
+    `Between-Year SD`     = round(sd(yearly$yr_mean, na.rm = TRUE), 3),
+    `Lowest Yearly Mean`  = paste0(lowest_year$Year,  " (", round(lowest_year$yr_mean,  3),
+                                   " \u00b1 ", round(lowest_year$yr_sd,  3), ")"),
+    `Highest Yearly Mean` = paste0(highest_year$Year, " (", round(highest_year$yr_mean, 3),
+                                   " \u00b1 ", round(highest_year$yr_sd, 3), ")")
+  )
+}))
+
+write.csv(overall_summary, "CSVs/summary_statistics_overall.csv", row.names = FALSE)
+
+# ── Yearly stats ──
+yearly_stats <- bind_rows(lapply(vars_to_use, function(v) {
+  if (v == "DCM_depth") {
+    data_used <- full_stats_data %>% filter(max_conc > 20)
+  } else {
+    data_used <- full_stats_data
+  }
+  data_used %>%
+    filter(!is.na(.data[[v]])) %>%
+    group_by(Year) %>%
+    summarise(
+      Variable   = v,
+      N          = n(),
+      Mean       = mean(.data[[v]], na.rm = TRUE),
+      SD         = sd(.data[[v]], na.rm = TRUE),
+      CV_percent = (SD / Mean) * 100,
+      Min        = min(.data[[v]], na.rm = TRUE),
+      Max        = max(.data[[v]], na.rm = TRUE),
+      Range      = Max - Min,
+      Median     = median(.data[[v]], na.rm = TRUE),
+      Q25        = quantile(.data[[v]], 0.25, na.rm = TRUE),
+      Q75        = quantile(.data[[v]], 0.75, na.rm = TRUE),
+      IQR        = IQR(.data[[v]], na.rm = TRUE),
+      .groups    = "drop"
+    )
+}))
+
+write.csv(yearly_stats, "CSVs/yearly_variable_stats.csv", row.names = FALSE)
