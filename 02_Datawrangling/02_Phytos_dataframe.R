@@ -352,7 +352,7 @@ depth_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
     colours = c("blue","cyan", "green","yellow", "red", "red3"),
     values = scales::rescale(c(0,40, 75, 100, 200, 380)),
     na.value = "gray",
-    limits = c(20, 380), 
+    limits = c(0, 380), 
     breaks = c(20, 100, 200, 300, 380)
   ) +
   scale_y_reverse(
@@ -404,7 +404,7 @@ mag_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
     colours = c("blue","cyan","green","yellow","red","red3"),
     values = scales::rescale(c(0, 40, 75, 100, 200, 380)),
     na.value = "gray",
-    limits = c(20, 380),
+    limits = c(0, 380),
     breaks = c(20, 100, 200, 300, 380)
   ) +
   ggtitle("B   Deep Chlorophyll Maximum (DCM) Peak Magnitude") +
