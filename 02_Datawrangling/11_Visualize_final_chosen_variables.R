@@ -268,6 +268,7 @@ full_stats_data <- stats_spine %>%
 vars_to_use <- names(variable_labels)[names(variable_labels) %in% names(full_stats_data)]
 
 # ── Overall summary statistics ──
+#NEED TO FILTER SO THAT ITS WITHIN THE STUDY PERIOD
 overall_summary <- bind_rows(lapply(vars_to_use, function(v) {
 
   if (v == "DCM_depth") {

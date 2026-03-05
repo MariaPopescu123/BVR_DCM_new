@@ -207,7 +207,7 @@ plot_shap_vs_value_loop(
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Depth"),
   prefix = "depth",
-  analysis_label = "Depth Analysis", 
+  analysis_label = "Predictor Effects on DCM Depth Prediction", 
   var_labels = variable_labels 
 )
 
@@ -230,8 +230,8 @@ plot_shap_vs_value_loop(
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Depth"),
   prefix = "SIdepth",
-  analysis_label = "Depth Analysis", 
-  panel_ncol = 2,
+  analysis_label = "Predictor Effects on DCM Depth Prediction", 
+  panel_ncol = 4,
   var_labels = variable_labels 
 )
 
@@ -252,8 +252,9 @@ plot_shap_vs_value_loop(
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Magnitude"),
   prefix = "magnitude",
-  analysis_label = "Magnitude Analysis", 
-  var_labels = variable_labels
+  analysis_label = "Predictor Effects on DCM Magnitude Prediction", 
+  var_labels = variable_labels, 
+  panel_ncol = 3
 )
 
 #for all variables S9----
@@ -274,14 +275,12 @@ vars_to_plot <- c(
 )
 
 
-
-
 plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Magnitude"),
   prefix = "SImagnitude",
-  analysis_label = "Magnitude Analysis", 
+  analysis_label = "Predictor Effects on DCM Magnitude Prediction", 
   var_labels = variable_labels, 
   panel_ncol = 4
 )
