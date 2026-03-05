@@ -17,19 +17,6 @@ pacman::p_load(tidyverse, lubridate, RColorBrewer, lubridate,
                dplyr, tidyr, ggplot2, ggthemes, patchwork)
 
 ####1 EDI met data####
-EDImetC <- EDImet %>%
-  select(
-    Reservoir,
-    Site,
-    DateTime,
-    Rain_Total_mm,
-    WindSpeed_Average_m_s,
-    AirTemp_C_Average,
-    Flag_WindSpeed_Average_m_s,
-    Flag_AirTemp_C_Average,
-    Flag_Rain_Total_mm
-  )
-
 #Weekly values
 # 1) Add date/year/week
 EDImet_wk <- EDImetC |>
