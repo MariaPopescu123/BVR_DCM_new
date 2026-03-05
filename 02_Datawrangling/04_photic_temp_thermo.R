@@ -143,7 +143,8 @@ CTD_noon <- CTD |>
 CTDfiltered <- CTD_noon |>
   mutate(
     Date = as_date(DateTime)
-  ) 
+  ) |>
+  filter(hour(DateTime) >= 8, hour(DateTime) <= 18)
 
 variables <- c("DO_mgL", "PAR_umolm2s", "DOsat_percent", "Cond_uScm", "ORP_mV", 
                "pH", "Temp_C")
