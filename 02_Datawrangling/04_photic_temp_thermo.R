@@ -515,9 +515,31 @@ just_thermocline <- just_thermocline|>
   group_by(Week, Year)|>
   summarise(thermocline_depth = mean(thermocline_depth, na.rm = TRUE))
 
+####Surface temp and temp at DCM####
+# Surface temperature (at 0.5m depth)
+surface_temp <- temp_depths_interp |>
+  filter(Depth_m == 0.5) |>
+  mutate(Week = week(Date), Year = year(Date)) |>
+  group_by(Week, Year) |>
+  summarise(surface_temp = mean(Temp_C, na.rm = TRUE), .groups = "drop")
+
+# Temperature at DCM depth — find closest depth in profile to DCM_depth
+temp_at_DCM <- temp_depths_interp |>
+  mutate(Week = week(Date), Year = year(Date)) |>
+  left_join(final_phytos |> select(Year, Week, DCM_depth), by = c("Week", "Year")) |>
+  filter(!is.na(DCM_depth)) |>
+  group_by(Date) |>
+  mutate(depth_diff = abs(Depth_m - DCM_depth)) |>
+  filter(depth_diff == min(depth_diff)) |>
+  ungroup() |>
+  group_by(Week, Year) |>
+  summarise(temp_at_DCM = mean(Temp_C, na.rm = TRUE), .groups = "drop")
+
 final_photic_thermo <- photic_zone_frame|>
   left_join(just_thermocline, by = c("Week", "Year"))|>
   left_join(weekly_water_level, by = c("Week", "Year"))|>
+  left_join(surface_temp, by = c("Week", "Year"))|>
+  left_join(temp_at_DCM, by = c("Week", "Year"))|>
   mutate(PZ_prop = PZ/WaterLevel_m)|>
   select(-WaterLevel_m)
 

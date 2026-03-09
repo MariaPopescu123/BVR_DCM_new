@@ -1,11 +1,15 @@
-####visualize chosen variables####
-####compute statistics####
+#This script:
+# 1. Visualizes the variables going into the analysis
+# 2. Calculates statistics for the variables
+
 library(dplyr)
 library(tidyr)
 library(lubridate)
 library(ggplot2)
 library(patchwork)
+####compute statistics####
 
+#these will be used in the plots
 variable_labels <- c(
   max_conc = "DCM Magnitude (µg/L)",
   DCM_depth = "DCM Depth (m)",
@@ -45,7 +49,7 @@ prep_for_plot <- function(df, date_col = "Date") {
       DOY_season = (Week - 1) * 7 + 4
     ) %>%
     filter(year(Date) > 2014, year(Date) < 2025) %>%
-    filter(DOY_season > 133, DOY_season < 285)
+    filter(DOY >= 133, DOY <= 286)
 }
 
 make_long <- function(df, vars) {
@@ -63,7 +67,7 @@ make_long <- function(df, vars) {
     )
 }
 
-# ---- 1. Met variables (~52 wks/yr) ----
+# ---- 1. Met variables ----
 met_vars <- c("Precip_Weekly", "AirTemp_Avg", "WindSpeed_Avg")
 
 met_long <- final_metdata %>%
@@ -76,7 +80,7 @@ met_long <- final_metdata %>%
   make_long(met_vars) %>%
   mutate(max_conc = NA_real_)
 
-# ---- 2. Photic zone & thermocline (53 wks/yr) ----
+# ---- 2. Photic zone & thermocline ----
 photic_vars <- c("PZ", "thermocline_depth")
 
 photic_long <- final_photic_thermo %>%
@@ -85,7 +89,7 @@ photic_long <- final_photic_thermo %>%
   make_long(photic_vars) %>%
   mutate(max_conc = NA_real_)
 
-# ---- 3. Schmidt stability (~19-22 wks/yr) ----
+# ---- 3. Schmidt stability ----
 schmidt_vars <- c("schmidt_stability")
 
 schmidt_long <- final_schmidt %>%
@@ -95,7 +99,7 @@ schmidt_long <- final_schmidt %>%
   make_long(schmidt_vars) %>%
   mutate(max_conc = NA_real_)
 
-# ---- 4. Sampling-frequency variables (from full_weekly_data) ----
+# ---- 4. Sampling-frequency variables ----
 sampling_vars <- c(
   "DCM_depth", "WaterLevel_m", "N_at_DCM",
   "SFe_mgL_at_DCM", "SRP_ugL_at_DCM", "NH4_ugL_at_DCM",
@@ -208,17 +212,17 @@ ggsave(
 )
 # warnings are ok
 
-####Summary Statistics (Table S2 & S3)####
-# Uses a full stratified-season spine (all Year+Week combos within DOY 133-285)
+####Summary Statistics (for SI)####
+# Uses all Year+Week combos within DOY 133-286
 # so that environmental variables get their full data coverage,
 # not limited to weeks when phyto casts were taken.
-# DCM depth and magnitude will be NA for non-phyto weeks (correct behaviour).
+# DCM depth and magnitude will be NA for non-phyto weeks.
 
 # ── Full spine of all stratified-season weeks 2015-2024 ──
 stats_spine <- expand.grid(Year = 2015:2024, Week = 1:53) %>%
   mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1),
          DOY  = yday(Date)) %>%
-  filter(DOY > 133, DOY < 286) %>%
+  filter(DOY >= 133, DOY <= 286) %>%
   select(Year, Week)
 
 # ── Read source CSVs ──
@@ -268,7 +272,6 @@ full_stats_data <- stats_spine %>%
 vars_to_use <- names(variable_labels)[names(variable_labels) %in% names(full_stats_data)]
 
 # ── Overall summary statistics ──
-#NEED TO FILTER SO THAT ITS WITHIN THE STUDY PERIOD
 overall_summary <- bind_rows(lapply(vars_to_use, function(v) {
 
   if (v == "DCM_depth") {
@@ -349,3 +352,109 @@ yearly_stats <- bind_rows(lapply(vars_to_use, function(v) {
 }))
 
 write.csv(yearly_stats, "CSVs/yearly_variable_stats.csv", row.names = FALSE)
+
+####Yearly summary stats figure (Figure S_)####
+# Same layout as all_variables_visualized but:
+#   - DCM Depth    replaced by Depth of Max NO3/NO2
+#   - DCM Magnitude replaced by NO3/NO2 at DCM
+# Style matches Figure S6: median + IQR ribbon + mean +/- SE, by year
+
+yearly_stats_rev_labels <- c(
+  "Water Level (m)",
+  "Photic Zone Depth (m)",
+  "Thermocline Depth (m)",
+  "Depth of Max NO\u2083\u207b/NO\u2082\u207b (m)",
+  "Depth of Max Soluble Fe (m)",
+  "Depth of Max SRP (m)",
+  "Depth of Max NH\u2084\u207a (m)"
+)
+
+one_panel_yearly <- function(var_name, show_legend = FALSE) {
+  label     <- unname(variable_labels[var_name])
+  reverse_y <- label %in% yearly_stats_rev_labels
+
+  d <- full_stats_data %>%
+    filter(!is.na(.data[[var_name]])) %>%
+    group_by(Year) %>%
+    summarise(
+      median = median(.data[[var_name]], na.rm = TRUE),
+      q25    = quantile(.data[[var_name]], 0.25, na.rm = TRUE),
+      q75    = quantile(.data[[var_name]], 0.75, na.rm = TRUE),
+      mean   = mean(.data[[var_name]], na.rm = TRUE),
+      sd     = sd(.data[[var_name]], na.rm = TRUE),
+      min    = min(.data[[var_name]], na.rm = TRUE),
+      max    = max(.data[[var_name]], na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  p <- ggplot(d, aes(x = factor(Year))) +
+    geom_ribbon(aes(ymin = min, ymax = max, fill = "Range", group = 1), alpha = 0.25) +
+    geom_ribbon(aes(ymin = q25, ymax = q75, fill = "IQR", group = 1), alpha = 0.4) +
+    geom_line(aes(y = median, color = "Median", group = 1), linewidth = 1.2) +
+    geom_point(aes(y = median, color = "Median"), size = 2.5) +
+    geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd, color = "Mean \u00b1 SD", group = 1),
+                  width = 0.15, alpha = 0.6) +
+    geom_point(aes(y = mean, color = "Mean \u00b1 SD"), shape = 21, fill = "white", size = 2) +
+    scale_color_manual(name = NULL, values = c("Median" = "blue", "Mean \u00b1 SD" = "red")) +
+    scale_fill_manual(name = NULL, values = c("IQR" = "grey80", "Range" = "lightblue")) +
+    labs(x = NULL, y = NULL, title = label) +
+    theme_bw(base_size = 12) +
+    theme(
+      plot.title       = element_text(face = "bold", size = 11, hjust = 0.5),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_blank(),
+      axis.text.x      = element_text(angle = 45, hjust = 1),
+      legend.position  = if (show_legend) "right" else "none"
+    )
+
+  if (reverse_y) p <- p + scale_y_reverse()
+  p
+}
+
+Ry <- function(v, show_legend = FALSE) one_panel_yearly(v, show_legend)
+
+yrow1 <- (
+  Ry("WaterLevel_m", show_legend = TRUE) +
+  Ry("PZ") +
+  Ry("thermocline_depth") +
+  Ry("schmidt_stability")
+) + plot_layout(ncol = 4)
+
+yrow2 <- (
+  Ry("N_at_DCM") +
+  Ry("Precip_Weekly") +
+  Ry("AirTemp_Avg") +
+  Ry("WindSpeed_Avg")
+) + plot_layout(ncol = 4)
+
+yrow3 <- (
+  Ry("depth_NO3NO2_ugL_max") +
+  Ry("depth_SFe_mgL_max") +
+  Ry("depth_SRP_ugL_max") +
+  Ry("depth_NH4_ugL_max")
+) + plot_layout(ncol = 4)
+
+yrow4 <- (
+  Ry("NO3NO2_ugL_at_DCM") +
+  Ry("SFe_mgL_at_DCM") +
+  Ry("SRP_ugL_at_DCM") +
+  Ry("NH4_ugL_at_DCM")
+) + plot_layout(ncol = 4)
+
+p_yearly <- (yrow1 / yrow2 / yrow3 / yrow4) +
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    title = "Yearly Median and Mean \u00b1 SD (DOY 133\u2013286)",
+    theme = theme(
+      legend.position = "right",
+      plot.title = element_text(face = "bold", hjust = 0.5)
+    )
+  )
+
+ggsave(
+  filename = "Figs/all_variables_yearly_stats.png",
+  plot = p_yearly,
+  width = 20, height = 14, units = "in", dpi = 300, bg = "white"
+)
+
+#stats figure

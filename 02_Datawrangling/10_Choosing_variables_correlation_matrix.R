@@ -39,7 +39,9 @@ variable_labels <- c(
   airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
   WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
   wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
+  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)",
+  surface_temp   = "Surface Temperature at 0.5m (\u00b0C)",
+  temp_at_DCM    = "Temperature at DCM (\u00b0C)"
 )
 
 
@@ -134,7 +136,8 @@ full_weekly_data <- full_weekly_data|>
     "depth_SFe_mgL_max", "SFe_mgL_at_DCM",
     "Precip_Weekly", "precip_lag1", "precip_lag2",
     "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
-    "WindSpeed_Avg", "wind_lag1", "wind_lag2")
+    "WindSpeed_Avg", "wind_lag1", "wind_lag2",
+    "surface_temp", "temp_at_DCM")
 
 check <- plot_correlation_matrix(
   full_weekly_data,
@@ -144,3 +147,40 @@ check <- plot_correlation_matrix(
 )
 View(check$correlations)
 
+# Buoyancy Frequency, Schmidt Stability, surface temp, and temperature at DCM are
+# all metrics of temperature and stability so let's check the actual scores and see
+# which ones are most collinear and which ones are most correlated with DCM depth and DCM magnitude
+
+thermal_vars <- c("DCM_depth", "max_conc", "N_at_DCM", "schmidt_stability", "surface_temp", "temp_at_DCM")
+thermal_cor <- cor(full_weekly_data[, thermal_vars], method = "spearman", use = "pairwise.complete.obs")
+
+# All possible pairings of the 4 thermal/stability variables
+pairings <- list(
+  c("temp_at_DCM", "N_at_DCM"),
+  c("surface_temp", "schmidt_stability"),
+  c("temp_at_DCM", "surface_temp"),
+  c("temp_at_DCM", "schmidt_stability"),
+  c("N_at_DCM", "surface_temp"),
+  c("N_at_DCM", "schmidt_stability")
+)
+
+pairing_table <- do.call(rbind, lapply(pairings, function(p) {
+  data.frame(
+    Var1 = p[1],
+    Var2 = p[2],
+    Inter_correlation = round(thermal_cor[p[1], p[2]], 3),
+    Var1_vs_DCM_depth = round(thermal_cor[p[1], "DCM_depth"], 3),
+    Var2_vs_DCM_depth = round(thermal_cor[p[2], "DCM_depth"], 3),
+    Var1_vs_max_conc = round(thermal_cor[p[1], "max_conc"], 3),
+    Var2_vs_max_conc = round(thermal_cor[p[2], "max_conc"], 3)
+  )
+}))
+
+print(pairing_table)
+
+
+# For DCM depth: temp_at_DCM + schmidt_stability will be used for temp metrics
+# (r = 0.09 between them) and temp_at DCM has the strongest signal
+# 
+# For DCM magnitude: N_at_DCM + schmidt stability are most correlated w DCM magnitude and
+# have low collinearity
