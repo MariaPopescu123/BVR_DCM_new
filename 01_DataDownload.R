@@ -24,10 +24,12 @@ source("Functions/find_depths.R")
 #Updated to include 2024
 #waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
 #BVR water level from the staff gauge and converted to reservoir depth
-wtrlvl <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1") 
+wtrlvl <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1")
+write.csv(wtrlvl, "CSVs/wtrlvl.csv", row.names = FALSE)
 
 #for past 2020 using pressure sensors
 BVRplatform <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
+write.csv(BVRplatform, "CSVs/BVRplatform.csv", row.names = FALSE)
 
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
 #updated 2025
@@ -41,28 +43,28 @@ CTD <- read_csv(dest)
 #flora data https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.10
 #published 2026
 phytos_df <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/272/10/6d7576cc758ca378fe004ad0ac9eed85")
-write.csv(phytos_df, "CSVs/phytos_df.csv")
+write.csv(phytos_df, "CSVs/phytos_df.csv", row.names = FALSE)
 
 # metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
 #updated 2025
 metalsdf <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
-write.csv(metalsdf, "CSVs/metalsdf.csv")
+write.csv(metalsdf, "CSVs/metalsdf.csv", row.names = FALSE)
 #removed flags for 68 as per Cece's advice
 
 #secchi data https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
 secchiframe <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/3ee0ddb9f2183ad4d8c955d50d1b8fba")
-write.csv(secchiframe, "CSVs/secchiframe.csv")
+write.csv(secchiframe, "CSVs/secchiframe.csv", row.names = FALSE)
 
 #ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
 ysi_profiles <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
-write.csv(ysi_profiles, "CSVs/ysi_profiles.csv")
+write.csv(ysi_profiles, "CSVs/ysi_profiles.csv", row.names = FALSE)
 
 ##chemistry: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
 #updated 2025
 chemistry <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
-write.csv(chemistry, "CSVs/chemistry.csv")
+write.csv(chemistry, "CSVs/chemistry.csv", row.names = FALSE)
 
 #meteorological data from FCR https://portal.edirepository.org/nis/codeGeneration?packageId=edi.389.10&statisticalFileType=r
 options(timeout = 9999999)
@@ -80,12 +82,28 @@ EDImetC <- EDImet %>%
     Flag_AirTemp_C_Average,
     Flag_Rain_Total_mm
   )
-write.csv(EDImetC, "CSVs/EDImetC.csv")
+write.csv(EDImetC, "CSVs/EDImetC.csv", row.names = FALSE)
 
 
 #bathymetry data for BVR https://portal.edirepository.org/nis/metadataviewer?packageid=edi.1254.1
 bath <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")
-BVRbath<- bath|>
+bath<- bath|>
   filter(Reservoir == "BVR")
 
-write.csv(BVRbath, "CSVs/BVRbath.csv")
+write.csv(BVRbath, "CSVs/BVRbath.csv", row.names = FALSE)
+
+
+#### Read in CSVs without re-downloading ####
+# Uncomment this section if you want to load data from saved CSVs
+# instead of re-downloading from EDI
+
+wtrlvl <- read_csv("CSVs/wtrlvl.csv")
+BVRplatform <- read_csv("CSVs/BVRplatform.csv")
+CTD <- read_csv("CSVs/CTD.csv")
+phytos_df <- read_csv("CSVs/phytos_df.csv")
+metalsdf <- read_csv("CSVs/metalsdf.csv")
+secchiframe <- read_csv("CSVs/secchiframe.csv")
+ysi_profiles <- read_csv("CSVs/ysi_profiles.csv")
+chemistry <- read_csv("CSVs/chemistry.csv")
+EDImetC <- read_csv("CSVs/EDImetC.csv")
+bath <- read_csv("CSVs/BVRbath.csv")
