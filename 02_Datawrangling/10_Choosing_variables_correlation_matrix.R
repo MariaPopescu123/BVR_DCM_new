@@ -22,15 +22,17 @@ variable_labels <- c(
   PZ_prop = "PZ/Water Level Proportion",
   N_at_DCM = "Buoyancy Frequency at DCM (s⁻¹)",
   schmidt_stability = "Schmidt Stability (J/m²)",
+  surface_temp   = "Surface Temperature at 0.5m (\u00b0C)",
+  temp_at_DCM    = "Temperature at DCM (\u00b0C)",
   thermocline_depth = "Thermocline Depth (m)",
   SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
   SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
   NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
-  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ at DCM", 
+  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ at DCM",
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
-  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)", 
+  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
   Precip_Weekly  = "Precipitation Weekly Sum (mm)",
   precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
   precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
@@ -39,9 +41,7 @@ variable_labels <- c(
   airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
   WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
   wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)",
-  surface_temp   = "Surface Temperature at 0.5m (\u00b0C)",
-  temp_at_DCM    = "Temperature at DCM (\u00b0C)"
+  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
 )
 
 
@@ -130,14 +130,14 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
 full_weekly_data <- full_weekly_data|>
   select(
     "Date", "WaterLevel_m", "DCM_depth", "max_conc",
-     "PZ", "thermocline_depth","schmidt_stability",
+     "PZ", "thermocline_depth", "schmidt_stability",
+    "surface_temp", "temp_at_DCM",
     "PZ_prop", "N_at_DCM", "depth_SRP_ugL_max", "SRP_ugL_at_DCM",
-    "depth_NH4_ugL_max", "NH4_ugL_at_DCM","depth_NO3NO2_ugL_max", "NO3NO2_ugL_at_DCM",
+    "depth_NH4_ugL_max", "NH4_ugL_at_DCM", "depth_NO3NO2_ugL_max", "NO3NO2_ugL_at_DCM",
     "depth_SFe_mgL_max", "SFe_mgL_at_DCM",
     "Precip_Weekly", "precip_lag1", "precip_lag2",
     "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
-    "WindSpeed_Avg", "wind_lag1", "wind_lag2",
-    "surface_temp", "temp_at_DCM")
+    "WindSpeed_Avg", "wind_lag1", "wind_lag2")
 
 check <- plot_correlation_matrix(
   full_weekly_data,
@@ -178,9 +178,36 @@ pairing_table <- do.call(rbind, lapply(pairings, function(p) {
 
 print(pairing_table)
 
+# Export pairing table as a figure
+library(gridExtra)
+
+# Use readable labels for the table
+pairing_display <- pairing_table
+pairing_display$Var1 <- variable_labels[pairing_display$Var1]
+pairing_display$Var2 <- variable_labels[pairing_display$Var2]
+colnames(pairing_display) <- c(
+  "Variable 1", "Variable 2", "Inter-\ncorrelation",
+  "Var1 vs\nDCM Depth", "Var2 vs\nDCM Depth",
+  "Var1 vs\nDCM Magnitude", "Var2 vs\nDCM Magnitude"
+)
+
+tt <- ttheme_minimal(
+  core    = list(fg_params = list(fontsize = 9, hjust = 0.5, x = 0.5),
+                 padding   = unit(c(6, 4), "mm")),
+  colhead = list(fg_params = list(fontsize = 9, fontface = "bold", hjust = 0.5, x = 0.5),
+                 padding   = unit(c(6, 4), "mm"))
+)
+
+tbl_grob <- tableGrob(pairing_display, rows = NULL, theme = tt)
+
+ggsave(
+  filename = "Figs/correlations/thermal_pairing_table.png",
+  plot = tbl_grob,
+  width = 12, height = 3, units = "in", dpi = 300, bg = "white"
+)
 
 # For DCM depth: temp_at_DCM + schmidt_stability will be used for temp metrics
 # (r = 0.09 between them) and temp_at DCM has the strongest signal
-# 
-# For DCM magnitude: N_at_DCM + schmidt stability are most correlated w DCM magnitude and
+#
+# For DCM magnitude: temperature at DCM + schmidt stability are most correlated w DCM magnitude and
 # have low collinearity
