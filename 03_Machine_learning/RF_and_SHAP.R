@@ -82,7 +82,7 @@ depth_analysis_over20 <- full_weekly_data|>
   filter(max_conc>20)|>
   select(
     Date, DCM_depth,
-    PZ, thermocline_depth, schmidt_stability, WaterLevel_m,
+    PZ, thermocline_depth, schmidt_stability, WaterLevel_m, temp_at_DCM,
     depth_NH4_ugL_max,depth_NO3NO2_ugL_max,depth_SRP_ugL_max, depth_SFe_mgL_max,
     airtemp_lag2, wind_lag2)
 
@@ -115,8 +115,8 @@ print(depth_jackknife_over20$plot)
 
 ####------magnitude-------####
 magnitude_analysis <- full_weekly_data|>
-  select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth,N_at_DCM,
-         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM, 
+  select(Date, max_conc, WaterLevel_m, PZ, schmidt_stability, thermocline_depth, temp_at_DCM,
+         SFe_mgL_at_DCM,SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM,
          airtemp_lag1, wind_lag1)
 
 finalmagnitudeRF <- var_importance_shap_plots(
@@ -218,8 +218,9 @@ vars_to_plot <- c(
   "depth_NH4_ugL_max",
   "depth_SFe_mgL_max",
   "depth_SRP_ugL_max",
-  "thermocline_depth", 
+  "thermocline_depth",
   "schmidt_stability",
+  "temp_at_DCM",
   "depth_NO3NO2_ugL_max",
   "wind_lag2",
   "airtemp_lag2"
@@ -240,7 +241,7 @@ plot_shap_vs_value_loop(
 magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- c(
   "WaterLevel_m",
-  "N_at_DCM",
+  "temp_at_DCM",
   "wind_lag1",
   "PZ",
   "thermocline_depth",
@@ -262,7 +263,7 @@ plot_shap_vs_value_loop(
 magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- c(
   "WaterLevel_m",
-  "N_at_DCM",
+  "temp_at_DCM",
   "wind_lag1",
   "PZ",
   "thermocline_depth",

@@ -1,6 +1,6 @@
 # #this script:
 # 1) creates labels for ML figures
-# 2) visualizes chosen variables for figure S1
+# 2) makes correlation matrix
 # 3) summarizes statistics for Table S2 and Table S3
 
 
