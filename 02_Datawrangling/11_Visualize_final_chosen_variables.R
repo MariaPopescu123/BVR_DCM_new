@@ -15,8 +15,7 @@ variable_labels <- c(
   DCM_depth = "DCM Depth (m)",
   WaterLevel_m = "Water Level (m)",
   PZ = "Photic Zone Depth (m)",
-  N_at_DCM = "Buoyancy Frequency at DCM (s⁻¹)", 
-  temp_at_DCM    = "Temperature at DCM (\u00b0C)",
+  N_at_DCM = "Buoyancy Frequency at DCM (s⁻¹)",
   schmidt_stability = "Schmidt Stability (J/m²)",
   thermocline_depth = "Thermocline Depth (m)",
   SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
@@ -104,7 +103,9 @@ schmidt_long <- final_schmidt %>%
 sampling_vars <- c(
   "DCM_depth", "WaterLevel_m", "N_at_DCM",
   "SFe_mgL_at_DCM", "SRP_ugL_at_DCM", "NH4_ugL_at_DCM",
-  "depth_SFe_mgL_max", "depth_SRP_ugL_max", "depth_NH4_ugL_max"
+  "NO3NO2_ugL_at_DCM",
+  "depth_SFe_mgL_max", "depth_SRP_ugL_max", "depth_NH4_ugL_max",
+  "depth_NO3NO2_ugL_max"
 )
 
 sampling_base <- full_weekly_data %>% prep_for_plot()
@@ -128,88 +129,93 @@ variables_plot_long <- bind_rows(
 
 # ---- Plotting ----
 rev_labels <- c(
-  "Water Level (m)",
   "Photic Zone Depth (m)",
   "Thermocline Depth (m)",
   "DCM Depth (m)",
   "Depth of Max Soluble Fe (m)",
   "Depth of Max SRP (m)",
-  "Depth of Max NH₄⁺ (m)"
+  "Depth of Max NH₄⁺ (m)",
+  "Depth of Max NO₃⁻/NO₂⁻ (m)"
 )
 
-one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE) {
+one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE, panel_letter = NULL) {
   d <- variables_plot_long %>%
     filter(Variable_label == label_text)
-  
+
   if (label_text == "DCM Depth (m)") {
     d <- d %>% filter(max_conc > 20)
   }
-  
+
   p <- ggplot(d, aes(DOY_season, Value, color = Year, group = Year)) +
     geom_line(linewidth = 0.7, alpha = 0.9) +
     scale_x_continuous(
-      limits = c(133, 285),
+      limits = c(133, 286),
       expand = expansion(mult = c(0.01, 0.01))
     ) +
-    labs(x = NULL, y = NULL, title = label_text) +
-    theme_bw(base_size = 12) +
+    labs(x = NULL, y = NULL, title = label_text, tag = panel_letter) +
+    theme_bw(base_size = 16) +
     theme(
-      plot.title         = element_text(face = "bold", size = 11, hjust = 0.5),
+      plot.title         = element_text(face = "bold", size = 14, hjust = 0.5),
       panel.grid.minor   = element_blank(),
       panel.grid.major.x = element_blank(),
       axis.text.x        = element_text(angle = 45, hjust = 1),
-      legend.position    = if (show_legend) "right" else "none"
+      legend.position    = if (show_legend) "right" else "none",
+      plot.tag           = element_text(face = "bold", size = 14),
+      plot.tag.position  = c(0.02, 0.98)
     )
-  
+
   if (reverse_y) p <- p + scale_y_reverse()
   p
 }
 
-R <- function(lbl, show_legend = FALSE) one_panel(lbl, lbl %in% rev_labels, show_legend)
+R <- function(lbl, show_legend = FALSE, panel_letter = NULL) one_panel(lbl, lbl %in% rev_labels, show_legend, panel_letter)
 
 # ---- Build 4x4 layout ----
 row1 <- (
-  R("Water Level (m)", show_legend = TRUE) +
-    R("Photic Zone Depth (m)") +
-    R("Thermocline Depth (m)") +
-    R("Schmidt Stability (J/m²)")
+  R("Water Level (m)", show_legend = TRUE, panel_letter = "a") +
+    R("Photic Zone Depth (m)", panel_letter = "b") +
+    R("Thermocline Depth (m)", panel_letter = "c") +
+    R("Schmidt Stability (J/m²)", panel_letter = "d")
 ) + plot_layout(ncol = 4)
 
 row2 <- (
-  R("Buoyancy Frequency at DCM (s⁻¹)") +
-    R("Precipitation Weekly Sum (mm)") +
-    R("Air Temperature Weekly Average (\u00b0C)") +
-    R("Wind Speed Weekly Average (m/s)")
+  R("Buoyancy Frequency at DCM (s⁻¹)", panel_letter = "e") +
+    R("Precipitation Weekly Sum (mm)", panel_letter = "f") +
+    R("Air Temperature Weekly Average (\u00b0C)", panel_letter = "g") +
+    R("Wind Speed Weekly Average (m/s)", panel_letter = "h")
 ) + plot_layout(ncol = 4)
 
 row3 <- (
-  R("DCM Depth (m)") +
-    R("Depth of Max Soluble Fe (m)") +
-    R("Depth of Max SRP (m)") +
-    R("Depth of Max NH₄⁺ (m)")
+  R("Depth of Max NO₃⁻/NO₂⁻ (m)", panel_letter = "i") +
+    R("Depth of Max Soluble Fe (m)", panel_letter = "j") +
+    R("Depth of Max SRP (m)", panel_letter = "k") +
+    R("Depth of Max NH₄⁺ (m)", panel_letter = "l")
 ) + plot_layout(ncol = 4)
 
 row4 <- (
-  R("DCM Magnitude (µg/L)") +
-    R("SFe (mg/L) at DCM") +
-    R("SRP (µg/L) at DCM") +
-    R("NH₄⁺ (µg/L) at DCM")
+  R("NO₃⁻/NO₂⁻ (µg/L) at DCM", panel_letter = "m") +
+    R("SFe (mg/L) at DCM", panel_letter = "n") +
+    R("SRP (µg/L) at DCM", panel_letter = "o") +
+    R("NH₄⁺ (µg/L) at DCM", panel_letter = "p")
 ) + plot_layout(ncol = 4)
 
 p_final <- (row1 / row2 / row3 / row4) +
   plot_layout(guides = "collect") +
   plot_annotation(
-    title = "Seasonal Overlap (DOY 133 - 285) of Environmental and Depth Metrics",
+    title = "Seasonal Overlap (DOY 133 - 286) of Environmental and Depth Metrics",
     theme = theme(
       legend.position = "right",
-      plot.title = element_text(face = "bold", hjust = 0.5)
+      legend.text = element_text(size = 16),
+      legend.title = element_text(size = 18),
+      legend.key.size = unit(1.5, "lines"),
+      plot.title = element_text(face = "bold", size = 18, hjust = 0.5)
     )
   )
 
 ggsave(
   filename = "Figs/all_variables_visualized.png",
   plot = p_final,
-  width = 20, height = 14, units = "in", dpi = 300, bg = "white"
+  width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
 # warnings are ok
 
@@ -361,7 +367,6 @@ write.csv(yearly_stats, "CSVs/yearly_variable_stats.csv", row.names = FALSE)
 # Style matches Figure S6: median + IQR ribbon + mean +/- SE, by year
 
 yearly_stats_rev_labels <- c(
-  "Water Level (m)",
   "Photic Zone Depth (m)",
   "Thermocline Depth (m)",
   "Depth of Max NO\u2083\u207b/NO\u2082\u207b (m)",
@@ -370,7 +375,7 @@ yearly_stats_rev_labels <- c(
   "Depth of Max NH\u2084\u207a (m)"
 )
 
-one_panel_yearly <- function(var_name, show_legend = FALSE) {
+one_panel_yearly <- function(var_name, show_legend = FALSE, panel_letter = NULL) {
   label     <- unname(variable_labels[var_name])
   reverse_y <- label %in% yearly_stats_rev_labels
 
@@ -398,48 +403,50 @@ one_panel_yearly <- function(var_name, show_legend = FALSE) {
     geom_point(aes(y = mean, color = "Mean \u00b1 SD"), shape = 21, fill = "white", size = 2) +
     scale_color_manual(name = NULL, values = c("Median" = "blue", "Mean \u00b1 SD" = "red")) +
     scale_fill_manual(name = NULL, values = c("IQR" = "grey80", "Range" = "lightblue")) +
-    labs(x = NULL, y = NULL, title = label) +
-    theme_bw(base_size = 12) +
+    labs(x = NULL, y = NULL, title = label, tag = panel_letter) +
+    theme_bw(base_size = 16) +
     theme(
-      plot.title       = element_text(face = "bold", size = 11, hjust = 0.5),
+      plot.title       = element_text(face = "bold", size = 14, hjust = 0.5),
       panel.grid.minor = element_blank(),
       panel.grid.major.x = element_blank(),
       axis.text.x      = element_text(angle = 45, hjust = 1),
-      legend.position  = if (show_legend) "right" else "none"
+      legend.position  = if (show_legend) "right" else "none",
+      plot.tag          = element_text(face = "bold", size = 14),
+      plot.tag.position = c(0.02, 0.98)
     )
 
   if (reverse_y) p <- p + scale_y_reverse()
   p
 }
 
-Ry <- function(v, show_legend = FALSE) one_panel_yearly(v, show_legend)
+Ry <- function(v, show_legend = FALSE, panel_letter = NULL) one_panel_yearly(v, show_legend, panel_letter)
 
 yrow1 <- (
-  Ry("WaterLevel_m", show_legend = TRUE) +
-  Ry("PZ") +
-  Ry("thermocline_depth") +
-  Ry("schmidt_stability")
+  Ry("WaterLevel_m", show_legend = TRUE, panel_letter = "a") +
+  Ry("PZ", panel_letter = "b") +
+  Ry("thermocline_depth", panel_letter = "c") +
+  Ry("schmidt_stability", panel_letter = "d")
 ) + plot_layout(ncol = 4)
 
 yrow2 <- (
-  Ry("N_at_DCM") +
-  Ry("Precip_Weekly") +
-  Ry("AirTemp_Avg") +
-  Ry("WindSpeed_Avg")
+  Ry("N_at_DCM", panel_letter = "e") +
+  Ry("Precip_Weekly", panel_letter = "f") +
+  Ry("AirTemp_Avg", panel_letter = "g") +
+  Ry("WindSpeed_Avg", panel_letter = "h")
 ) + plot_layout(ncol = 4)
 
 yrow3 <- (
-  Ry("depth_NO3NO2_ugL_max") +
-  Ry("depth_SFe_mgL_max") +
-  Ry("depth_SRP_ugL_max") +
-  Ry("depth_NH4_ugL_max")
+  Ry("depth_NO3NO2_ugL_max", panel_letter = "i") +
+  Ry("depth_SFe_mgL_max", panel_letter = "j") +
+  Ry("depth_SRP_ugL_max", panel_letter = "k") +
+  Ry("depth_NH4_ugL_max", panel_letter = "l")
 ) + plot_layout(ncol = 4)
 
 yrow4 <- (
-  Ry("NO3NO2_ugL_at_DCM") +
-  Ry("SFe_mgL_at_DCM") +
-  Ry("SRP_ugL_at_DCM") +
-  Ry("NH4_ugL_at_DCM")
+  Ry("NO3NO2_ugL_at_DCM", panel_letter = "m") +
+  Ry("SFe_mgL_at_DCM", panel_letter = "n") +
+  Ry("SRP_ugL_at_DCM", panel_letter = "o") +
+  Ry("NH4_ugL_at_DCM", panel_letter = "p")
 ) + plot_layout(ncol = 4)
 
 p_yearly <- (yrow1 / yrow2 / yrow3 / yrow4) +
@@ -448,14 +455,17 @@ p_yearly <- (yrow1 / yrow2 / yrow3 / yrow4) +
     title = "Yearly Median and Mean \u00b1 SD (DOY 133\u2013286)",
     theme = theme(
       legend.position = "right",
-      plot.title = element_text(face = "bold", hjust = 0.5)
+      legend.text = element_text(size = 16),
+      legend.title = element_text(size = 18),
+      legend.key.size = unit(1.5, "lines"),
+      plot.title = element_text(face = "bold", size = 18, hjust = 0.5)
     )
   )
 
 ggsave(
   filename = "Figs/all_variables_yearly_stats.png",
   plot = p_yearly,
-  width = 20, height = 14, units = "in", dpi = 300, bg = "white"
+  width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
 
 #stats figure

@@ -68,16 +68,15 @@ jackknife_incMSE_heatmap <- function(
             as.formula(paste(response_var, "~ .")),
             data = df_fit, ntree = nt, mtry = mt, nodesize = ns, importance = TRUE
           )
-          preds <- predict(fit, df_fit)
-          rsq <- 1 - sum((y_obs - preds)^2) / sum((y_obs - mean(y_obs))^2)
-          mse <- mean((y_obs - preds)^2)
-          results[[idx]] <- data.frame(Trees = nt, NodeSize = ns, mtry = mt, R2 = rsq, MSE = mse)
+          rsq <- fit$rsq[length(fit$rsq)]    # OOB pseudo-R²
+          mse <- fit$mse[length(fit$mse)]    # OOB MSE
+          results[[idx]] <- data.frame(Trees = nt, NodeSize = ns, mtry = mt, OOB_R2 = rsq, OOB_MSE = mse)
           idx <- idx + 1
         }
       }
     }
     best <- dplyr::bind_rows(results) %>%
-      arrange(desc(R2), MSE) %>% slice(1)
+      arrange(desc(OOB_R2), OOB_MSE) %>% slice(1)
     tibble(ntree = best$Trees, mtry = best$mtry, nodesize = best$NodeSize)
   }
   

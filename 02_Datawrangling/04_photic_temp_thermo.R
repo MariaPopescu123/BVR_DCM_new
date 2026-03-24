@@ -196,8 +196,13 @@ temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
 
 #Sensorstrings------
 #using BVR sensorstrings for what is available (2021-2024)
+download.file(
+  "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",
+  destfile = "BVR_Depth_offsets.csv"
+)
+
 bvrdatasensorstring <- find_depths (data_file = BVRplatform, # data_file = the file of most recent data either from EDI or GitHub. Currently reads in the L1 file
-                                    depth_offset = "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",  # depth_offset = the file of depth of each sensor relative to each other. This file for BVR is on GitHub
+                                    depth_offset = "BVR_Depth_offsets.csv",  # depth_offset = the file of depth of each sensor relative to each other. This file for BVR is on GitHub
                                     output = NULL, # output = the path where you would like the data saved
                                     round_digits = 2, #round_digits = number of digits you would like to round to
                                     bin_width = 0.1, # bin width in m
@@ -263,7 +268,7 @@ temp_depths_cleaned <- all_years_temp |>
   mutate(DOY = yday(Date)) |>
   mutate(Reservoir = "BVR", Site = 50, DateTime = Date) |>
   # Restrict to stratified season (~May 13 to ~Oct 12)
-  filter(DOY >= 133, DOY <= 285)
+  filter(DOY >= 133, DOY <= 286)
 
 #removing outliers 
 cleaned <- temp_depths_cleaned |>
@@ -543,6 +548,7 @@ final_photic_thermo <- photic_zone_frame|>
   mutate(PZ_prop = PZ/WaterLevel_m)|>
   select(-WaterLevel_m)
 
-data_availability(final_photic_thermo, "thermocline_depth")
+#To visualize availability 
+#data_availability(final_photic_thermo, "thermocline_depth")
 
 write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)

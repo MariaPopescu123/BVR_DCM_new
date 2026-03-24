@@ -21,7 +21,7 @@ weekly_temp_profiles <- temp_depths_interp |>
     Year = year(Date),
     RoundedDepth = round(Depth_m)  # Round to the nearest meter
   ) |>
-  filter(DOY >= 133, DOY <= 285)|>
+  filter(DOY >= 133, DOY <= 286)|>
   group_by(Date, RoundedDepth) |>
   slice_min(abs(Depth_m - RoundedDepth), with_ties = FALSE) |>  # Select depth closest to that rounded meter
   ungroup()|>

@@ -87,9 +87,16 @@ write.csv(EDImet_0, "CSVs/EDImet0.csv")
 
 #Heather Wander generated data
 #for full repository https://github.com/hlwander/interannual_zoops/tree/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89
-heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
-NLDAS <- read.csv(heathergeneratedNLDAS)
-write.csv(NLDAS, "CSVs/NLDAS.csv", row.names = FALSE)
+download.file(
+  "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv",
+  destfile = "CSVs/NLDAS.csv"
+)
+
+#another way to load in the data 
+# heathergeneratedNLDAS <- "https://raw.githubusercontent.com/hlwander/interannual_zoops/a6f8b9f2fb2cacf09e5994eb7c0f73435cce9b89/inputs/BVR_GLM_NLDAS_010113_123121_GMTadjusted.csv"
+# NLDAS <- read.csv(heathergeneratedNLDAS)
+# write.csv(NLDAS, "CSVs/NLDAS.csv", row.names = FALSE)
+
 #heather's precipitation is given in m per day
 #windspeed in m per day
 #air temp is hourly

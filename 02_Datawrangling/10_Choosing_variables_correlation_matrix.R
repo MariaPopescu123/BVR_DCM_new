@@ -147,11 +147,13 @@ check <- plot_correlation_matrix(
 )
 View(check$correlations)
 
+# Checking collinear metrics
 # Buoyancy Frequency, Schmidt Stability, surface temp, and temperature at DCM are
 # all metrics of temperature and stability so let's check the actual scores and see
 # which ones are most collinear and which ones are most correlated with DCM depth and DCM magnitude
+# adding air temperature to show collinearity between temp metrics 
 
-thermal_vars <- c("DCM_depth", "max_conc", "N_at_DCM", "schmidt_stability", "surface_temp", "temp_at_DCM")
+thermal_vars <- c("DCM_depth", "max_conc", "N_at_DCM", "schmidt_stability", "surface_temp", "temp_at_DCM", "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2")
 thermal_cor <- cor(full_weekly_data[, thermal_vars], method = "spearman", use = "pairwise.complete.obs")
 
 # All possible pairings of the 4 thermal/stability variables
@@ -161,7 +163,10 @@ pairings <- list(
   c("temp_at_DCM", "surface_temp"),
   c("temp_at_DCM", "schmidt_stability"),
   c("N_at_DCM", "surface_temp"),
-  c("N_at_DCM", "schmidt_stability")
+  c("N_at_DCM", "schmidt_stability"),
+  c("AirTemp_Avg", "surface_temp"),
+  c("airtemp_lag1", "surface_temp"),
+  c("airtemp_lag2", "surface_temp")
 )
 
 pairing_table <- do.call(rbind, lapply(pairings, function(p) {
@@ -206,8 +211,7 @@ ggsave(
   width = 12, height = 3, units = "in", dpi = 300, bg = "white"
 )
 
-# For DCM depth: temp_at_DCM + schmidt_stability will be used for temp metrics
-# (r = 0.09 between them) and temp_at DCM has the strongest signal
-#
-# For DCM magnitude: temperature at DCM + schmidt stability are most correlated w DCM magnitude and
+# For DCM depth: schmidt_stability will be used for temp metrics
+# surface temp is highly correlated with air temperature which is already being used in the model 
+# For DCM magnitude: N_at_DCM + schmidt stability are most correlated w DCM magnitude and
 # have low collinearity

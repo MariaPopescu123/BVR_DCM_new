@@ -140,16 +140,16 @@ var_importance_shap_plots <- function(Xdataframe,
           nodesize   = ns,
           importance = TRUE
         )
-        preds <- predict(fit, rf_df)
-        rsq   <- 1 - sum((y_obs - preds)^2) / sum((y_obs - mean(y_obs))^2)
-        mse   <- mean((y_obs - preds)^2)
-        
+        rsq <- fit$rsq[length(fit$rsq)]    # OOB pseudo-R²
+        mse <- fit$mse[length(fit$mse)]    # OOB MSE
+
         results[[idx]] <- data.frame(
           Trees = nt,
           NodeSize = ns,
           mtry = mt,
-          R2 = rsq,
-          MSE = mse
+          OOB_R2 = rsq,
+          OOB_MSE = mse,
+          OOB_RMSE = sqrt(mse)
         )
         idx <- idx + 1
       }
@@ -157,7 +157,7 @@ var_importance_shap_plots <- function(Xdataframe,
   }
   
   RF_tuning_scores <- dplyr::bind_rows(results) %>%
-    arrange(desc(R2), MSE)
+    arrange(desc(OOB_R2), OOB_MSE)
   print(RF_tuning_scores)
   
   best <- RF_tuning_scores[1, ]
@@ -172,10 +172,11 @@ var_importance_shap_plots <- function(Xdataframe,
     importance = TRUE
   )
   
-  preds_final <- predict(final_rf, rf_df)
-  r2_final <- 1 - sum((y_obs - preds_final)^2) / sum((y_obs - mean(y_obs))^2)
-  meta_subtitle <- sprintf("%s | R²=%.3f | n=%d | ntree=%d | mtry=%d | nodesize=%d",
-                           response_label, r2_final, nrow(rf_df), best$Trees, best$mtry, best$NodeSize)
+  r2_oob   <- final_rf$rsq[length(final_rf$rsq)]
+  mse_oob  <- final_rf$mse[length(final_rf$mse)]
+  rmse_oob <- sqrt(mse_oob)
+  meta_subtitle <- sprintf("%s | OOB R²=%.3f | OOB RMSE=%.2f | n=%d | ntree=%d | mtry=%d | nodesize=%d",
+                           response_label, r2_oob, rmse_oob, nrow(rf_df), best$Trees, best$mtry, best$NodeSize)
   
   # ---- Variable importance (%IncMSE) ----
   imp_df <- as.data.frame(importance(final_rf)) %>%
@@ -297,7 +298,9 @@ var_importance_shap_plots <- function(Xdataframe,
       years          = if (!is.null(years)) years else c(XYear, XYear2),
       whichvars      = whichvars,
       n              = nrow(rf_df),
-      r2             = unname(r2_final),
+      oob_r2         = unname(r2_oob),
+      oob_mse        = unname(mse_oob),
+      oob_rmse       = unname(rmse_oob),
       best_params    = list(
         ntree    = best$Trees,
         mtry     = best$mtry,

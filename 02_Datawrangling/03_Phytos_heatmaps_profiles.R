@@ -51,7 +51,7 @@ flora_heatmap <- function(
 ) {
   # DOY window I want
   doy_min <- 133
-  doy_max <- 285
+  doy_max <- 286
   
   # build a year/site subset even if z is missing
   base <- fp_data %>%

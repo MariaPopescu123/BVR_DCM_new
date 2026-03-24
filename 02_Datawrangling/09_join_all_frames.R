@@ -25,7 +25,7 @@ full_weekly_data1 <- frame_weeks %>%
 
 full_weekly_data <- full_weekly_data1 |>
   mutate(DOY = yday(Date))|>
-  filter(DOY >133, DOY < 286)|>
+  filter(DOY >= 133, DOY <= 286)|>
   select(-DOY)|>
   select(-Year, -Secchi_m, -sec_K_d) |>
   relocate(Date, .before = "Week") |>
