@@ -187,6 +187,11 @@ print(finalmagnitudeRF$shap_long_filtered)
 print(finalmagnitudeRF$model_details)
 print(finalmagnitudeRF$counts)
 
+#to see the number of observations that are used to calculate OOB
+cat("Depth OOB R2 observations:", finaldepthRF_over20$model_details$n, "\n")
+cat("Magnitude OOB R2 observations:", finalmagnitudeRF$model_details$n, "\n")
+
+
 ####-----interaction plots for SHAP vs value----####
 
 ####----depth####
