@@ -17,7 +17,6 @@ library(patchwork)
 
 #prepping phyto dataframe
 
-#adding columns with total_conc max and the depth at which it occurs
 phytos <- phytos_df %>% 
   filter(Reservoir == "BVR", Site == 50)%>%
   mutate(Date  = as_date(DateTime)) |> 
@@ -29,6 +28,81 @@ phytos <- phytos_df %>%
 
 write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
 phytos <- read.csv("CSVs/phytos.csv")
+
+#To show community composition across all depths 
+####
+phyto_plot <- phytos %>%
+  # Parse DateTime if not already POSIXct
+  mutate(DateTime = as.POSIXct(DateTime)) %>%
+  # Filter to 2015-2024
+  filter(year(DateTime) >= 2015, year(DateTime) <= 2024) %>%
+  # Average across all depths per DateTime (or per Date if you prefer less noise)
+  group_by(DateTime) %>%
+  summarise(
+    GreenAlgae  = sum(GreenAlgae_ugL,  na.rm = TRUE),
+    Bluegreens  = sum(Bluegreens_ugL,  na.rm = TRUE),
+    BrownAlgae  = sum(BrownAlgae_ugL,  na.rm = TRUE),
+    MixedAlgae  = sum(MixedAlgae_ugL,  na.rm = TRUE),
+    Total       = sum(TotalConc_ugL,   na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  # Calculate proportions
+  mutate(
+    GreenAlgae = GreenAlgae / Total,
+    Bluegreens = Bluegreens / Total,
+    BrownAlgae = BrownAlgae / Total,
+    MixedAlgae = MixedAlgae / Total
+  ) %>%
+  # Drop rows where Total was 0 or NA
+  filter(is.finite(GreenAlgae)) %>%
+  # Pivot to long for ggplot
+  select(DateTime, GreenAlgae, Bluegreens, BrownAlgae, MixedAlgae) %>%
+  pivot_longer(
+    cols = -DateTime,
+    names_to  = "Group",
+    values_to = "Proportion"
+  ) %>%
+  mutate(Group = factor(Group, levels = c("GreenAlgae", "Bluegreens", "BrownAlgae", "MixedAlgae")))
+
+# --- Plot ---
+comp <- ggplot(phyto_plot, aes(x = DateTime, y = Proportion, fill = Group)) +
+  geom_area(position = "stack", alpha = 0.85) +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    limits = c(0, 1),
+    expand = c(0, 0)
+  ) +
+  scale_x_datetime(
+    date_breaks = "1 year",
+    date_labels = "%Y",
+    limits = as.POSIXct(c("2015-01-01", "2024-12-31")),
+    expand = c(0, 0)
+  ) +
+  scale_fill_manual(values = c(
+    "GreenAlgae" = "green",
+    "Bluegreens"  = "blue",
+    "BrownAlgae"  = "orange",
+    "MixedAlgae"  = "red"
+  )) +
+  labs(
+    title = "Phytoplankton Community Composition (2015 - 2024)",
+    x     = NULL,
+    y     = "Proportion of Total Phytoplankton",
+    fill  = "Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position   = "bottom",
+    panel.grid.minor  = element_blank(),
+    axis.text.x       = element_text(angle = 45, hjust = 1)
+  )
+
+ggsave("Figs/Phytos_viz/comp.png", comp, 
+       width = 10, height = 10, dpi = 900)
+
+
+
+
 
 ####1. flora instrument data availability produces Figure S2####
 # 1. Build plotting data

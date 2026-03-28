@@ -1,7 +1,5 @@
 #This file downloads all the necessary functions and datasets for this project
 
-test
-
 # Downloading data and functions here
 
 pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
