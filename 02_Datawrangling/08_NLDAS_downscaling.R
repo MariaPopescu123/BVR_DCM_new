@@ -13,8 +13,7 @@
 #9 export the data as a csv for use in machine learning 
 
 
-pacman::p_load(tidyverse, lubridate, RColorBrewer, lubridate,
-               dplyr, tidyr, ggplot2, ggthemes, patchwork)
+# packages loaded in 01_DataDownload.R
 
 ####1 EDI met data####
 #Weekly values

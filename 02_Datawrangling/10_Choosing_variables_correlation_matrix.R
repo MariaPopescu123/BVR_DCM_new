@@ -11,38 +11,7 @@ if (!dir.exists("Figs/correlations")){
 }
 
 ####visualize chosen variables####
-
-#REMEMBER TO INCREASE LEGEND SIZE FOR THE CORRELATION MATRIX AND INCLUDE NO2/NO3!!!
-
-variable_labels <- c(
-  max_conc = "DCM Magnitude (µg/L)",
-  DCM_depth = "DCM Depth (m)",
-  WaterLevel_m = "Water Level (m)",
-  PZ = "Photic Zone Depth (m)",
-  PZ_prop = "PZ/Water Level Proportion",
-  N_at_DCM = "Buoyancy Frequency at DCM (s⁻¹)",
-  schmidt_stability = "Schmidt Stability (J/m²)",
-  surface_temp   = "Surface Temperature at 0.5m (\u00b0C)",
-  temp_at_DCM    = "Temperature at DCM (\u00b0C)",
-  thermocline_depth = "Thermocline Depth (m)",
-  SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
-  SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
-  NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
-  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ at DCM",
-  depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
-  depth_SRP_ugL_max = "Depth of Max SRP (m)",
-  depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
-  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
-  Precip_Weekly  = "Precipitation Weekly Sum (mm)",
-  precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
-  precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
-  AirTemp_Avg    = "Air Temperature Weekly Average (\u00b0C)",
-  airtemp_lag1   = "Air Temperature Weekly Average \u00b0C (Lag 1 wk)",
-  airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
-  WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
-  wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
-)
+# variable_labels defined in 01_DataDownload.R
 
 
 ####Function for running correlation and making plots 
@@ -145,7 +114,7 @@ check <- plot_correlation_matrix(
   title = "Correlation Matrix Heatmap for Variable Selection", 
   variable_labels = variable_labels,
 )
-View(check$correlations)
+# check$correlations  # uncomment to view interactively
 
 # Checking collinear metrics
 # Buoyancy Frequency, Schmidt Stability, surface temp, and temperature at DCM are

@@ -1,12 +1,6 @@
 #RF and SHAP 
-
-#How to use the function
-#xdataframe: either magnitude_analysis or depth_analysis
-#XYear (range of dates you want to look at, if you want just one year then put same date for both)
-#XYear2
-#whichvars (this label helps name the file and title so that I can keep straight what I did differently)
-#response_var (either DCM_depth or max_conc)
-#save_dir = either "Depth" or "Magnitude"
+#This script runs Random Forest and Machine Learning for the results. 
+#XXXX NEED TO EDIT TO ADD MORE CONTEXT. 
 
 dirs <- c(
   "Figs/MachineLearning",

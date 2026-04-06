@@ -64,7 +64,6 @@ BVRplatform2_interpolated <- DOY_year_ref |>
   filter(Year > 2019, Site == 50)|>
   arrange(Year, DOY)|>
   select(Year, DOY, DateTime, LvlDepth_m_13)
-#warnings ok
 
 
 #make data frame for waterlevels
@@ -117,7 +116,6 @@ weekly_water_level <- water_level |>
   select(Year, Week, WaterLevel_m)
 
 #not used in manuscript, just used for diagnostics
-#warnings are ok
 wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
   geom_line(size = 1) +  
   labs(
@@ -140,8 +138,9 @@ wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = fa
 
 print(wtrlvl_by_year)
 
-#final csv
+#final csvs
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
+write.csv(weekly_water_level, "CSVs/weekly_water_level.csv", row.names = FALSE)
 
 
 #additional stats for paper 

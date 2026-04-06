@@ -70,7 +70,6 @@ schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color
   ) +
   theme_minimal()
 schmidt_plot
-#warnings ok
 
 #this is the final dataframe that will be used in RF analysis
 write.csv(final_schmidt, here::here("CSVs", "final_schmidt.csv"), row.names = FALSE)

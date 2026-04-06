@@ -3,6 +3,7 @@
 #read in csvs
 frame_weeks <- read.csv("CSVs/frame_weeks.csv")
 final_phytos <- read.csv("CSVs/final_phytos.csv")
+weekly_water_level <- read.csv("CSVs/weekly_water_level.csv")
 final_metals <- read.csv("CSVs/final_metals.csv")|>
   select(-Date)
 final_photic_thermo <- read.csv("CSVs/final_photic_thermo.csv")|>

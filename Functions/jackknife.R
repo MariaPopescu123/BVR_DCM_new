@@ -1,15 +1,4 @@
-# trying to make the plot that visualizes the %IncMSE for each variable within each year
-
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(tidyr)
-  library(lubridate)
-  library(ggplot2)
-  library(tibble)
-  library(randomForest)
-  library(scales)
-  library(forcats)
-})
+#Jackknife-style RF variable importance (%IncMSE) by year, visualized as a heatmap.
 
 jackknife_incMSE_heatmap <- function(
     Xdataframe, year_min, year_max, metric,
@@ -20,7 +9,6 @@ jackknife_incMSE_heatmap <- function(
     panel_label = NULL
 ) {
   
-  # ---------- 0) Prep & cleaning ----------
   df0 <- Xdataframe %>%
     mutate(Date = as.Date(.data$Date),
            Year = lubridate::year(.data$Date)) %>%
@@ -47,7 +35,6 @@ jackknife_incMSE_heatmap <- function(
   
   n_per_year <- model_df %>% count(Year, name = "n") %>% arrange(Year)
   
-  # ---------- helpers ----------
   .tune_once <- function(df_fit, seed) {
     set.seed(seed)
     pred_cols <- setdiff(names(df_fit), response_var)
@@ -68,8 +55,8 @@ jackknife_incMSE_heatmap <- function(
             as.formula(paste(response_var, "~ .")),
             data = df_fit, ntree = nt, mtry = mt, nodesize = ns, importance = TRUE
           )
-          rsq <- fit$rsq[length(fit$rsq)]    # OOB pseudo-R²
-          mse <- fit$mse[length(fit$mse)]    # OOB MSE
+          rsq <- fit$rsq[length(fit$rsq)]
+          mse <- fit$mse[length(fit$mse)]
           results[[idx]] <- data.frame(Trees = nt, NodeSize = ns, mtry = mt, OOB_R2 = rsq, OOB_MSE = mse)
           idx <- idx + 1
         }
@@ -89,7 +76,7 @@ jackknife_incMSE_heatmap <- function(
   
   all_imp_long <- list()
   
-  # ---------- 1) Per-year jackknife ----------
+  #per-year jackknife
   for (yy in sort(unique(model_df$Year))) {
     df_y <- model_df %>% filter(Year == yy) %>% select(-Year)
     n_y  <- nrow(df_y); if (n_y == 0) next
@@ -119,7 +106,7 @@ jackknife_incMSE_heatmap <- function(
     all_imp_long[[as.character(yy)]] <- bind_rows(imp_stack)
   }
   
-  # ---------- 1b) Pooled "All years" jackknife ----------
+  #pooled across all years
   df_all <- model_df %>% select(-Year)
   n_all  <- nrow(df_all)
   stopifnot(n_all >= 2L)
@@ -151,7 +138,6 @@ jackknife_incMSE_heatmap <- function(
   
   imp_long <- bind_rows(all_imp_long) %>% filter(!is.na(`%IncMSE`))
   
-  # ---------- 2) Summarize mean ± sd per (Year, Variable) ----------
   imp_summary <- imp_long %>%
     group_by(Year, Variable) %>%
     summarise(
@@ -179,7 +165,6 @@ jackknife_incMSE_heatmap <- function(
   imp_summary <- imp_summary %>%
     mutate(Variable = forcats::fct_relevel(Variable, rev(var_order)))
   
-  # Year labels with n + pooled "All"
   n_all_row <- tibble(Year = 9999L, n = n_all)
   n_per_year2 <- bind_rows(n_per_year, n_all_row)
   
@@ -201,7 +186,6 @@ jackknife_incMSE_heatmap <- function(
     left_join(year_lab, by = "Year") %>%
     mutate(Year_label = factor(Year_label, levels = year_levels))
   
-  # Safe labeller: map internal names -> pretty labels if provided
   y_lab_fun <- function(v) {
     if (is.null(variable_labels)) return(v)
     out <- unname(variable_labels[as.character(v)])
@@ -209,7 +193,6 @@ jackknife_incMSE_heatmap <- function(
     out
   }
   
-  # ---------- 3) Heatmap ----------
   heat <- ggplot(plot_df, aes(x = Year_label, y = Variable, fill = mean_incMSE)) +
     geom_tile(color = "white", linewidth = 0.2) +
     geom_text(
@@ -220,8 +203,8 @@ jackknife_incMSE_heatmap <- function(
     viridis::scale_fill_viridis(
       name = "Mean %IncMSE",
       option = "H",
-      limits = c(0, 10),          # clamp range to 0–10
-      oob = scales::squish,       # values >10 stay at top color
+      limits = c(0, 10),
+      oob = scales::squish,
       breaks = c(0, 10),
       labels = c("0", "≥10")
     ) +
@@ -246,7 +229,6 @@ jackknife_incMSE_heatmap <- function(
       plot.tag = element_text(size = 18, face = "bold"),
       plot.tag.position = c(0.01, 0.98)
     )
-  # ---------- 2b) Overall importance across years ----------
   overall_importance <- imp_summary %>%
     group_by(Variable) %>%
     summarise(
@@ -256,14 +238,12 @@ jackknife_incMSE_heatmap <- function(
     ) %>%
     arrange(desc(overall_mean_incMSE))
   
-  # ---------- 2c) Year-level stats ----------
   year_stats <- n_per_year %>%
     mutate(
       n_predictors = length(pred_cols_all),
       response     = response_var
     )
   
-  # ---------- 2d) Metadata ----------
   meta <- list(
     response_var   = response_var,
     metric         = metric,
@@ -279,11 +259,11 @@ jackknife_incMSE_heatmap <- function(
   
   invisible(list(
     plot              = heat,
-    plot_df           = plot_df,        # "summary"
-    imp_summary       = imp_summary,    # numeric mean±sd by Year × Variable
-    imp_long          = imp_long,       # full jackknife distribution
-    overall_importance = overall_importance, # cross-year ranking
-    year_stats        = year_stats,     # n per year + predictors
-    meta              = meta            # response, metric, years, best params
+    plot_df           = plot_df,
+    imp_summary       = imp_summary,
+    imp_long          = imp_long,
+    overall_importance = overall_importance,
+    year_stats        = year_stats,
+    meta              = meta
   ))
 }

@@ -2,7 +2,7 @@
 
 ## About This Repository
 
-This repository includes all workflows needed to reproduce the data frames and figures used in the analysis of deep chlorophyll maxima (DCM) in Beaverdam Reservoir for the project called: \> *WILL UPDATE THIS WITH PUBLICATION NAME*
+This repository includes all workflows needed to reproduce the data frames and figures used in the analysis of deep chlorophyll maxima (DCM) in Beaverdam Reservoir for the project called: > *Drivers of Deep Chlorophyll Maxima in Beaverdam Reservoir*
 
 ------------------------------------------------------------------------
 
@@ -27,6 +27,8 @@ Scripts and helper functions used to download the raw datasets required for this
 ### `02_DataWrangling/`
 
 This folder contains a sequence of 11 scripts that build the core analysis datasets and manuscript figures. The scripts within are described below.
+
+#### `00_run_all.R`
 
 #### `01_water_level.R`
 

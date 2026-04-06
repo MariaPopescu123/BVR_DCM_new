@@ -5,12 +5,7 @@
 #2. Makes figures displaying the profiles for the day of maximum 
 # phytoplankton concentration of each year (Figure 3)
 
-pacman::p_load(
-  tidyverse, lubridate, akima, reshape2,
-  gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
-  reader, dplyr, tidyr, ggplot2, zoo, purrr, beepr, forecast, ggthemes,
-  patchwork  
-)
+# packages loaded in 01_DataDownload.R
 
 #1. Heatmap for Figure 2 ####
 
@@ -167,7 +162,6 @@ plots <- list(
   flora_heatmap(phytos_heatmaps, 2023, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
   flora_heatmap(phytos_heatmaps, 2024, 50, "TotalConc_ugL", "ug/L", global_max_val, TRUE)   # only this keeps legend
 )
-#warnings are ok
 
 # Combine with patchwork, collect only that one legend
 final_with_legend <-
@@ -283,44 +277,13 @@ ggsave("Figs/Phytos_viz/FP_casts_2025_just_totals.png",
 
 
 
-#3. Profile Casts for SI XXX ####
-#this produces a 10-panel figure- each figure shows the profile 
-#for the day when maximum phytoplankton concentration
-#occurred each year
+#3. Profile Casts with all algal groups for SI ####
+# Reuses the same max-cast selection from section 2 but includes all pigment groups
 
-# Clean FacetID: remove "BVR" from facet labels
-# Filter phytos for the years of interest
-phytos <- phytos %>%
-  filter(Year > 2014, Year < 2025)
-
-# Casts table
-casts <- phytos %>%
-  mutate(Date = date(DateTime)) %>%
-  select(Reservoir, Date, CastID, Site) %>%
-  distinct()
-
-# Max cast(s) per year
-max_phytos_annual <- phytos %>%
-  group_by(Year) %>%
-  filter(TotalConc_ugL == max(TotalConc_ugL, na.rm = TRUE)) %>%
-  ungroup()
-
-# Unique CastIDs for those max casts
-max_cast_ids <- unique(max_phytos_annual$CastID)
-
-# Filter casts to only max CastIDs (Site 50, Reservoir BVR)
-sample_dat <- casts %>%
-  filter(Reservoir == "BVR",
-         Site == 50,
-         CastID %in% max_cast_ids) %>%
-  mutate(Date = as.Date(Date))
-
-# Build plot_dat
-plot_dat <- phytos %>%
+plot_dat_all <- phytos %>%
   mutate(Date = date(DateTime)) %>%
   filter(month(Date) != 1) %>%
   group_by(Reservoir, Date, Site, CastID) %>%
-  # Create FacetID here
   mutate(FacetID = paste(Reservoir, Date, sep = " ")) %>%
   ungroup() %>%
   semi_join(sample_dat, by = c("Reservoir", "Date", "CastID")) %>%
@@ -333,14 +296,10 @@ plot_dat <- phytos %>%
     cols = GreenAlgae_ugL:TotalConc_ugL,
     names_to = "var",
     values_to = "ugL"
-  )
-
-# Now remove "BVR" from facet labels
-plot_dat <- plot_dat %>%
+  ) %>%
   mutate(FacetID = gsub("^BVR\\s+", "", FacetID))
 
-# Build the plot
-plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
+plot_casts_all <- ggplot(plot_dat_all, aes(x = ugL, y = Depth_m, group = var)) +
   geom_path(aes(color = var, size = var)) +
   scale_y_reverse() +
   facet_wrap(
@@ -370,22 +329,21 @@ plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
     ),
     guide = "none"
   ) +
-  theme_minimal(base_size = 16) +  # bigger text
+  theme_minimal(base_size = 16) +
   theme(
     axis.text = element_text(size = 14),
     axis.title = element_text(size = 16, face = "bold"),
-    strip.text = element_text(size = 15, face = "bold"),  # facet labels
+    strip.text = element_text(size = 15, face = "bold"),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 15, face = "bold"),
     panel.grid.major = element_line(color = "grey80", linewidth = .2),
-    panel.grid.minor = element_line(color = "grey90", linewidth = .1), 
+    panel.grid.minor = element_line(color = "grey90", linewidth = .1),
     panel.spacing = unit(1, "cm")
   )
 
-
-plot_casts
+plot_casts_all
 
 ggsave("Figs/Phytos_viz/FP_casts_2025.png",
-       plot = plot_casts,
+       plot = plot_casts_all,
        width = 13, height = 7, units = "in",
-       dpi = 300)  # high-res
+       dpi = 300)

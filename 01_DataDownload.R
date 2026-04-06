@@ -6,7 +6,7 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr,
                forecast, ggthemes, splines, readr, ggbeeswarm,
-               knitr, fastshap, here)
+               knitr, fastshap, here, ISOweek, ragg, scales, rlang)
 
 
 source("Functions/interpolate_variable.R")
@@ -90,11 +90,49 @@ bath <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06
 bath<- bath|>
   filter(Reservoir == "BVR")
 
-write.csv(BVRbath, "CSVs/BVRbath.csv", row.names = FALSE)
+write.csv(bath, "CSVs/BVRbath.csv", row.names = FALSE)
 
+
+#BVR depth offsets (used in 04_photic_temp_thermo.R)
+download.file(
+  "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",
+  destfile = "BVR_Depth_offsets.csv"
+)
+
+#### Variable labels used across scripts ####
+variable_labels <- c(
+  max_conc = "DCM Magnitude (\u00b5g/L)",
+  DCM_depth = "DCM Depth (m)",
+  WaterLevel_m = "Water Level (m)",
+  PZ = "Photic Zone Depth (m)",
+  PZ_prop = "PZ/Water Level Proportion",
+  N_at_DCM = "Buoyancy Frequency at DCM (s\u207b\u00b9)",
+  schmidt_stability = "Schmidt Stability (J/m\u00b2)",
+  surface_temp   = "Surface Temperature at 0.5m (\u00b0C)",
+  temp_at_DCM    = "Temperature at DCM (\u00b0C)",
+  thermocline_depth = "Thermocline Depth (m)",
+  SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
+  SRP_ugL_at_DCM = "SRP (\u00b5g/L) at DCM",
+  NH4_ugL_at_DCM = "NH\u2084\u207a (\u00b5g/L) at DCM",
+  NO3NO2_ugL_at_DCM = "NO\u2083\u207b/NO\u2082\u207b at DCM",
+  depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
+  depth_SRP_ugL_max = "Depth of Max SRP (m)",
+  depth_NH4_ugL_max = "Depth of Max NH\u2084\u207a (m)",
+  depth_NO3NO2_ugL_max = "Depth of Max NO\u2083\u207b/NO\u2082\u207b (m)",
+  Precip_Weekly  = "Precipitation Weekly Sum (mm)",
+  precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
+  precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
+  AirTemp_Avg    = "Air Temperature Weekly Average (\u00b0C)",
+  airtemp_lag1   = "Air Temperature Weekly Average \u00b0C (Lag 1 wk)",
+  airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
+  WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
+  wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
+  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
+)
 
 #### Read in CSVs without re-downloading ####
 # Uncomment this section if you want to load data from saved CSVs
+# after having already downloaded and saved above
 # instead of re-downloading from EDI
 
 wtrlvl <- read_csv("CSVs/wtrlvl.csv")

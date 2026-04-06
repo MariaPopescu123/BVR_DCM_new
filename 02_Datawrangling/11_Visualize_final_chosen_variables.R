@@ -2,40 +2,10 @@
 # 1. Visualizes the variables going into the analysis
 # 2. Calculates statistics for the variables
 
-library(dplyr)
-library(tidyr)
-library(lubridate)
-library(ggplot2)
-library(patchwork)
-####compute statistics####
+# packages loaded in 01_DataDownload.R
+# variable_labels defined in 01_DataDownload.R
 
-#these will be used in the plots
-variable_labels <- c(
-  max_conc = "DCM Magnitude (µg/L)",
-  DCM_depth = "DCM Depth (m)",
-  WaterLevel_m = "Water Level (m)",
-  PZ = "Photic Zone Depth (m)",
-  N_at_DCM = "Buoyancy Frequency at DCM (s⁻¹)",
-  schmidt_stability = "Schmidt Stability (J/m²)",
-  thermocline_depth = "Thermocline Depth (m)",
-  SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
-  SRP_ugL_at_DCM = "SRP (µg/L) at DCM",
-  NH4_ugL_at_DCM = "NH₄⁺ (µg/L) at DCM",
-  NO3NO2_ugL_at_DCM = "NO₃⁻/NO₂⁻ (µg/L) at DCM",
-  depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
-  depth_SRP_ugL_max = "Depth of Max SRP (m)",
-  depth_NH4_ugL_max = "Depth of Max NH₄⁺ (m)",
-  depth_NO3NO2_ugL_max = "Depth of Max NO₃⁻/NO₂⁻ (m)",
-  Precip_Weekly  = "Precipitation Weekly Sum (mm)",
-  precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
-  precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
-  AirTemp_Avg    = "Air Temperature Weekly Average (\u00b0C)",
-  airtemp_lag1   = "Air Temperature Weekly Average \u00b0C (Lag 1 wk)",
-  airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
-  WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
-  wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
-)
+####compute statistics####
 
 # ---- helper: standard DOY_season + filtering ----
 prep_for_plot <- function(df, date_col = "Date") {
@@ -84,7 +54,7 @@ met_long <- final_metdata %>%
 photic_vars <- c("PZ", "thermocline_depth")
 
 photic_long <- final_photic_thermo %>%
-  mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1)) %>%
+  mutate(Date = ISOweek2date(paste0(Year, "-W", sprintf("%02d", Week), "-1"))) %>%
   prep_for_plot() %>%
   make_long(photic_vars) %>%
   mutate(max_conc = NA_real_)
@@ -93,8 +63,7 @@ photic_long <- final_photic_thermo %>%
 schmidt_vars <- c("schmidt_stability")
 
 schmidt_long <- final_schmidt %>%
-  # schmidt has no Date, build one from Year + Week
-  mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1)) %>%
+  mutate(Date = ISOweek2date(paste0(Year, "-W", sprintf("%02d", Week), "-1"))) %>%
   prep_for_plot() %>%
   make_long(schmidt_vars) %>%
   mutate(max_conc = NA_real_)
@@ -217,7 +186,6 @@ ggsave(
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
-# warnings are ok
 
 ####Summary Statistics (for SI)####
 # Uses all Year+Week combos within DOY 133-286
@@ -227,7 +195,7 @@ ggsave(
 
 # ── Full spine of all stratified-season weeks 2015-2024 ──
 stats_spine <- expand.grid(Year = 2015:2024, Week = 1:53) %>%
-  mutate(Date = as.Date(paste0(Year, "-01-01")) + weeks(Week - 1),
+  mutate(Date = ISOweek2date(paste0(Year, "-W", sprintf("%02d", Week), "-1")),
          DOY  = yday(Date)) %>%
   filter(DOY >= 133, DOY <= 286) %>%
   select(Year, Week)

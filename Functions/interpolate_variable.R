@@ -1,15 +1,8 @@
-#function for interpolating variables in a data frame
-#make sure to clean up data before hand. remove flags 
-
+#Interpolates variables across depth and time (weekly).
+#Data should be QC'd and flags removed before calling.
 
 interpolate_variable <- function(data, variable_list) {
-  
-  # data <- metalsdf_filtered
-  # variable_list <- c("SFe_mgL", "TFe_mgL")
-  # expanded_dates <- expanded_dates
-  
-  ####weekly dataframe for interpolation####
-  #this will be used to grab values only for where we are missing data
+
   start_date <- as.Date("2014-01-01")
   end_date <- as.Date("2024-12-31")
   
@@ -22,10 +15,8 @@ interpolate_variable <- function(data, variable_list) {
   
   Depth_fake = seq(0, 13, by = 0.1)
   
-  # Expand grid to get each date with each depth
   expanded_dates <- expand_grid(Date_fake = weekly_dates$Date_fake, Depth_m = Depth_fake)
-  
-  # Add year and week info to the expanded data
+
   expanded_dates <- expanded_dates %>%
     mutate(Year = year(Date_fake),
            Week = week(Date_fake),
@@ -42,17 +33,16 @@ interpolate_variable <- function(data, variable_list) {
       DOY  = yday(Date)
     )
   
-  interpolated_results <- list()  # Store results for each variable
-  
+  interpolated_results <- list()
 
   for (var in variable_list) {
-    var_daily_summarise <- data |> #sumarising the data per day per depth for replicates
+    var_daily_summarise <- data |>
       select(Depth_m, Year, Week, DOY, Date, all_of(var)) |>
       group_by(Year, DOY, Week, Date, Depth_m) |>
       summarise(!!sym(var) := mean(.data[[var]], na.rm = TRUE), .groups = "drop") |>
       ungroup()
     
-    var_depth_rounded <- var_daily_summarise |> #rounding to the 0.1 meter and getting the mean
+    var_depth_rounded <- var_daily_summarise |>
       group_by(Date) |>
       mutate(Depth_m = round(Depth_m, digits = 1)) |>
       ungroup() |>
@@ -100,11 +90,10 @@ interpolate_variable <- function(data, variable_list) {
              -first_valid_Week, -last_valid_Week, -Value_interp_Week) %>%
       rename(!!sym(var) := interp_var)
     
-    interpolated_results[[var]] <- var_interpolated  # Store in list dynamically
+    interpolated_results[[var]] <- var_interpolated
   }
-  
-  
-  final_result <- plyr::join_all(interpolated_results, by = c("Week", "DOY", "Depth_m", "Year", "Date"))  # Combine all results
+
+  final_result <- plyr::join_all(interpolated_results, by = c("Week", "DOY", "Depth_m", "Year", "Date"))
   return(final_result)
   
 }

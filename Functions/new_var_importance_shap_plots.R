@@ -1,29 +1,12 @@
-library(dplyr)
-library(tidyr)
-library(lubridate)
-library(ggplot2)
-library(ggbeeswarm)
-library(tibble)
-library(randomForest)
-library(fastshap)
-library(patchwork)
-library(here)
+#RF variable importance (%IncMSE) and SHAP value plots for a given response variable.
 
-# Put this near the top of the function (after library calls is fine)
 axis_only_theme <- theme_classic(base_size = 12) +
   theme(
-    panel.border = element_blank(),     # no full border
+    panel.border = element_blank(),
     axis.line    = element_line(color = "black", linewidth = 0.4),
     axis.ticks   = element_line(color = "black")
   )
 
-# Xdataframe: data.frame with Date column (Date or POSIXt) + predictors + response
-# XYear, XYear2: inclusive year bounds (e.g., 2014, 2019) [used only if `years` is NULL]
-# years: optional vector of specific years to include (e.g., c(2016, 2024))
-# whichvars: label for titles/files
-# response_var: name of response column as a string (e.g., "DCM_depth" or "max_conc")
-# save_dir: subfolder under Figs/MachineLearning/ for saving (e.g., "Depth" or "Magnitude")
-# variable_labels: named character vector mapping internal names -> pretty labels used in plots
 var_importance_shap_plots <- function(Xdataframe,
                                       XYear = NULL,
                                       XYear2 = NULL,
@@ -32,17 +15,14 @@ var_importance_shap_plots <- function(Xdataframe,
                                       response_var,
                                       save_dir,
                                       variable_labels = NULL) {
-  # helper: safe pretty labels
   pretty_lab <- function(v) {
     if (is.null(variable_labels)) return(v)
     out <- unname(variable_labels[as.character(v)])
     out[is.na(out)] <- v[is.na(out)]
     out
   }
-  # pretty response label if available
   response_label <- pretty_lab(response_var)
   
-  # ---- Prepare df with Year + row id ----
   df <- Xdataframe %>%
     mutate(
       Date   = as.Date(Date),
@@ -50,7 +30,6 @@ var_importance_shap_plots <- function(Xdataframe,
       .row_id = seq_len(n())
     )
   
-  # ---- Filter years: either exact set or inclusive bounds ----
   if (!is.null(years)) {
     years <- sort(unique(years))
     df <- df %>% filter(Year %in% years)
@@ -63,7 +42,6 @@ var_importance_shap_plots <- function(Xdataframe,
     df <- df %>% filter(Year >= XYear, Year <= XYear2)
   }
   
-  # ---- Quick counts (pre-clean) ----
   obs_total_before <- nrow(df)
   obs_per_year_before <- df %>%
     count(Year, name = "n") %>%
@@ -73,7 +51,6 @@ var_importance_shap_plots <- function(Xdataframe,
   print(obs_per_year_before)
   cat("Total before cleaning:", obs_total_before, "\n")
   
-  # ---- Build modeling frame: response + numeric/factor predictors; drop helpers ----
   keep_cols <- df %>%
     select(-Date, -Year, -.row_id) %>%
     select(where(~ is.numeric(.x) || is.factor(.x))) %>%
@@ -84,21 +61,18 @@ var_importance_shap_plots <- function(Xdataframe,
   model_df <- df %>%
     select(.row_id, Year, all_of(response_var), any_of(setdiff(keep_cols, response_var)))
   
-  # ---- Replace Inf/NaN → NA ----
   model_df <- model_df %>%
     mutate(across(where(is.numeric), ~ ifelse(is.infinite(.x) | is.nan(.x), NA, .x)))
   
-  # ---- Drop columns with >25% NA ----
+  #drop columns with >25% NA
   resp_and_keys <- c(".row_id", "Year", response_var)
   na_frac <- sapply(model_df, function(x) mean(is.na(x)))
   drop_cols <- names(na_frac)[na_frac > 0.25]
   drop_cols <- setdiff(drop_cols, resp_and_keys)
   model_df <- model_df %>% select(-any_of(drop_cols))
   
-  # ---- Omit remaining NA rows ----
   model_df <- model_df %>% tidyr::drop_na()
   
-  # ---- Summary after cleaning ----
   obs_total_after <- nrow(model_df)
   obs_per_year_after <- model_df %>%
     count(Year, name = "n") %>%
@@ -108,14 +82,13 @@ var_importance_shap_plots <- function(Xdataframe,
   print(obs_per_year_after)
   cat("Total after cleaning:", obs_total_after, "\n")
   
-  # ---- Predictor summary ----
   pred_cols <- setdiff(names(model_df), c(".row_id", "Year", response_var))
   if (length(pred_cols) < 2L) stop("Not enough predictors after cleaning.")
   
   message(sprintf("\nFinal model summary → Total observations: %d | Predictors: %d\n",
                   nrow(model_df), length(pred_cols)))
   
-  # ---- RF tuning ----
+  #grid search for RF hyperparameters
   set.seed(123)
   rf_formula <- as.formula(paste(response_var, "~ ."))
   rf_df <- model_df %>% select(all_of(response_var), all_of(pred_cols))
@@ -140,8 +113,8 @@ var_importance_shap_plots <- function(Xdataframe,
           nodesize   = ns,
           importance = TRUE
         )
-        rsq <- fit$rsq[length(fit$rsq)]    # OOB pseudo-R²
-        mse <- fit$mse[length(fit$mse)]    # OOB MSE
+        rsq <- fit$rsq[length(fit$rsq)]
+        mse <- fit$mse[length(fit$mse)]
 
         results[[idx]] <- data.frame(
           Trees = nt,
@@ -162,7 +135,6 @@ var_importance_shap_plots <- function(Xdataframe,
   
   best <- RF_tuning_scores[1, ]
   
-  # ---- Final model ----
   final_rf <- randomForest(
     formula    = rf_formula,
     data       = rf_df,
@@ -178,7 +150,7 @@ var_importance_shap_plots <- function(Xdataframe,
   meta_subtitle <- sprintf("%s | OOB R²=%.3f | OOB RMSE=%.2f | n=%d | ntree=%d | mtry=%d | nodesize=%d",
                            response_label, r2_oob, rmse_oob, nrow(rf_df), best$Trees, best$mtry, best$NodeSize)
   
-  # ---- Variable importance (%IncMSE) ----
+  #%IncMSE importance plot
   imp_df <- as.data.frame(importance(final_rf)) %>%
     rownames_to_column("Variable") %>%
     filter(!is.na(`%IncMSE`), `%IncMSE` > 0)
@@ -219,7 +191,7 @@ var_importance_shap_plots <- function(Xdataframe,
 
   
   
-  # ---- SHAP ----
+  #SHAP values
   X_shap <- rf_df %>% select(all_of(pred_cols))
   
   shap_values <- fastshap::explain(
@@ -267,7 +239,6 @@ var_importance_shap_plots <- function(Xdataframe,
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   
-  # ---- Combined & save ----
   combined_plot <- p_imp + p_shap + plot_layout(ncol = 2)
   
   ggsave(

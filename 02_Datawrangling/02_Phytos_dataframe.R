@@ -10,10 +10,7 @@
 # 7. performs a Kruskal Wallis test for Figure S7
 # 8. calculates and plots phytoplankton statistics for Figure S6
 
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(patchwork)
+# packages loaded in 01_DataDownload.R
 
 #prepping phyto dataframe
 
@@ -27,16 +24,11 @@ phytos <- phytos_df %>%
   filter(year(Date) >2014, year(Date) <2025)
 
 write.csv(phytos, "CSVs/phytos.csv", row.names = FALSE)
-phytos <- read.csv("CSVs/phytos.csv")
 
-#To show community composition across all depths 
-####
+#community composition across all depths ####
 phyto_plot <- phytos %>%
-  # Parse DateTime if not already POSIXct
   mutate(DateTime = as.POSIXct(DateTime)) %>%
-  # Filter to 2015-2024
   filter(year(DateTime) >= 2015, year(DateTime) <= 2024) %>%
-  # Average across all depths per DateTime (or per Date if you prefer less noise)
   group_by(DateTime) %>%
   summarise(
     GreenAlgae  = sum(GreenAlgae_ugL,  na.rm = TRUE),
@@ -46,16 +38,13 @@ phyto_plot <- phytos %>%
     Total       = sum(TotalConc_ugL,   na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  # Calculate proportions
   mutate(
     GreenAlgae = GreenAlgae / Total,
     Bluegreens = Bluegreens / Total,
     BrownAlgae = BrownAlgae / Total,
     MixedAlgae = MixedAlgae / Total
   ) %>%
-  # Drop rows where Total was 0 or NA
   filter(is.finite(GreenAlgae)) %>%
-  # Pivot to long for ggplot
   select(DateTime, GreenAlgae, Bluegreens, BrownAlgae, MixedAlgae) %>%
   pivot_longer(
     cols = -DateTime,
@@ -64,9 +53,8 @@ phyto_plot <- phytos %>%
   ) %>%
   mutate(Group = factor(Group, levels = c("GreenAlgae", "Bluegreens", "BrownAlgae", "MixedAlgae")))
 
-# --- Plot ---
 comp <- ggplot(phyto_plot, aes(x = DateTime, y = Proportion, fill = Group)) +
-  geom_area(position = "stack", alpha = 0.85) +
+  geom_area(position = "fill", alpha = 0.85) +
   scale_y_continuous(
     labels = scales::percent_format(accuracy = 1),
     limits = c(0, 1),
@@ -229,21 +217,14 @@ types <- c("TotalConc_ugL"
           # "BrownAlgae_ugL",
           # "MixedAlgae_ugL"
           )
-# Loop over each type
+dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
+
 for (type in types) {
-  
-  # Loop over each year
   for (yr in years) {
-    
-    # Filter data for the year
-    test <- DCM_metrics |>
-      filter(year(Date) == yr)
-    
-    # Skip if there's no data
+    test <- DCM_metrics |> filter(year(Date) == yr)
     if (nrow(test) == 0) next
-    
-    # Create plot
-    plot_casts <- ggplot(test, aes_string(x = type, y = "Depth_m")) +
+
+    plot_casts <- ggplot(test, aes(x = .data[[type]], y = Depth_m)) +
       geom_path() +
       scale_y_reverse() +
       theme_bw() +
@@ -251,11 +232,7 @@ for (type in types) {
       xlab("micrograms per liter") +
       ylab("Depth (m)") +
       ggtitle(paste(yr, type, "raw casts"))
-    
-    # Create directory if it doesn't exist
-    dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
-    
-    # Save plot
+
     ggsave(
       filename = paste0("Figs/raw_flora_casts/", type, "_", yr, "_raw_casts.png"),
       plot = plot_casts,
@@ -265,7 +242,6 @@ for (type in types) {
     )
   }
 }
-#warning message ok
 
 DCM_metrics_filtered <- DCM_metrics |>
   filter(!CastID %in% c(788, 857,933, 1150)) |> #blank and erroneous casts
@@ -292,11 +268,9 @@ DCM_metrics_depth <- DCM_metrics_filtered |> group_by(CastID)
 
 # Loop over each pigment variable
 for (var in pigment_vars) {
-  # Create new column names for max concentration and DCM depth
   max_col <- paste0(var, "_max_conc")
   dcm_col <- paste0(var, "_DCM_depth")
-  
-  # Dynamically create columns
+
   DCM_metrics_depth <- DCM_metrics_depth |>
     mutate(
       !!sym(max_col) := max(.data[[var]], na.rm = TRUE),
@@ -306,14 +280,11 @@ for (var in pigment_vars) {
     fill(!!sym(dcm_col), .direction = "downup")
 }
 
-#add water level so we can use for calculations of depth
 DCM_metrics_depth1 <- DCM_metrics_depth|>
   left_join(weekly_water_level, by = c("Year", "Week"))
 
-
-# Ungroup after loop and make sure that it qualifies as a DCM
-# below the top 5% of the water colun depth and
-# chla at least 1.5 times average in top 5% of water column
+#qualify as DCM: peak must be below top 5% of water column,
+#and peak conc must be >= 1.5x the mean in the top 5%
 DCM_metrics_depth2 <- DCM_metrics_depth1 %>%
   group_by(Reservoir, Site, Date, CastID) %>%
   mutate(
@@ -338,25 +309,17 @@ for (var in pigment_vars) {
   dcm_col <- paste0(var, "_DCM_depth")
   
   for (yr in years) {
-    # Filter to this year
-    test <- DCM_metrics_depth2 |>
-      filter(year(Date) == yr)
-    
+    test <- DCM_metrics_depth2 |> filter(year(Date) == yr)
     if (nrow(test) == 0) next
-    
-    # Defensive: skip if DCM column is missing
     if (!dcm_col %in% names(test)) next
-    
+
     depth_max <- max(test$Depth_m, na.rm = TRUE)
-    
+
     plot_casts <- ggplot(test, aes(x = .data[[var]], y = Depth_m, group = CastID)) +
       geom_path() +
-      # light grid every meter
       geom_hline(yintercept = seq(0, depth_max, by = 1),
                  color = "lightblue", linetype = "dotted", linewidth = 0.3) +
-      # DCM depth for this pigment
       geom_hline(aes(yintercept = .data[[dcm_col]]), color = "red") +
-      # label the DCM depth on the right edge of each facet
       geom_text(
         aes(label = round(.data[[dcm_col]], 1), x = Inf, y = .data[[dcm_col]]),
         color = "black", hjust = 1.1, size = 3
@@ -384,6 +347,87 @@ final_DCM_metrics<- DCM_metrics_depth2|>
          DCM_depth = TotalConc_ugL_DCM_depth)|>
   filter(!(CastID == 1087))|> #no real peak
   filter(Year <2025) 
+
+
+
+
+#COMMUNITY COMP AT DCM####
+plot_prep_depth <- final_DCM_metrics|>
+  group_by(Date)|>
+  summarise(DCM_depth = mean(DCM_depth))|>
+  select(Date, DCM_depth)
+
+phytos_n_DCM <- phytos|>
+  left_join(plot_prep_depth, by = c("Date"))|>
+  filter(!is.na(DCM_depth))|>
+  group_by(Date)|>
+  filter(Depth_m == DCM_depth)|>
+  ungroup()
+
+plot_comp_data <- phytos_n_DCM |>
+  mutate(DateTime = as.POSIXct(DateTime))|>
+  group_by(DateTime) %>%
+  summarise(
+    GreenAlgae  = sum(GreenAlgae_ugL,  na.rm = TRUE),
+    Bluegreens  = sum(Bluegreens_ugL,  na.rm = TRUE),
+    BrownAlgae  = sum(BrownAlgae_ugL,  na.rm = TRUE),
+    MixedAlgae  = sum(MixedAlgae_ugL,  na.rm = TRUE),
+    Total       = sum(TotalConc_ugL,   na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    GreenAlgae = GreenAlgae / Total,
+    Bluegreens = Bluegreens / Total,
+    BrownAlgae = BrownAlgae / Total,
+    MixedAlgae = MixedAlgae / Total
+  ) %>%
+  filter(is.finite(GreenAlgae)) %>%
+  select(DateTime, GreenAlgae, Bluegreens, BrownAlgae, MixedAlgae) %>%
+  pivot_longer(
+    cols = -DateTime,
+    names_to  = "Group",
+    values_to = "Proportion"
+  ) %>%
+  mutate(Group = factor(Group, levels = c("GreenAlgae", "Bluegreens", "BrownAlgae", "MixedAlgae")))
+
+comp <- ggplot(plot_comp_data, aes(x = DateTime, y = Proportion, fill = Group)) +
+  geom_area(position = "fill", alpha = 0.85) +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    limits = c(0, 1),
+    expand = c(0, 0)
+  ) +
+  scale_x_datetime(
+    date_breaks = "1 year",
+    date_labels = "%Y",
+    limits = as.POSIXct(c("2015-01-01", "2024-12-31")),
+    expand = c(0, 0)
+  ) +
+  scale_fill_manual(values = c(
+    "GreenAlgae" = "green",
+    "Bluegreens"  = "blue",
+    "BrownAlgae"  = "orange",
+    "MixedAlgae"  = "red"
+  )) +
+  labs(
+    title = "Phytoplankton Community Composition (2015 - 2024)",
+    x     = NULL,
+    y     = "Proportion of Total Phytoplankton",
+    fill  = "Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position   = "bottom",
+    panel.grid.minor  = element_blank(),
+    axis.text.x       = element_text(angle = 45, hjust = 1)
+  )
+
+ggsave("Figs/Phytos_viz/comp_at_DCM.png", comp, 
+       width = 10, height = 10, dpi = 900)
+
+
+
+
 
 #5. Reproduce boxplots for Figure 5####
 
@@ -570,17 +614,16 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
   }
   diag(Pfull) <- NA_real_
   
-  # Long + upper triangle
   p_long <- as.data.frame(Pfull) %>%
-    tibble::rownames_to_column("Year1") %>%
-    tidyr::pivot_longer(-Year1, names_to = "Year2", values_to = "p_adj") %>%
-    dplyr::mutate(
+    rownames_to_column("Year1") %>%
+    pivot_longer(-Year1, names_to = "Year2", values_to = "p_adj") %>%
+    mutate(
       Year1_num = as.integer(as.character(Year1)),
       Year2_num = as.integer(as.character(Year2))
     ) %>%
-    dplyr::filter(Year1_num < Year2_num) %>%
-    dplyr::mutate(
-      sig_bin = dplyr::case_when(
+    filter(Year1_num < Year2_num) %>%
+    mutate(
+      sig_bin = case_when(
         is.na(p_adj)  ~ NA_character_,
         p_adj < 0.001 ~ "< 0.001",
         p_adj < 0.01  ~ "< 0.01",
@@ -588,65 +631,62 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
         TRUE          ~ "\u2265 0.05"
       ),
       sig_bin = factor(sig_bin, levels = c("< 0.001", "< 0.01", "< 0.05", "\u2265 0.05")),
-      # Stars only when significant; otherwise ""
-      stars = dplyr::case_when(
+      stars = case_when(
         is.na(p_adj)  ~ "",
         p_adj < 0.001 ~ "***",
         p_adj < 0.01  ~ "**",
         p_adj < 0.05  ~ "*",
-        TRUE          ~ ""   # no "ns"
+        TRUE          ~ ""
       ),
-      # Always show number when not NA; append stars only if significant
-      label_txt = dplyr::case_when(
+      label_txt = case_when(
         is.na(p_adj) ~ "",
         p_adj < 0.05 ~ paste0(formatC(p_adj, format = "f", digits = 3), "\n", stars),
         TRUE         ~ formatC(p_adj, format = "f", digits = 3)
       ),
-      # Text color for contrast
-      text_col = dplyr::case_when(
+      text_col = case_when(
         is.na(p_adj) ~ "black",
         sig_bin == "< 0.001" ~ "white",
         TRUE ~ "black"
       )
     )
-  
+
   sig_pal <- c(
     "< 0.001" = "#08306b",
     "< 0.01"  = "#2171b5",
     "< 0.05"  = "#6baed6",
     "\u2265 0.05" = "#e0e0e0"
   )
-  
-  ggplot2::ggplot(p_long, ggplot2::aes(x = Year1, y = Year2, fill = sig_bin)) +
-    ggplot2::geom_tile(color = "white", linewidth = 0.4) +
-    ggplot2::geom_text(
-      ggplot2::aes(label = label_txt),
-      color = p_long$text_col,   
-      size = 3.2, 
+
+  ggplot(p_long, aes(x = Year1, y = Year2, fill = sig_bin)) +
+    geom_tile(color = "white", linewidth = 0.4) +
+    geom_text(
+      aes(label = label_txt),
+      color = p_long$text_col,
+      size = 3.2,
       lineheight = 0.9,
       show.legend = FALSE
     )+
-    ggplot2::scale_fill_manual(
+    scale_fill_manual(
       values = sig_pal,
       na.value = "white",
       drop = FALSE,
       name = "Adj. p (BH)"
     ) +
-    ggplot2::coord_equal() +
-    ggplot2::scale_x_discrete(position = "top") +
-    ggplot2::labs(
+    coord_equal() +
+    scale_x_discrete(position = "top") +
+    labs(
       title = title_label,
       subtitle = paste0("    Kruskal - Wallis p = ", signif(kw$p.value, 3)),
       x = NULL, y = NULL
     ) +
-    ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(
-      panel.grid = ggplot2::element_blank(),
-      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1),
       legend.position = "right",
-      legend.title = ggplot2::element_text(size = 10),
-      legend.text = ggplot2::element_text(size = 9),
-      plot.title = ggplot2::element_text(face = "bold")
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 9),
+      plot.title = element_text(face = "bold")
     )
 }
 
@@ -667,12 +707,10 @@ p_mag <- sig_grid_upper_fn(
   "B   Pairwise Differences by Year - DCM Magnitude"
 )
 
-# Hide legend on the second plot
 p_mag_nolegend <- p_mag + theme(legend.position = "none")
 
-# Stack plots vertically with only the first plot's legend
 sig_both <- p_depth / p_mag_nolegend +
-  plot_layout(guides = "collect") +   # collects the legend from p_depth
+  plot_layout(guides = "collect") +
   plot_annotation(
     title = "Year-wise Pairwise Significance (BH-adjusted)",
     theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
@@ -680,7 +718,6 @@ sig_both <- p_depth / p_mag_nolegend +
 
 ggsave("Figs/Phytos_viz/kruskal-wallis.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
-#warning is ok
 
 #8. Plotting statistics for DCM depth and DCM magnitude for Figure S6 -----####
 
