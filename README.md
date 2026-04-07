@@ -107,10 +107,6 @@ This function is for QAQC purposes and was developed so anyone can see the data 
 
 This function produces the final FluoroProbe Data Availability plot for the supplementary information.
 
-#### `find_depths.R`
-
-This function calculates sensor depth from platform pressure/offset data by joining observations to time-valid offset tables and returning either long-format or wide-format temperature-depth output. It is used to process 2021 sensor-string data in `04_photic_temp_thermo.R`.
-
 #### `interpolate_variable.R`
 
 This function interpolates missing values for a list of water quality variables across both depth and weeks in a reservoir. It first summarizes the raw data by date, depth, and week, then linearly interpolates values within observed depth and week ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete weekly-depth grid for each variable, ready for further analysis or modeling.
