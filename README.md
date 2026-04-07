@@ -8,13 +8,21 @@ This repository includes all workflows needed to reproduce the analyses and figu
 
 ## Instructions to reproduce figures and analysis
 
-1.  Run `01_DataDownload.R`
+1.  Run `01_DataDownload.R` (loads packages/functions, downloads or reloads input data, and creates `variable_labels` used by downstream scripts).
 
-2.  Run scripts in numerical order within `02_DataWrangling/` to reproduce the data products and figures used in the manuscript.
+2.  Run scripts in numerical order within `02_Datawrangling/` to reproduce the data products and figures used in the manuscript.
 
 3.  Run `03_Machine_learning/RF_and_SHAP.R`
 
 All outputs (CSVs and figures) are written to the `CSVs/` and `Figs/` directories.
+
+###  Notes
+
+- The workflow requires scripts to run in order in the same R session.
+- `02_Datawrangling/02_Phytos_dataframe.R` creates `frame_weeks.csv` and `final_phytos.csv`, which are required by later scripts.
+- `02_Datawrangling/04_photic_temp_thermo.R` creates `temp_depths_interp` in memory, which is used by `05_buoyancy_freq.R` and `07_schmidt_stability.R`.
+- If you run scripts independently (instead of sequentially), some objects must be loaded manually first.
+- `00_run_all.R` can be used to source the data-wrangling scripts in order after running `01_DataDownload.R`.
 
 ------------------------------------------------------------------------
 
@@ -24,7 +32,7 @@ All outputs (CSVs and figures) are written to the `CSVs/` and `Figs/` directorie
 
 Scripts and helper functions used to download the raw datasets required for this project.
 
-### `02_DataWrangling/`
+### `02_Datawrangling/`
 
 This folder contains a sequence of 11 scripts that build the core analysis datasets and manuscript figures. The scripts within are described below.
 
@@ -51,7 +59,7 @@ Identifies the day of peak phytoplankton concentration each year and produces pr
 
 This script calculates weekly photic zone depth, interpolated temperature profiles, and thermocline depth for Beaverdam Reservoir (Site 50). It cleans and merges CTD and YSI data, estimates light availability from Secchi depth data, and computes thermocline depth from temperature–depth profiles. The final output combines photic zone, thermocline, and water level observations into a single dataset for use in downstream analyses.
 
-#### `O5_buoyancy_freq.R`
+#### `05_buoyancy_freq.R`
 
 This script calculates buoyancy frequency (stratification strength) from temperature-depth profiles and extracts the value at the depth of the deep chlorophyll maximum (DCM) each week. The final output is a weekly time series of buoyancy frequency at the DCM for use in analyses of physical controls on phytoplankton structure.
 
@@ -89,7 +97,7 @@ This code uses random forest models to predict two metrics of phytoplankton vert
 
 ### `Functions/`
 
-Reusable functions that support data processing and figure creation. These functions do not need to be run individually- they are called in using the `01_DataDownload.R` file. They are used throughout the scripts. Descriptions of each are provided here.
+Reusable functions that support data processing and figure creation. These functions are sourced in `01_DataDownload.R` and then used throughout the pipeline scripts. Descriptions of each are provided here.
 
 #### `data_availability_function.R`
 
@@ -98,6 +106,10 @@ This function is for QAQC purposes and was developed so anyone can see the data 
 #### `final_data_availability_plot.R`
 
 This function produces the final FluoroProbe Data Availability plot for the supplementary information.
+
+#### `find_depths.R`
+
+This function calculates sensor depth from platform pressure/offset data by joining observations to time-valid offset tables and returning either long-format or wide-format temperature-depth output. It is used to process 2021 sensor-string data in `04_photic_temp_thermo.R`.
 
 #### `interpolate_variable.R`
 
