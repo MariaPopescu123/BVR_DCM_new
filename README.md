@@ -2,7 +2,7 @@
 
 ## About This Repository
 
-This repository includes all workflows needed to reproduce the data frames and figures used in the analysis of deep chlorophyll maxima (DCM) in Beaverdam Reservoir for the project called: > *Drivers of Deep Chlorophyll Maxima in Beaverdam Reservoir*
+This repository includes all workflows needed to reproduce the analyses and figures of deep chlorophyll maxima (DCM) in Beaverdam Reservoir, Vinton, Virginia, USA for the project called: > *Drivers of Deep Chlorophyll Maxima in Beaverdam Reservoir*
 
 ------------------------------------------------------------------------
 
@@ -10,7 +10,7 @@ This repository includes all workflows needed to reproduce the data frames and f
 
 1.  Run `01_DataDownload.R`
 
-2.  Run scripts in numerical order within `02_DataWrangling/` to fully reproduce the data products and figures used in the manuscript.
+2.  Run scripts in numerical order within `02_DataWrangling/` to reproduce the data products and figures used in the manuscript.
 
 3.  Run `03_Machine_learning/RF_and_SHAP.R`
 
@@ -30,14 +30,16 @@ This folder contains a sequence of 11 scripts that build the core analysis datas
 
 #### `00_run_all.R`
 
+Sources and runs all scripts within the DataWrangling directory.
+
 #### `01_water_level.R`
 
-Downloads Beaverdam Reservoir water-level data (2014–2024) from EDI, merges pressure-sensor and historical sources, interpolates and aggregates them to weekly water levels.\
-Generates a year-colored time-series plot, saves a cleaned CSV, and computes summary statistics on within- and across-year variability (including pre- vs. post-2022 comparisons).
+Downloads Beaverdam Reservoir water-level data (2014–2024) from EDI, merges pressure-sensor and historical water level data sources, interpolates the data, and aggregates the time series to weekly water levels.\
+Generates a time-series plot colored by year, saves a cleaned CSV, and computes summary statistics on within- and across-year variability (including pre- vs. post-2022 comparisons).
 
 #### `02_Phytos_dataframe.R`
 
-Cleans and filters FluoroProbe phytoplankton profiles, removes problematic casts, and computes deep chlorophyll maximum (DCM) metrics (peak depth and peak concentration) for each cast and week.\
+Cleans and filters FluoroProbe phytoplankton depth profiles (casts), removes questionable casts, and computes deep chlorophyll maximum (DCM) metrics (peak depth and peak concentration) for each cast and week.\
 Produces QC plots, annual boxplots and summaries, pairwise year-to-year significance tests, and exports weekly-aggregated DCM depth and magnitude datasets for downstream analyses (e.g., random forest modeling).
 
 #### `03_Phytos_heatmaps_profiles.R`
@@ -47,7 +49,7 @@ Identifies the day of peak phytoplankton concentration each year and produces pr
 
 #### `04_photic_temp_thermo.R`
 
-This script calculates weekly photic zone depth, interpolated temperature profiles, and thermocline depth for Beaverdam Reservoir (Site 50). It cleans and merges CTD and YSI data, derives light availability from Secchi depth, and computes thermocline depth from temperature–depth profiles. The final output combines photic zone, thermocline, and water level into a single dataset for use in downstream analyses.
+This script calculates weekly photic zone depth, interpolated temperature profiles, and thermocline depth for Beaverdam Reservoir (Site 50). It cleans and merges CTD and YSI data, estimates light availability from Secchi depth data, and computes thermocline depth from temperature–depth profiles. The final output combines photic zone, thermocline, and water level observations into a single dataset for use in downstream analyses.
 
 #### `O5_buoyancy_freq.R`
 
@@ -63,15 +65,15 @@ This script calculates Schmidt stability for Beaverdam Reservoir by combining te
 
 #### `08_NLDAS_downscaling.R`
 
-This script merges EDI and NLDAS meteorological datasets for Beaverdam Reservoir by first computing weekly averages, performing quality control, and downscaling NLDAS to match EDI values using linear regressions. It then combines the datasets, creates lagged variables, visualizes both 2015 and all years of data, and exports a clean weekly meteorological dataset ready for machine learning analyses.
+This script merges EDI and NLDAS meteorological datasets for Beaverdam Reservoir by first computing weekly averages, performing quality control, and downscaling NLDAS to match EDI values using linear regressions. It then combines the datasets, creates lagged variables, visualizes all years of data, and exports a clean weekly meteorological dataset ready for downstream analyses.
 
 #### `09_join_all_frames.R`
 
-This code joins all the previously processed weekly datasets-phytoplankton, metals, photic/thermal profiles, buoyancy, chemistry, Schmidt stability, and meteorology—into a single full_weekly_data dataframe. It then cleans and renames key variables, organizes lagged meteorological variables, filters for 2015–2024, and exports the complete weekly dataset. Finally, it calculates summary statistics for high phytoplankton concentrations (max_conc \> 20), including the median, standard deviation, ±1 SD, and sample size, both for concentration and DCM depth.
+This code joins all the previously processed weekly datasets — phytoplankton, photic/thermal profiles, buoyancy, nutrient and metals chemistry, Schmidt stability, and meteorology — into a single full_weekly_data dataframe. It then cleans and renames key variables, organizes lagged meteorological variables, filters the time series to be just  2015–2024, and exports the complete weekly dataset. Finally, it calculates summary statistics for high phytoplankton concentrations (max_conc \> 20), including the median, standard deviation, ±1 SD, and sample size, both for concentration and DCM depth.
 
 #### `10_Choosing_variables_correlation_matrix.R`
 
-This code creates correlation heatmaps for different groups of weekly variables from full_weekly_data. It also creates the pretty labels used for the remaining figures
+This code creates correlation heatmaps for different groups of weekly variables from full_weekly_data. It also creates the pretty labels used for the remaining figures.
 
 #### `11_Visualize_final_chosen_variables.R`
 
@@ -79,11 +81,11 @@ This code produces a seasonal overview of the chosen environmental and depth-rel
 
 ### `03_Machine_learning/`
 
-This folder contains a script for running the random forest model with Shapley Additive Explanations (SHAP)
+This folder contains a script for running the random forest model with Shapley Additive Explanations (SHAP).
 
 #### `RF_and_SHAP.R`
 
-This code uses Random Forest models to predict DCM_depth and max_conc from environmental variables, then applies SHAP values to quantify each predictor’s contribution to the model. It runs separate analyses for depth and magnitude, including weather lags and water column metrics, and generates plots of variable importance, model robustness (jackknife), and SHAP interactions. The results help identify which physical, chemical, or meteorological factors most strongly influence phytoplankton dynamics.
+This code uses random forest models to predict two metrics of phytoplankton vertical structure (DCM_depth and max_conc) from environmental variables, then applies SHAP values to quantify each predictor’s contribution to the model. It runs separate analyses for depth and magnitude, including weather lags and water column metrics, and generates plots of variable importance, model robustness (jackknife), and SHAP interactions. The results help identify which physical, chemical, and meteorological factors most strongly influence phytoplankton dynamics.
 
 ### `Functions/`
 
@@ -91,11 +93,11 @@ Reusable functions that support data processing and figure creation. These funct
 
 #### `data_availability_function.R`
 
-This is for QAQC purposes and was developed so anyone can see the data availability of any variable within any dataframe. Not to produce publication-ready figures. It produces a figure that displays which days within each year that we have data available for.
+This function is for QAQC purposes and was developed so anyone can see the data availability of any monitoring variable within any dataframe (not to produce publication-ready figures!). It produces a figure that displays which days within each year that we have available observations.
 
 #### `final_data_availability_plot.R`
 
-This was developed to produce the final FluoroProbe Data Availability plot in the supplementary figure.
+This function produces the final FluoroProbe Data Availability plot for the supplementary information.
 
 #### `interpolate_variable.R`
 
@@ -103,7 +105,7 @@ This function interpolates missing values for a list of water quality variables 
 
 #### `jackknife.R`
 
-This function performs a jackknife-style random forest analysis to quantify the importance of each predictor variable (%IncMSE) for a response variable, separately for each year and pooled across all years. It tunes the RF parameters per year, runs leave-one-out models to estimate robustness, and then summarizes the results as mean ± SD %IncMSE, which it visualizes as a heatmap with variables on the y-axis and years on the x-axis. The output also includes numeric summaries, full jackknife distributions, overall variable rankings, and metadata about the models.
+This function performs a jackknife-style random forest analysis to quantify the importance of each predictor variable (%IncMSE) for a response variable, both separately for each year and pooled across all years. It tunes the random forest parameters per year, runs leave-one-out models to estimate robustness, and then summarizes the results as mean ± SD %IncMSE, which it visualizes as a heatmap with variables on the y-axis and years on the x-axis. The output also includes numeric summaries, full jackknife distributions, overall variable rankings, and metadata about the models.
 
 #### `new_var_importance_shap_plots.R`
 
@@ -111,8 +113,8 @@ This function computes and visualizes variables importance (%IncMSE) and SHAP va
 
 #### `plot_shap_vs_value_loop.R`
 
-For each variable in vars_to_plot, create a scatter of SHAP values vs predictor values colored by z-scaled predictor values, save individual plots, and optionally create a multi-panel figure.
+For each variable in vars_to_plot, this function creates a scatterplot of SHAP values vs predictor values colored by z-scaled predictor values, saves individual plots, and optionally creates a multi-panel figure.
 
 #### `weekly_sum_variables.R`
 
-Summarizes one or more water-quality variables by week (Year + Week) from a depth profile dataset, returning max/min values, depths of extremes, and values at the DCM (Deep Chlorophyll Maximum).
+This script summarizes one or more water-quality variables by week (Year + Week) from a depth profile dataset, returns max/min values, depths of extremes, and values at the DCM (Deep Chlorophyll Maximum).
