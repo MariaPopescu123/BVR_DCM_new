@@ -2,6 +2,24 @@
 
 #This script compiles Water level for Beaverdam using sensor data
 #and historical observation records
+#
+# Inputs:
+# - wtrlvl and BVRplatform objects loaded in 01_DataDownload.R.
+#
+# Outputs:
+# - In-memory data frames: water_level, weekly_water_level.
+# - CSVs: CSVs/water_level.csv and CSVs/weekly_water_level.csv.
+#
+# Dependencies:
+# - Run after 01_DataDownload.R in the same R session.
+
+required_objects <- c("wtrlvl", "BVRplatform")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 01_water_level.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R first.")
+}
 
 #list of DOY for interpolation purpose
 DOY_list <- 32:334  # DOYs from February 1 to November 30

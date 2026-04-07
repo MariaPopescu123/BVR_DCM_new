@@ -2,6 +2,15 @@
 # 1) creates labels for ML figures
 # 2) makes correlation matrix
 # 3) summarizes statistics for Table S2 and Table S3
+#
+# Inputs:
+# - CSVs/full_weekly_data.csv (created by 09_join_all_frames.R)
+# - variable_labels object (created in 01_DataDownload.R)
+# Output figures will be written to: Figs/correlations/
+
+if (!exists("variable_labels", inherits = TRUE)) {
+  stop("variable_labels is missing. Run 01_DataDownload.R before 10_Choosing_variables_correlation_matrix.R.")
+}
 
 
 full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")

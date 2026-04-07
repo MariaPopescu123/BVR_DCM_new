@@ -1,6 +1,25 @@
-#EDI met data goes from mid 2015 - 2024
-#NLDAS from Heather Wander goes until 2021
-#this script down scales the NLDAS data and joins it to the EDI met data
+#EDI met data goes from mid 2015 - 2024, so need NLDAS met data to fill in the early 2015 data for the machine learning analysis.
+#this script downscales the NLDAS data and joins it to the EDI met data
+#
+# Inputs:
+# - EDImetC (loaded in 01_DataDownload.R)
+# - Internet access to download NLDAS source CSV from GitHub.
+#
+# Outputs:
+# - In-memory data frame: full_met.
+# - CSV: CSVs/final_metdata.csv (and intermediate CSVs used for QA/QC).
+# - QA/QC figures in Figs/metdata/.
+#
+# Dependencies:
+# - Run after 01_DataDownload.R in the same session.
+
+required_objects <- c("EDImetC")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 08_NLDAS_downscaling.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R first.")
+}
 
 #1 bring in EDI met data and summarise it for weekly averages
 #2 bring in NLDAS met data and summarise it for weekly averages

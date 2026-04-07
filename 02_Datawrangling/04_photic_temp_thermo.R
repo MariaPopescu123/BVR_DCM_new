@@ -5,6 +5,30 @@
 # 2. temp_depths_interp (also used for schmidt stability and buoyancy frequency)
 # 3. thermocline
 # 4. final_photic_thermo for RF analysis
+#
+# Inputs:
+# - secchiframe, ysi_profiles, CTD, BVRplatform, bath (from 01_DataDownload.R)
+# - final_phytos (from 02_Phytos_dataframe.R)
+# - helper function find_depths() sourced by 01_DataDownload.R
+#
+# Outputs:
+# - In-memory data frame: temp_depths_interp.
+# - CSVs/final_photic_thermo.csv and supporting CSV/figure outputs.
+#
+# Dependencies:
+# - Run after 01_DataDownload.R and 02_Phytos_dataframe.R in the same session.
+
+required_objects <- c("secchiframe", "ysi_profiles", "CTD", "BVRplatform", "bath", "final_phytos")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 04_photic_temp_thermo.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R and 02_Phytos_dataframe.R first.")
+}
+
+if (!exists("find_depths", mode = "function", inherits = TRUE)) {
+  stop("Missing required function find_depths(). Re-run 01_DataDownload.R to source Functions/find_depths.R.")
+}
 
 library(ISOweek)
 

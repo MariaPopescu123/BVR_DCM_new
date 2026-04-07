@@ -9,6 +9,26 @@
 # 6. creates the final_phytos dataframe that will be used for RF analysis
 # 7. performs a Kruskal Wallis test for Figure S7
 # 8. calculates and plots phytoplankton statistics for Figure S6
+#
+# Inputs:
+# - phytos_df (loaded in 01_DataDownload.R)
+# - weekly_water_level (created in 01_water_level.R)
+#
+# Outputs:
+# - In-memory data frames used by downstream scripts: DCM_metrics_filtered, final_phytos.
+# - CSVs: CSVs/phytos.csv, CSVs/frame_weeks.csv, CSVs/final_phytos.csv.
+# - QA/QC and manuscript-support figures under Figs/.
+#
+# Dependencies:
+# - Run after 01_DataDownload.R and 01_water_level.R in the same session.
+
+required_objects <- c("phytos_df", "weekly_water_level")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 02_Phytos_dataframe.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R and 01_water_level.R first.")
+}
 
 # packages loaded in 01_DataDownload.R
 
@@ -84,6 +104,8 @@ comp <- ggplot(phyto_plot, aes(x = DateTime, y = Proportion, fill = Group)) +
     panel.grid.minor  = element_blank(),
     axis.text.x       = element_text(angle = 45, hjust = 1)
   )
+
+dir.create("Figs/Phytos_viz", recursive = TRUE, showWarnings = FALSE)
 
 ggsave("Figs/Phytos_viz/comp.png", comp, 
        width = 10, height = 10, dpi = 900)

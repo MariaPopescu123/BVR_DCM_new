@@ -4,6 +4,24 @@
 #1. Makes heatmaps for phytoplankton 2014-2024 (Figure 2)
 #2. Makes figures displaying the profiles for the day of maximum 
 # phytoplankton concentration of each year (Figure 3)
+#
+# Inputs:
+# - water_level (created in 01_water_level.R)
+# - DCM_metrics_filtered (created in 02_Phytos_dataframe.R)
+#
+# Outputs:
+# - Heatmap and profile figures under Figs/Phytos_viz/.
+#
+# Dependencies:
+# - Run after 01_water_level.R and 02_Phytos_dataframe.R in the same session.
+
+required_objects <- c("water_level", "DCM_metrics_filtered")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 03_Phytos_heatmaps_profiles.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_water_level.R and 02_Phytos_dataframe.R first.")
+}
 
 # packages loaded in 01_DataDownload.R
 
