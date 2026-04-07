@@ -1,6 +1,33 @@
 #RF and SHAP 
-#This script runs Random Forest and Machine Learning for the results. 
-#XXXX NEED TO EDIT TO ADD MORE CONTEXT. 
+#This script runs Random Forest + SHAP workflows for two response variables: DCM depth and DCM magnitude.
+# - DCM_depth (using weeks where max_conc > 20)
+# - max_conc (all available phytoplankton weeks)
+#
+# It creates:
+# - variable-importance and SHAP summary plots
+# - jackknife robustness heatmaps
+# - SHAP-vs-value interaction panels for manuscript + supplement
+#
+# Inputs expected in the workspace from prior scripts:
+# - full_weekly_data, variable_labels
+# - helper functions sourced in 01_DataDownload.R:
+#   var_importance_shap_plots(), jackknife_incMSE_heatmap(), plot_shap_vs_value_loop()
+
+required_objects <- c("full_weekly_data", "variable_labels")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for RF_and_SHAP.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R and 02_Datawrangling/09_join_all_frames.R first.")
+}
+
+required_functions <- c("var_importance_shap_plots", "jackknife_incMSE_heatmap", "plot_shap_vs_value_loop")
+missing_functions <- required_functions[!vapply(required_functions, exists, logical(1), mode = "function", inherits = TRUE)]
+if (length(missing_functions) > 0) {
+  stop("Missing required helper functions for RF_and_SHAP.R: ",
+       paste(missing_functions, collapse = ", "),
+       ". Re-run 01_DataDownload.R to source Functions/*.R.")
+}
 
 dirs <- c(
   "Figs/MachineLearning",
