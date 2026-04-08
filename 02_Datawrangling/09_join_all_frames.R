@@ -1,4 +1,34 @@
 #joining all the dataframes together from the data wrangling file
+#
+# Inputs:
+# - Weekly CSV outputs from previous wrangling steps (01-08), especially frame_weeks.csv
+#   created in 02_Phytos_dataframe.R.
+#
+# Outputs:
+# - In-memory data frame: full_weekly_data.
+# - CSV: CSVs/full_weekly_data.csv.
+#
+# Dependencies:
+# - Run after scripts 01-08 have finished successfully.
+
+required_csvs <- c(
+  "CSVs/frame_weeks.csv",
+  "CSVs/final_phytos.csv",
+  "CSVs/weekly_water_level.csv",
+  "CSVs/final_metals.csv",
+  "CSVs/final_photic_thermo.csv",
+  "CSVs/final_buoyancy.csv",
+  "CSVs/final_chem.csv",
+  "CSVs/final_schmidt.csv",
+  "CSVs/final_metdata.csv"
+)
+
+missing_csvs <- required_csvs[!file.exists(required_csvs)]
+if (length(missing_csvs) > 0) {
+  stop("Missing required CSV inputs for 09_join_all_frames.R: ",
+       paste(missing_csvs, collapse = ", "),
+       ". Run upstream scripts 01-08 first.")
+}
 
 #read in csvs
 frame_weeks <- read.csv("CSVs/frame_weeks.csv")

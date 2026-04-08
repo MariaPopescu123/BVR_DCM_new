@@ -5,6 +5,20 @@
 # 2. provides a diagnostic plot to visualize schmidt stability
 # 3. makes a dataframe (final_schmidt) that will be used in final analysis
 # 4. calculates statistics included in the paper
+#
+# Inputs expected in the workspace from prior scripts:
+# - bath (from 01_DataDownload.R)
+# - temp_depths_interp (from 04_photic_temp_thermo.R)
+# - weekly_water_level (from 01_water_level.R)
+# Output written: CSVs/final_schmidt.csv
+
+required_objects <- c("bath", "temp_depths_interp", "weekly_water_level")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 07_schmidt_stability.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R, 01_water_level.R, and 04_photic_temp_thermo.R first.")
+}
 
 
 #calculating schmidt stability 

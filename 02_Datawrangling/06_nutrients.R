@@ -3,8 +3,22 @@
 #This script:
 # 1. Cleans the chemistry data
 # 2. Interpolates and summarizes chemistry data for final data frame to be used in RF analysis
-# 3. Cleans the SFe data
+# 3. Cleans the SFe data (soluble iron)
 # 4. Interpolate and summarizes SFe (metals) data for final dataframe to be used in RF analysis
+#
+# Inputs expected in the workspace from prior scripts:
+# - chemistry, metalsdf (loaded in 01_DataDownload.R)
+# - final_phytos (created in 02_Phytos_dataframe.R)
+# - helper functions interpolate_variable(), weekly_sum_variables(), data_availability()
+# Outputs written: CSVs/final_chem.csv and CSVs/final_metals.csv
+
+required_objects <- c("chemistry", "metalsdf", "final_phytos")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 06_nutrients.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R and 02_Phytos_dataframe.R first.")
+}
 
 # 1. Clean chemistry ####
 chemistry_filtered <- chemistry |>

@@ -1,4 +1,24 @@
-#This file downloads all the necessary functions and datasets for this project
+#This file downloads all the necessary functions and datasets for this project.
+#
+# Inputs:
+# - Internet connection for EDI/GitHub downloads.
+# - Local Functions/*.R files in this repository.
+#
+# Outputs:
+# - Populates core in-memory objects used by downstream scripts.
+# - Writes source datasets to CSVs/.
+# - Defines variable_labels used by plotting/ML scripts.
+#
+# Dependencies:
+# - R package pacman plus all packages loaded by pacman::p_load().
+# - This script should be run first in a fresh R session.
+
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  stop("Package 'pacman' is required. Install with install.packages('pacman') and rerun 01_DataDownload.R.")
+}
+
+dir.create("CSVs", showWarnings = FALSE, recursive = TRUE)
+dir.create("Figs", showWarnings = FALSE, recursive = TRUE)
 
 # Downloading data and functions here
 
@@ -6,7 +26,7 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr,
                forecast, ggthemes, splines, readr, ggbeeswarm,
-               knitr, fastshap, here, ISOweek, ragg, scales, rlang)
+               knitr, fastshap, here, ISOweek, ragg, scales, rlang, randomForest)
 
 
 source("Functions/interpolate_variable.R")
@@ -20,6 +40,7 @@ source("Functions/find_depths.R")
 
 
 #### Loading Data  #### 
+#Note! This will take a while as some of these files are quite large.
 
 #Updated to include 2024
 #waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
@@ -27,7 +48,7 @@ source("Functions/find_depths.R")
 wtrlvl <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1")
 write.csv(wtrlvl, "CSVs/wtrlvl.csv", row.names = FALSE)
 
-#for past 2020 using pressure sensors
+#water level data for years post-2020 using pressure sensors
 BVRplatform <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
 write.csv(BVRplatform, "CSVs/BVRplatform.csv", row.names = FALSE)
 
@@ -49,7 +70,7 @@ write.csv(phytos_df, "CSVs/phytos_df.csv", row.names = FALSE)
 #updated 2025
 metalsdf <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
 write.csv(metalsdf, "CSVs/metalsdf.csv", row.names = FALSE)
-#removed flags for 68 as per Cece's advice
+#removed flags for 68, per the data creator (Cece Wood)'s recommendation
 
 #secchi data https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
@@ -131,7 +152,7 @@ variable_labels <- c(
 )
 
 #### Read in CSVs without re-downloading ####
-# Uncomment this section if you want to load data from saved CSVs
+# Run this section if you want to load data from saved CSVs
 # after having already downloaded and saved above
 # instead of re-downloading from EDI
 

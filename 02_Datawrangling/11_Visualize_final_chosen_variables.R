@@ -1,13 +1,27 @@
 #This script:
 # 1. Visualizes the variables going into the analysis
 # 2. Calculates statistics for the variables
+#
+# Inputs:
+# - full_weekly_data, final_metdata, final_photic_thermo, final_schmidt
+#   (created by upstream data-wrangling scripts)
+# - variable_labels (created in 01_DataDownload.R)
+# Output figure: Figs/all_variables_visualized.png
 
 # packages loaded in 01_DataDownload.R
 # variable_labels defined in 01_DataDownload.R
 
+required_objects <- c("full_weekly_data", "final_metdata", "final_photic_thermo", "final_schmidt", "variable_labels")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 11_Visualize_final_chosen_variables.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R and 01-10 in 02_Datawrangling first.")
+}
+
 ####compute statistics####
 
-# ---- helper: standard DOY_season + filtering ----
+# Helper: standard date parsing, seasonal filter, and shared week/year fields.
 prep_for_plot <- function(df, date_col = "Date") {
   df %>%
     mutate(
