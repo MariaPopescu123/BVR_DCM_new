@@ -3,7 +3,7 @@
 # 2. Calculates statistics for the variables
 #
 # Inputs:
-# - full_weekly_data, final_metdata, final_photic_thermo, final_schmidt
+# - full_data, final_metdata, final_photic_thermo, final_schmidt
 #   (created by upstream data-wrangling scripts)
 # - variable_labels (created in 01_DataDownload.R)
 # Output figure: Figs/all_variables_visualized.png
@@ -11,7 +11,7 @@
 # packages loaded in 01_DataDownload.R
 # variable_labels defined in 01_DataDownload.R
 
-required_objects <- c("full_weekly_data", "final_metdata", "final_photic_thermo", "final_schmidt", "variable_labels")
+required_objects <- c("full_data", "final_metdata", "final_photic_thermo", "final_schmidt", "variable_labels")
 missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
 if (length(missing_objects) > 0) {
   stop("Missing required objects for 11_Visualize_final_chosen_variables.R: ",
@@ -52,14 +52,9 @@ make_long <- function(df, vars) {
 }
 
 # ---- 1. Met variables ----
-met_vars <- c("Precip_Weekly", "AirTemp_Avg", "WindSpeed_Avg")
+met_vars <- c("precip_week_sum", "air_temp_week_avg", "wind_week_avg")
 
 met_long <- final_metdata %>%
-  rename(
-    AirTemp_Avg   = weekly_airtempavg,
-    WindSpeed_Avg = WindSpeed_Weekly_Average_m_s,
-    Precip_Weekly = precip_weekly
-  ) %>%
   prep_for_plot() %>%
   make_long(met_vars) %>%
   mutate(max_conc = NA_real_)
@@ -91,7 +86,7 @@ sampling_vars <- c(
   "depth_NO3NO2_ugL_max"
 )
 
-sampling_base <- full_weekly_data %>% prep_for_plot()
+sampling_base <- full_data %>% prep_for_plot()
 
 sampling_long <- sampling_base %>% make_long(sampling_vars)
 
@@ -163,9 +158,9 @@ row1 <- (
 
 row2 <- (
   R("Buoyancy Frequency at DCM (s⁻¹)", panel_letter = "e") +
-    R("Precipitation Weekly Sum (mm)", panel_letter = "f") +
-    R("Air Temperature Weekly Average (\u00b0C)", panel_letter = "g") +
-    R("Wind Speed Weekly Average (m/s)", panel_letter = "h")
+    R("Precipitation 7-day Sum (mm)", panel_letter = "f") +
+    R("Air Temperature 7-day Average (\u00b0C)", panel_letter = "g") +
+    R("Wind Speed 7-day Average (m/s)", panel_letter = "h")
 ) + plot_layout(ncol = 4)
 
 row3 <- (
@@ -236,11 +231,15 @@ stats_metals  <- read.csv("CSVs/final_metals.csv") %>%
 stats_schmidt <- read.csv("CSVs/final_schmidt.csv") %>%
   select(-any_of("Date"))
 
-stats_metdata <- read.csv("CSVs/final_metdata.csv") %>%
-  rename(
-    AirTemp_Avg   = weekly_airtempavg,
-    WindSpeed_Avg = WindSpeed_Weekly_Average_m_s,
-    Precip_Weekly = precip_weekly
+stats_metdata <- read.csv("CSVs/full_met.csv") %>%
+  mutate(Date = as.Date(Date),
+         Week = isoweek(Date)) %>%
+  group_by(Year, Week) %>%
+  summarise(
+    precip_week_sum   = sum(precip_daily, na.rm = TRUE),
+    air_temp_week_avg = mean(daily_airtempavg, na.rm = TRUE),
+    wind_week_avg     = mean(WindSpeed_daily_Average_m_s, na.rm = TRUE),
+    .groups = "drop"
   )
 
 stats_phytos  <- read.csv("CSVs/final_phytos.csv") %>%
@@ -412,9 +411,9 @@ yrow1 <- (
 
 yrow2 <- (
   Ry("N_at_DCM", panel_letter = "e") +
-  Ry("Precip_Weekly", panel_letter = "f") +
-  Ry("AirTemp_Avg", panel_letter = "g") +
-  Ry("WindSpeed_Avg", panel_letter = "h")
+  Ry("precip_week_sum", panel_letter = "f") +
+  Ry("air_temp_week_avg", panel_letter = "g") +
+  Ry("wind_week_avg", panel_letter = "h")
 ) + plot_layout(ncol = 4)
 
 yrow3 <- (

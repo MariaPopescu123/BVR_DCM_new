@@ -60,13 +60,15 @@ if (!dir.exists("Figs/Thermocline")) {
 
   #interpolate secchi to daily resolution
   secchi_interpolated <- DOY_year_ref %>%
-    mutate(Week = week(Date))|>
-    left_join(secchi_df, by = c("Year", "DOY")) %>%
-    filter(Year > 2013, DOY != 207) %>% #erroneous secchi observation
-    group_by(Year) %>%
+    mutate(
+      Date = as.Date(paste(Year, DOY), format = "%Y %j")
+    ) |>
+    left_join(secchi_df, by = c("Year", "DOY"), suffix = c("", "_secchi")) |>
+    filter(Year > 2013, DOY != 207) |>
+    group_by(Year) |>
     mutate(
       first_valid_DOY = min(DOY[!is.na(Secchi_m)], na.rm = TRUE),
-      last_valid_DOY = max(DOY[!is.na(Secchi_m)], na.rm = TRUE),
+      last_valid_DOY  = max(DOY[!is.na(Secchi_m)], na.rm = TRUE),
       Secchi_m = ifelse(
         DOY >= first_valid_DOY & DOY <= last_valid_DOY,
         na.approx(Secchi_m, x = DOY, na.rm = FALSE),
@@ -74,26 +76,18 @@ if (!dir.exists("Figs/Thermocline")) {
       )
     ) |>
     arrange(Year, DOY) |>
-    select(Year, Week, Secchi_m)|>
-    ungroup()|>
-    group_by(Year ,Week)|>
+    select(Date, Year, Secchi_m) |>
+    ungroup() |>
+    group_by(Date) |>
     summarise(Secchi_m = mean(Secchi_m, na.rm = TRUE))
 
   #K_d and photic zone from secchi (Kirk 1994)
   photic_zone_frame <- secchi_interpolated |>
     mutate(sec_K_d = 1.7/Secchi_m) |>
     mutate(PZ = 4.605 /sec_K_d)|>
-    group_by(Year, Week)|>
-    mutate(PZ = if_else(PZ > 9.0, 9.0, PZ))|> #cap at reservoir depth
-    filter(Year >2014, Year <2025)
+    group_by(Date)|>
+    filter(year(Date) >2014, year(Date) <2025)
 }
-
-photic_zone_frame$Date <- ISOweek2date(paste0(photic_zone_frame$Year, "-W", sprintf("%02d", photic_zone_frame$Week), "-1"))
-write.csv(photic_zone_frame, "CSVs/photic_zone_frame.csv", row.names = FALSE)
-
-ggplot(photic_zone_frame, aes(x = Date, y = PZ)) +
-  geom_line(aes(group = factor(year(Date)))) +
-  scale_y_reverse()
 
 #### Temperature data: choosing instruments by availability ####
 
@@ -167,20 +161,20 @@ data_availability(CTDfiltered, variables)
 #Temp from sensorstring: 2021
 
 CTDtemp<- CTDfiltered|>
-  mutate(Year = year(Date), Week = week(Date))|>
+  mutate(Year = year(Date))|>
   filter(Year %in% c(2015, 2016, 2019, 2022, 2023, 2024))|>
-  select(Date, Year, Week, Temp_C, Depth_m)
+  select(Date, Year, Temp_C, Depth_m)
 
 variables<- c("Temp_C")
 data_availability(CTDtemp, variables)
 
 ysitemp<- ysi%>%
-  mutate(Year = year(Date), Week = week(Date))|>
+  mutate(Year = year(Date))|>
   filter(Year %in% c(2017, 2018, 2020))|>
-  select(Date, Year, Week, Temp_C, Depth_m)
+  select(Date, Year, Temp_C, Depth_m)
 data_availability(ysitemp, variables)
 
-temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Depth_m", "Week"))|>
+temp_depths_coalesced <- full_join(ysitemp, CTDtemp, by = c("Date", "Year", "Depth_m"))|>
   group_by(Date)|>
   mutate(Temp_C = coalesce(Temp_C.x, Temp_C.y))|>
   ungroup()|>
@@ -194,10 +188,9 @@ data_availability(temp_depths_coalesced, variables)
 ysitemp2019_clean <- ysi |>
   mutate(Date = as_date(Date),
          Year = year(Date),
-         Week = week(Date),
          DOY = yday(Date)) |>
   filter(Year == 2019, DOY < 170) |>
-  select(Date, Year, Week, Depth_m, Temp_C)
+  select(Date, Year, Depth_m, Temp_C)
 
 temp_depths_coalesced <- bind_rows(temp_depths_coalesced, ysitemp2019_clean) |>
   arrange(Date, Depth_m)
@@ -219,13 +212,10 @@ bvrdatasensorstring2 <- bvrdatasensorstring |>
          Depth_m = rounded_depth,
          Year = year(DateTime),
          Date = as.Date(DateTime),
-         Week = week(Date),
          mins_from_noon = abs(as.numeric(difftime(DateTime,
                                                   as.POSIXct(paste(Date, "12:00:00"), tz = tz(DateTime)),
                                                   units = "mins")))) |>
-  group_by(Year, Week) |>
-  filter(Date == min(Date)) |>
-  group_by(Week, Date) |>
+  group_by(Date) |>
   filter(mins_from_noon == min(mins_from_noon)) |>
   ungroup() |>
   select(Date, DateTime, Depth_m, Temp_C)
@@ -302,9 +292,12 @@ temp_depths_cleaned2 <- cleaned|>
 variables <- c("Temp_C")
 temp_depths_interp <- interpolate_variable(temp_depths_cleaned2, variables)
 
-#recheck after interpolation
+#recheck after interpolation. temp_depths_interp is now daily, so restrict the
+#diagnostic facets to Dates with an actual cast.
+cast_dates <- temp_depths_cleaned2 |> distinct(Date) |> pull(Date)
+
 for (yr in years) {
-  test <- temp_depths_interp |> filter(year(Date) == yr)
+  test <- temp_depths_interp |> filter(year(Date) == yr, Date %in% cast_dates)
   if (nrow(test) == 0) next
 
   plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
@@ -419,10 +412,7 @@ just_thermocline <- temp_depths_interp |>
     tibble(thermocline_depth = thermocline_depth, method = method)
   }) |>
   ungroup() |>
-  mutate(
-    Week = week(Date),
-    Year = year(Date)
-  )
+  mutate(Year = year(Date))
 
 #####diagnostic: thermocline overlaid on profiles####
 thermocline_and_depth_profiles <- temp_depths_interp|>
@@ -433,7 +423,8 @@ thermocline_and_depth_profiles <- temp_depths_interp|>
   mutate(year = year(Date))
 
 for (yr in years) {
-  test <- thermocline_and_depth_profiles |> filter(year(Date) == yr)
+  test <- thermocline_and_depth_profiles |>
+    filter(year(Date) == yr, Date %in% cast_dates)
   if (nrow(test) == 0) next
 
   plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
@@ -455,35 +446,49 @@ for (yr in years) {
          plot = plot_casts, width = 12, height = 10, dpi = 300)
 }
 
-#weekly average for analysis (may-october window only)
+#Daily average for analysis (may-october window only)
 just_thermocline <- just_thermocline|>
-  group_by(Week, Year)|>
+  group_by(Date)|>
   summarise(thermocline_depth = mean(thermocline_depth, na.rm = TRUE))
 
 #### Surface temp and temp at DCM ####
 surface_temp <- temp_depths_interp |>
   filter(Depth_m == 0.5) |>
-  mutate(Week = week(Date), Year = year(Date)) |>
-  group_by(Week, Year) |>
+  group_by(Date) |>
   summarise(surface_temp = mean(Temp_C, na.rm = TRUE), .groups = "drop")
 
+#temp_depths_interp is daily, so each phyto Date matches exactly. Pick the
+#interpolated depth closest to that Date's DCM_depth.
 temp_at_DCM <- temp_depths_interp |>
-  mutate(Week = week(Date), Year = year(Date)) |>
-  left_join(final_phytos |> select(Year, Week, DCM_depth), by = c("Week", "Year")) |>
+  inner_join(final_phytos |> select(Date, DCM_depth), by = "Date") |>
   filter(!is.na(DCM_depth)) |>
   group_by(Date) |>
-  mutate(depth_diff = abs(Depth_m - DCM_depth)) |>
-  filter(depth_diff == min(depth_diff)) |>
+  slice_min(abs(Depth_m - DCM_depth), n = 1, with_ties = FALSE) |>
   ungroup() |>
-  group_by(Week, Year) |>
-  summarise(temp_at_DCM = mean(Temp_C, na.rm = TRUE), .groups = "drop")
+  select(Date, temp_at_DCM = Temp_C)
 
-final_photic_thermo <- photic_zone_frame|>
-  left_join(just_thermocline, by = c("Week", "Year"))|>
-  left_join(weekly_water_level, by = c("Week", "Year"))|>
-  left_join(surface_temp, by = c("Week", "Year"))|>
-  left_join(temp_at_DCM, by = c("Week", "Year"))|>
-  mutate(PZ_prop = PZ/WaterLevel_m)|>
-  select(-WaterLevel_m)
+write.csv(temp_at_DCM, "CSVs/temp_at_DCM.csv", row.names = FALSE)
+
+#water_level has 130 depth-bin rows per Date with the same WaterLevel_m;
+#collapse to one row per Date before joining.
+water_level_daily <- water_level |> distinct(Date, WaterLevel_m)
+
+final_photic_thermo <- photic_zone_frame |>
+  ungroup() |>
+  full_join(just_thermocline,  by = "Date") |>
+  full_join(water_level_daily, by = "Date") |>
+  full_join(surface_temp,      by = "Date") |>
+  full_join(temp_at_DCM,       by = "Date") |>
+  mutate(
+    PZ      = pmin(PZ, WaterLevel_m),
+    PZ_prop = PZ / WaterLevel_m
+  ) |>
+  select(-Secchi_m, -sec_K_d) |>
+  filter(if_any(-Date, ~ !is.na(.x)))
+
+ggplot(final_photic_thermo, aes(x = Date)) +
+  geom_line(aes(y = WaterLevel_m), color = "blue") +
+  geom_line(aes(y = PZ), color = "red")
 
 write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
+

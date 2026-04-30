@@ -88,23 +88,21 @@ BVRplatform2_interpolated <- DOY_year_ref |>
 start_date <- as.Date("2015-01-01")
 end_date <- as.Date("2024-12-31")
 
-weekly_dates <- data.frame(
-  Date_fake = seq.Date(from = start_date, to = end_date, by = "week")
+daily_dates <- data.frame(
+  Date_fake = seq.Date(from = start_date, to = end_date, by = "day")
 ) %>%
-  mutate(Year = year(Date_fake),
-         Week = week(Date_fake))|>
+  mutate(Year = year(Date_fake))|>
   mutate(Depth_m = NA)
 
 Depth_fake = seq(0, 13, by = 0.1)
 
 # Expand grid to get each date with each depth
-expanded_dates <- expand_grid(Date_fake = weekly_dates$Date_fake, Depth_m = Depth_fake)
+expanded_dates <- expand_grid(Date_fake = daily_dates$Date_fake, Depth_m = Depth_fake)
 
-# Add year and week info to the expanded data
+# Add year info to the expanded data
 expanded_dates <- expanded_dates %>%
   mutate(Year = year(Date_fake),
-         Week = week(Date_fake),
-         DOY = yday(Date_fake), 
+         DOY = yday(Date_fake),
          Date = Date_fake)|>
   select(-Date_fake)
 
@@ -119,22 +117,15 @@ water_levelscoalesced<- water_levelsjoined|>
   group_by(Year, DOY)|>
   summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop")
 
-#final data frames for analysis: water_level and weekly_water_level
-#this has all the depths and all the days so I can still use this for depth profile 
+#final data frame for analysis: water_level
+#this has all the depths and all the days so I can still use this for depth profile
 #calculations later
 water_level <- expanded_dates|>
   left_join(water_levelscoalesced, by = c("Year", "DOY"))|>
   filter(!is.na(WaterLevel_m))
 
-#this is just weekly water level
-weekly_water_level <- water_level |> 
-  group_by(Year, Week) |> 
-  slice(1) |> 
-  ungroup()|>
-  select(Year, Week, WaterLevel_m)
-
 #not used in manuscript, just used for diagnostics
-wtrlvl_by_year <- ggplot(water_level, aes(x = Week, y = WaterLevel_m, color = factor(Year))) +
+wtrlvl_by_year <- ggplot(water_levelscoalesced, aes(x = DOY, y = WaterLevel_m, color = factor(Year))) +
   geom_line(size = 1) +  
   labs(
     title = "Water Level 2015-2024",
@@ -158,14 +149,14 @@ print(wtrlvl_by_year)
 
 #final csvs
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
-write.csv(weekly_water_level, "CSVs/weekly_water_level.csv", row.names = FALSE)
 
 
-#additional stats for paper 
+#additional stats for paper
 #water level ranges before and after 2022
-before2022 <- weekly_water_level %>%
+wl_by_date <- water_level |> distinct(Date, Year, WaterLevel_m)
+before2022 <- wl_by_date %>%
   filter(Year < 2022)
-after2022 <- weekly_water_level %>%
+after2022 <- wl_by_date %>%
   filter(Year >= 2022)
 before2022 %>%
   summarise(

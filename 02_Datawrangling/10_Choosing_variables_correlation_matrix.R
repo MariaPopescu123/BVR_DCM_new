@@ -4,7 +4,7 @@
 # 3) summarizes statistics for Table S2 and Table S3
 #
 # Inputs:
-# - CSVs/full_weekly_data.csv (created by 09_join_all_frames.R)
+# - CSVs/full_data.csv (created by 09_join_all_frames.R)
 # - variable_labels object (created in 01_DataDownload.R)
 # Output figures will be written to: Figs/correlations/
 
@@ -13,7 +13,7 @@ if (!exists("variable_labels", inherits = TRUE)) {
 }
 
 
-full_weekly_data <- read.csv("CSVs/full_weekly_data.csv")
+full_data <- read.csv("CSVs/full_data.csv")
 
 if (!dir.exists("Figs/correlations")){
   dir.create("Figs/correlations")
@@ -39,24 +39,23 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
     rename(Var1 = Var1, Var2 = Var2, Correlation = Freq)
   
   var_names <- colnames(cor_matrix)
-  
-  # Subset variable_labels to only variables in the data
+
+  # Build label vector aligned to data column order; fall back to raw name
+  # for any column missing from variable_labels (so it still appears).
   if(!is.null(variable_labels)) {
-    selected_labels <- variable_labels[names(variable_labels) %in% var_names]
-    
-    # Map raw names to pretty labels
-    cor_long <- cor_long %>%
-      mutate(
-        Var1 = factor(Var1, levels = names(selected_labels), labels = selected_labels),
-        Var2 = factor(Var2, levels = names(selected_labels), labels = selected_labels)
-      )
+    selected_labels <- variable_labels[var_names]
+    missing <- is.na(selected_labels)
+    selected_labels[missing] <- var_names[missing]
+    names(selected_labels) <- var_names
   } else {
-    cor_long <- cor_long %>%
-      mutate(
-        Var1 = factor(Var1, levels = var_names),
-        Var2 = factor(Var2, levels = var_names)
-      )
+    selected_labels <- setNames(var_names, var_names)
   }
+
+  cor_long <- cor_long %>%
+    mutate(
+      Var1 = factor(Var1, levels = names(selected_labels), labels = selected_labels),
+      Var2 = factor(Var2, levels = names(selected_labels), labels = selected_labels)
+    )
   
   nvars <- length(unique(cor_long$Var1))
   scale_factor <- sqrt(42 / nvars)
@@ -78,7 +77,7 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
     scale_size(range = c(2 * scale_factor, 12 * scale_factor), guide = "none") +
     theme_classic() +
     theme(
-      axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5, size = 12 * scale_factor),
+      axis.text.x = element_text(angle = 45, hjust = 0, vjust = 0, size = 12 * scale_factor),
       axis.text.y = element_text(size = 12 * scale_factor),
       axis.title.x = element_blank(),
       axis.title.y = element_blank(),
@@ -98,27 +97,25 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
     coord_fixed() +
     labs(title = title)
   
-  ggsave(file_name, plot = p, width = 20, height = 20, units = "in", dpi = 300, bg = "white")
+  ggsave(file_name, plot = p, width = 23, height = 20, units = "in", dpi = 300, bg = "white")
   return(list(plot = p, correlations = cor_long))
   
 }
 
 #looking at the remainder of the variables to choose which are redundant
 ####chosen variables####
-full_weekly_data <- full_weekly_data|>
+full_data <- full_data|>
   select(
     "Date", "WaterLevel_m", "DCM_depth", "max_conc",
-     "PZ", "thermocline_depth", "schmidt_stability",
+     "PZ","PZ_prop","thermocline_depth", "schmidt_stability",
     "surface_temp", "temp_at_DCM",
-    "PZ_prop", "N_at_DCM", "depth_SRP_ugL_max", "SRP_ugL_at_DCM",
+     "N_at_DCM", "depth_SRP_ugL_max", "SRP_ugL_at_DCM",
     "depth_NH4_ugL_max", "NH4_ugL_at_DCM", "depth_NO3NO2_ugL_max", "NO3NO2_ugL_at_DCM",
     "depth_SFe_mgL_max", "SFe_mgL_at_DCM",
-    "Precip_Weekly", "precip_lag1", "precip_lag2",
-    "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2",
-    "WindSpeed_Avg", "wind_lag1", "wind_lag2")
+     "precip_week_sum", "air_temp_week_avg", "wind_week_avg")
 
 check <- plot_correlation_matrix(
-  full_weekly_data,
+  full_data,
   "Figs/correlations/full_corr_Matrix.png",
   title = "Correlation Matrix Heatmap for Variable Selection", 
   variable_labels = variable_labels,
@@ -131,8 +128,8 @@ check <- plot_correlation_matrix(
 # which ones are most collinear and which ones are most correlated with DCM depth and DCM magnitude
 # adding air temperature to show collinearity between temp metrics 
 
-thermal_vars <- c("DCM_depth", "max_conc", "N_at_DCM", "schmidt_stability", "surface_temp", "temp_at_DCM", "AirTemp_Avg", "airtemp_lag1", "airtemp_lag2")
-thermal_cor <- cor(full_weekly_data[, thermal_vars], method = "spearman", use = "pairwise.complete.obs")
+thermal_vars <- c("DCM_depth", "max_conc", "N_at_DCM", "schmidt_stability", "surface_temp", "temp_at_DCM", "air_temp_week_avg")
+thermal_cor <- cor(full_data[, thermal_vars], method = "spearman", use = "pairwise.complete.obs")
 
 # All possible pairings of the 4 thermal/stability variables
 pairings <- list(
@@ -142,9 +139,7 @@ pairings <- list(
   c("temp_at_DCM", "schmidt_stability"),
   c("N_at_DCM", "surface_temp"),
   c("N_at_DCM", "schmidt_stability"),
-  c("AirTemp_Avg", "surface_temp"),
-  c("airtemp_lag1", "surface_temp"),
-  c("airtemp_lag2", "surface_temp")
+  c("air_temp_week_avg", "surface_temp")
 )
 
 pairing_table <- do.call(rbind, lapply(pairings, function(p) {
@@ -190,6 +185,7 @@ ggsave(
 )
 
 # For DCM depth: schmidt_stability will be used for temp metrics
-# surface temp is highly correlated with air temperature which is already being used in the model 
+# surface temp is highly correlated with air temperature which is already being used in the model
 # For DCM magnitude: N_at_DCM + schmidt stability are most correlated w DCM magnitude and
 # have low collinearity
+

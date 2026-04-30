@@ -12,7 +12,7 @@
 #
 # Inputs:
 # - phytos_df (loaded in 01_DataDownload.R)
-# - weekly_water_level (created in 01_water_level.R)
+# - water_level (created in 01_water_level.R)
 #
 # Outputs:
 # - In-memory data frames used by downstream scripts: DCM_metrics_filtered, final_phytos.
@@ -22,7 +22,7 @@
 # Dependencies:
 # - Run after 01_DataDownload.R and 01_water_level.R in the same session.
 
-required_objects <- c("phytos_df", "weekly_water_level")
+required_objects <- c("phytos_df", "water_level")
 missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
 if (length(missing_objects) > 0) {
   stop("Missing required objects for 02_Phytos_dataframe.R: ",
@@ -34,11 +34,10 @@ if (length(missing_objects) > 0) {
 
 #prepping phyto dataframe
 
-phytos <- phytos_df %>% 
+phytos <- phytos_df %>%
   filter(Reservoir == "BVR", Site == 50)%>%
-  mutate(Date  = as_date(DateTime)) |> 
+  mutate(Date  = as_date(DateTime)) |>
   filter((hour(DateTime) >= 8), (hour(DateTime) <= 18))|>
-  mutate(Week = week(Date))|>
   mutate(Year = year(Date))|>
   mutate(DOY = yday(Date))|>
   filter(year(Date) >2014, year(Date) <2025)
@@ -122,7 +121,7 @@ plot_dat <- phytos %>%
     Year = year(Date),
     DayOfYear = yday(Date)
   ) %>%
-  select(Date, Year, Week, DayOfYear, TotalConc_ugL, Depth_m)
+  select(Date, Year, DayOfYear, TotalConc_ugL, Depth_m)
 
 # 2. For each Year, get the row with the max concentration
 max_totals_per_year <- plot_dat %>%
@@ -215,7 +214,6 @@ DCM_metrics <- phytos |>
     Reservoir,
     Site,
     Date,
-    Week,
     CastID,
     Depth_m,
     TotalConc_ugL
@@ -225,7 +223,7 @@ DCM_metrics <- phytos |>
     # MixedAlgae_ugL
   ) |>
   group_by(Reservoir, Date, Site) |>
-  mutate(FacetID = paste(CastID, Reservoir, Site, Date, "Week", Week, sep = " ")) |>
+  mutate(FacetID = paste(CastID, Reservoir, Site, Date, sep = " ")) |>
   ungroup()
 
 
@@ -303,7 +301,9 @@ for (var in pigment_vars) {
 }
 
 DCM_metrics_depth1 <- DCM_metrics_depth|>
-  left_join(weekly_water_level, by = c("Year", "Week"))
+  left_join(water_level, by = c("Year", "Date"), relationship = "many-to-many")|>
+  mutate(Depth_m = Depth_m.x)|>
+  select(-Depth_m.y)
 
 #qualify as DCM: peak must be below top 5% of water column,
 #and peak conc must be >= 1.5x the mean in the top 5%
@@ -547,7 +547,7 @@ mag_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
     limits = c(0, 380),
     breaks = c(20, 100, 200, 300, 380)
   ) +
-  ggtitle("B   Deep Chlorophyll Maximum (DCM) Peak Magnitude") +
+  ggtitle("B   Deep Chlorophyll Maximum (DCM) Magnitude") +
   scale_y_continuous(
     name = "Peak Chlorophyll (µg/L)",
     limits = c(0, 385)
@@ -582,13 +582,12 @@ ggsave(
   dpi = 600     # optional: high resolution
 )
 
-
-
 #6. Create the final_phytos dataframe that will be used for RF analysis####
 #frame that will be added to for RF analysis at the end
 #one measurement for each week that we have data available for 
+
 final_phytos <- final_DCM_metrics|>
-  group_by(Year,Week)|>
+  group_by(Year, Date)|>
   summarise(
     DCM_depth = mean(DCM_depth, na.rm = TRUE),
     max_conc = mean(max_conc, na.rm = TRUE),
@@ -596,10 +595,10 @@ final_phytos <- final_DCM_metrics|>
   )
 
 #everything else will be joined to this dataframe later
-frame_weeks <- final_phytos|>
-  distinct(Year, Week)
+frame_dates <- final_phytos|>
+  distinct(Year, Date)
 
-write.csv(frame_weeks, "CSVs/frame_weeks.csv", row.names = FALSE)
+write.csv(frame_dates, "CSVs/frame_dates.csv", row.names = FALSE)
 write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #metrics for each variable that needs to be calculated 
 

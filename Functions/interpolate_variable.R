@@ -1,29 +1,28 @@
-#Interpolates variables across depth and time (weekly).
+#Interpolates variables across depth and time on a daily grid.
 #Data should be QC'd and flags removed before calling.
+#
+#Output: one row per (Date, Depth_m) for every calendar day in
+#2014-01-01 .. 2024-12-31, with each variable interpolated first along
+#depth (within the cast on that Date) then along time (across days,
+#per Year and Depth_m, x = DOY).
 
 interpolate_variable <- function(data, variable_list) {
 
   start_date <- as.Date("2014-01-01")
-  end_date <- as.Date("2024-12-31")
-  
-  weekly_dates <- data.frame(
-    Date_fake = seq.Date(from = start_date, to = end_date, by = "week")
-  ) %>%
-    mutate(Year = year(Date_fake),
-           Week = week(Date_fake))|>
-    mutate(Depth_m = NA)
-  
-  Depth_fake = seq(0, 13, by = 0.1)
-  
-  expanded_dates <- expand_grid(Date_fake = weekly_dates$Date_fake, Depth_m = Depth_fake)
+  end_date   <- as.Date("2024-12-31")
 
-  expanded_dates <- expanded_dates %>%
-    mutate(Year = year(Date_fake),
-           Week = week(Date_fake),
-           DOY = yday(Date_fake), 
-           Date = Date_fake)|>
-    select(-Date_fake)
-  
+  Depth_fake <- seq(0, 13, by = 0.1)
+
+  expanded_dates <- expand_grid(
+    Date    = seq.Date(from = start_date, to = end_date, by = "day"),
+    Depth_m = Depth_fake
+  ) |>
+    mutate(
+      Year = year(Date),
+      Week = week(Date),
+      DOY  = yday(Date)
+    )
+
   data <- data %>%
     filter(Reservoir == "BVR", Site == 50) %>%
     { if (!"Date" %in% names(.)) mutate(., Date = as_date(DateTime)) else . } %>%
@@ -32,37 +31,31 @@ interpolate_variable <- function(data, variable_list) {
       Year = year(Date),
       DOY  = yday(Date)
     )
-  
+
   interpolated_results <- list()
 
   for (var in variable_list) {
-    var_daily_summarise <- data |>
+    #collapse duplicate (Date, Depth_m) measurements within the source data
+    var_daily <- data |>
       select(Depth_m, Year, Week, DOY, Date, all_of(var)) |>
       group_by(Year, DOY, Week, Date, Depth_m) |>
-      summarise(!!sym(var) := mean(.data[[var]], na.rm = TRUE), .groups = "drop") |>
-      ungroup()
-    
-    var_depth_rounded <- var_daily_summarise |>
-      group_by(Date) |>
-      mutate(Depth_m = round(Depth_m, digits = 1)) |>
-      ungroup() |>
-      group_by(Date, Depth_m) |>
-      summarise(!!sym(var) := mean(.data[[var]], na.rm = TRUE), .groups = "drop") |>
-      ungroup() |>
-      mutate(Year = year(Date),
-             Week = week(Date))
-    
-    var_weekly <- var_depth_rounded |>
-      group_by(Year, Week, Depth_m) |>
       summarise(!!sym(var) := mean(.data[[var]], na.rm = TRUE), .groups = "drop")
-    
+
+    var_depth_rounded <- var_daily |>
+      mutate(Depth_m = round(Depth_m, digits = 1)) |>
+      group_by(Date, Depth_m) |>
+      summarise(!!sym(var) := mean(.data[[var]], na.rm = TRUE), .groups = "drop")
+
     var_interpolated <- expanded_dates %>%
-      left_join(var_weekly, by = c("Depth_m", "Week", "Year")) %>%
-      
-      group_by(Year, Week) %>%
+      left_join(var_depth_rounded, by = c("Date", "Depth_m")) %>%
+
+      #depth-axis interpolation within each profile (per Date)
+      group_by(Date) %>%
       mutate(
-        first_valid_depth = ifelse(all(is.na(.data[[var]])), NA_real_, min(Depth_m[!is.na(.data[[var]])], na.rm = TRUE)),
-        last_valid_depth = ifelse(all(is.na(.data[[var]])), NA_real_, max(Depth_m[!is.na(.data[[var]])], na.rm = TRUE)),
+        first_valid_depth = ifelse(all(is.na(.data[[var]])), NA_real_,
+                                   min(Depth_m[!is.na(.data[[var]])], na.rm = TRUE)),
+        last_valid_depth  = ifelse(all(is.na(.data[[var]])), NA_real_,
+                                   max(Depth_m[!is.na(.data[[var]])], na.rm = TRUE)),
         Value_interp_depth = ifelse(
           Depth_m >= first_valid_depth & Depth_m <= last_valid_depth,
           zoo::na.approx(.data[[var]], x = Depth_m, na.rm = FALSE),
@@ -70,31 +63,32 @@ interpolate_variable <- function(data, variable_list) {
         )
       ) %>%
       ungroup() %>%
-      
-        #make sure 
+
+      #time-axis interpolation across days within each Year/Depth (x = DOY)
       group_by(Year, Depth_m) %>%
       mutate(
-        first_valid_Week = ifelse(all(is.na(Value_interp_depth)), NA_real_, min(Week[!is.na(Value_interp_depth)], na.rm = TRUE)), #setting the range where to interpolate
-        last_valid_Week = ifelse(all(is.na(Value_interp_depth)), NA_real_, max(Week[!is.na(Value_interp_depth)], na.rm = TRUE)),
-        Value_interp_Week = ifelse(
-          Week >= first_valid_Week & Week <= last_valid_Week,
-          zoo::na.approx(Value_interp_depth, x = Week, na.rm = FALSE),
+        first_valid_DOY = ifelse(all(is.na(Value_interp_depth)), NA_real_,
+                                 min(DOY[!is.na(Value_interp_depth)], na.rm = TRUE)),
+        last_valid_DOY  = ifelse(all(is.na(Value_interp_depth)), NA_real_,
+                                 max(DOY[!is.na(Value_interp_depth)], na.rm = TRUE)),
+        Value_interp_time = ifelse(
+          DOY >= first_valid_DOY & DOY <= last_valid_DOY,
+          zoo::na.approx(Value_interp_depth, x = DOY, na.rm = FALSE),
           NA_real_
         )
       ) %>%
       ungroup() %>%
-      
-      mutate(interp_var = coalesce(Value_interp_depth, Value_interp_Week)) %>%
-      
+
+      mutate(interp_var = coalesce(Value_interp_depth, Value_interp_time)) %>%
+
       select(-matches(var), -first_valid_depth, -last_valid_depth, -Value_interp_depth,
-             -first_valid_Week, -last_valid_Week, -Value_interp_Week) %>%
+             -first_valid_DOY, -last_valid_DOY, -Value_interp_time) %>%
       rename(!!sym(var) := interp_var)
-    
+
     interpolated_results[[var]] <- var_interpolated
   }
 
-  final_result <- plyr::join_all(interpolated_results, by = c("Week", "DOY", "Depth_m", "Year", "Date"))
+  final_result <- plyr::join_all(interpolated_results,
+                                 by = c("Week", "DOY", "Depth_m", "Year", "Date"))
   return(final_result)
-  
 }
-

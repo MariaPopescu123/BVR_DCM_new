@@ -9,10 +9,10 @@
 # Inputs expected in the workspace from prior scripts:
 # - bath (from 01_DataDownload.R)
 # - temp_depths_interp (from 04_photic_temp_thermo.R)
-# - weekly_water_level (from 01_water_level.R)
+# - water_level (from 01_water_level.R)
 # Output written: CSVs/final_schmidt.csv
 
-required_objects <- c("bath", "temp_depths_interp", "weekly_water_level")
+required_objects <- c("bath", "temp_depths_interp", "water_level")
 missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
 if (length(missing_objects) > 0) {
   stop("Missing required objects for 07_schmidt_stability.R: ",
@@ -28,10 +28,8 @@ BVRbath <- bath|>
 
 
 # Prepare data frame
-weekly_temp_profiles <- temp_depths_interp |>
+daily_temp_profiles <- temp_depths_interp |>
   mutate(
-    Week = week(Date),
-    Day = day(Date),
     Year = year(Date),
     RoundedDepth = round(Depth_m)  # Round to the nearest meter
   ) |>
@@ -39,7 +37,7 @@ weekly_temp_profiles <- temp_depths_interp |>
   group_by(Date, RoundedDepth) |>
   slice_min(abs(Depth_m - RoundedDepth), with_ties = FALSE) |>  # Select depth closest to that rounded meter
   ungroup()|>
-  left_join(weekly_water_level, by = c("Week", "Year"), relationship = "many-to-many")|>
+  left_join(water_level |> distinct(Date, WaterLevel_m), by = "Date")|>
   mutate(Date = as.Date(Date))
 
 
@@ -49,9 +47,9 @@ weekly_temp_profiles <- temp_depths_interp |>
 # Then make a column called BathAdj = Roundeddepth + BathDiff
 # Then left join BVRbath to BathAdj
 
-new_bath <- weekly_temp_profiles|>
+new_bath <- daily_temp_profiles|>
   group_by(Date)|>
-  mutate(BathDiff = 14 - max(RoundedDepth), 
+  mutate(BathDiff = 14 - max(RoundedDepth),
          BathAdj = RoundedDepth + BathDiff)|>
   ungroup()|>
   left_join(BVRbath, by = c("BathAdj" = "Depth_m"))|>
@@ -67,18 +65,17 @@ schmidt_frame <- new_bath|>
   filter(!is.na(Temp_C))|>
   mutate(schmidt_stability = schmidt.stability(Temp_C, Depth_m, SA_m2, Depth_m))|>
   ungroup()|>
-  group_by(Year, Week)|>
-  summarise(schmidt_stability = mean(schmidt_stability))|>
-  ungroup()
+  group_by(Date, Year)|>
+  summarise(schmidt_stability = mean(schmidt_stability), .groups = "drop")
 
 final_schmidt <- schmidt_frame
 
 #diagnostic plot to visualize schmidt stability
-schmidt_plot <- ggplot(final_schmidt, aes(x = Week, y = schmidt_stability, color = factor(Year), group = Year)) +
+schmidt_plot <- ggplot(final_schmidt, aes(x = Date, y = schmidt_stability, color = factor(Year), group = Year)) +
   geom_point() +
-  geom_line() +  
+  geom_line() +
   labs(
-    x = "Week of Year",
+    x = "Date",
     y = "Schmidt Stability (J/m²)",
     color = "Year"
   ) +

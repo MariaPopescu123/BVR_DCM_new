@@ -27,14 +27,13 @@ if (length(missing_objects) > 0) {
 
 #1. Heatmap for Figure 2 ####
 
-# 1) Make water_level unique per Week-Year and keep only WL column
-wl_weekly <- water_level %>%
-  group_by(Year, Week) %>%
-  summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop")
+# 1) Make water_level unique per Date and keep only WL column
+wl_daily <- water_level %>%
+  distinct(Date, WaterLevel_m)
 
-# 2) Join water level, and keep phytoplankton concentration as NA if below reservoir depth (for when the FP hits the bottom of the reservoir) 
+# 2) Join water level, and keep phytoplankton concentration as NA if below reservoir depth (for when the FP hits the bottom of the reservoir)
 phytos_heatmaps <- DCM_metrics_filtered %>%
-  left_join(wl_weekly, by = c("Week", "Year")) %>%
+  left_join(wl_daily, by = "Date") %>%
   mutate(
     TotalConc_ugL = ifelse(
       Depth_m > WaterLevel_m, NA_real_, TotalConc_ugL
@@ -191,11 +190,11 @@ final_with_legend <-
 ggsave(
   filename = "Figs/Phytos_viz/final_phytos_heatmap_plot.png",
   plot = final_with_legend,
-  width = 20, height = 7, dpi = 300, bg = "white",
+  width = 20, height = 7, dpi = 900, bg = "white",
   device = ragg::agg_png   
 )
 
-#2. Profile Casts for SI XXX ####
+#2. Profile Casts for Figure 3####
 #this produces a 10-panel figure- each figure shows the profile 
 #for the day when maximum phytoplankton concentration
 #occurred each year
@@ -244,7 +243,8 @@ plot_dat <- phytos %>%
     cols = TotalConc_ugL,
     names_to = "var",
     values_to = "ugL"
-  )
+  ) %>%
+  mutate(var = recode(var, "TotalConc_ugL" = "Total Phytoplankton"))
 
 # Now remove "BVR" from facet labels
 plot_dat <- plot_dat %>%
@@ -259,43 +259,42 @@ plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
     nrow = 2,
     ncol = 5
   ) +
-  xlab("Micrograms per liter") +
+  xlab(expression("Phytoplankton magnitude (" * mu * "g/L)")) +
   ylab("Depth (m)") +
   scale_color_manual(
-    name = "Variable",
+    name = NULL,
     values = c(
-      "TotalConc_ugL" = "black"
+      "Total Phytoplankton" = "black"
     )
   ) +
   scale_size_manual(
     values = c(
-      "TotalConc_ugL" = 0.8
+      "Total Phytoplankton" = 0.8
     ),
     guide = "none"
   ) +
-  theme_minimal(base_size = 16) +  # bigger text
+  theme_minimal(base_size = 16) +
   theme(
     axis.text = element_text(size = 14),
     axis.title = element_text(size = 16, face = "bold"),
-    strip.text = element_text(size = 15, face = "bold"),  # facet labels
+    strip.text = element_text(size = 15, face = "bold"),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 15, face = "bold"),
     panel.grid.major = element_line(color = "grey80", linewidth = .2),
-    panel.grid.minor = element_line(color = "grey90", linewidth = .1), 
+    panel.grid.minor = element_line(color = "grey90", linewidth = .1),
     panel.spacing = unit(1, "cm")
   )
-
 
 plot_casts
 
 ggsave("Figs/Phytos_viz/FP_casts_2025_just_totals.png",
        plot = plot_casts,
        width = 13, height = 7, units = "in",
-       dpi = 600)  # high-res
+       dpi = 900)  # high-res
 
 
 
-#3. Profile Casts with all algal groups for SI ####
+#3. Profile Casts with all algal groups for SI Figure 3####
 # Reuses the same max-cast selection from section 2 but includes all pigment groups
 
 plot_dat_all <- phytos %>%
@@ -315,7 +314,14 @@ plot_dat_all <- phytos %>%
     names_to = "var",
     values_to = "ugL"
   ) %>%
-  mutate(FacetID = gsub("^BVR\\s+", "", FacetID))
+  mutate(FacetID = gsub("^BVR\\s+", "", FacetID)) %>%
+  mutate(var = recode(var,
+    "GreenAlgae_ugL"  = "Green Algae",
+    "Bluegreens_ugL"  = "Cyanobacteria",
+    "BrownAlgae_ugL"  = "Brown Algae",
+    "MixedAlgae_ugL"  = "Mixed Algae",
+    "TotalConc_ugL"   = "Total Phytoplankton"
+  ))
 
 plot_casts_all <- ggplot(plot_dat_all, aes(x = ugL, y = Depth_m, group = var)) +
   geom_path(aes(color = var, size = var)) +
@@ -325,25 +331,25 @@ plot_casts_all <- ggplot(plot_dat_all, aes(x = ugL, y = Depth_m, group = var)) +
     nrow = 2,
     ncol = 5
   ) +
-  xlab("Micrograms per liter") +
+  xlab(expression("Phytoplankton magnitude (" * mu * "g/L)")) +
   ylab("Depth (m)") +
   scale_color_manual(
-    name = "Variable",
+    name = "Spectral Group",
     values = c(
-      "GreenAlgae_ugL" = "green3",
-      "Bluegreens_ugL" = "blue",
-      "BrownAlgae_ugL" = "orange",
-      "MixedAlgae_ugL" = "red",
-      "TotalConc_ugL" = "black"
+      "Green Algae"        = "green3",
+      "Cyanobacteria"      = "blue",
+      "Brown Algae"        = "orange",
+      "Mixed Algae"        = "red",
+      "Total Phytoplankton" = "black"
     )
   ) +
   scale_size_manual(
     values = c(
-      "GreenAlgae_ugL" = 0.5,
-      "Bluegreens_ugL" = 0.5,
-      "BrownAlgae_ugL" = 0.5,
-      "MixedAlgae_ugL" = 0.5,
-      "TotalConc_ugL" = 0.8
+      "Green Algae"        = 0.5,
+      "Cyanobacteria"      = 0.5,
+      "Brown Algae"        = 0.5,
+      "Mixed Algae"        = 0.5,
+      "Total Phytoplankton" = 0.8
     ),
     guide = "none"
   ) +
@@ -364,4 +370,4 @@ plot_casts_all
 ggsave("Figs/Phytos_viz/FP_casts_2025.png",
        plot = plot_casts_all,
        width = 13, height = 7, units = "in",
-       dpi = 300)
+       dpi = 900)

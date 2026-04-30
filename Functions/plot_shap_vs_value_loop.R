@@ -82,6 +82,17 @@ plot_shap_vs_value_loop <- function(shap_df,
       )
     
     plot_list[[v]] <- p
+
+    # Save individual variable plot
+    indiv_file <- paste0(prefix, "_", safe_name(v), ".png")
+    ggplot2::ggsave(
+      filename = file.path(out_dir, indiv_file),
+      plot = p,
+      width = width,
+      height = height,
+      dpi = dpi,
+      bg = "white"
+    )
   }
   
   panel_plot <- NULL

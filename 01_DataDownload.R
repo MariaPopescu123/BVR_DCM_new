@@ -31,7 +31,7 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
 
 source("Functions/interpolate_variable.R")
 source("Functions/data_availability_function.R")
-source("Functions/weekly_sum_variables.R")
+source("Functions/date_sum_variables.R")
 source("Functions/new_var_importance_shap_plots.R") #function for running RandomForest and visualizing variable importance and shap values
 source("Functions/jackknife.R")
 source("Functions/final_data_availability_plot.R")
@@ -140,15 +140,9 @@ variable_labels <- c(
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH\u2084\u207a (m)",
   depth_NO3NO2_ugL_max = "Depth of Max NO\u2083\u207b/NO\u2082\u207b (m)",
-  Precip_Weekly  = "Precipitation Weekly Sum (mm)",
-  precip_lag1    = "Precipitation Weekly Sum mm (Lag 1 wk)",
-  precip_lag2    = "Precipitation Weekly Sum mm (Lag 2 wk)",
-  AirTemp_Avg    = "Air Temperature Weekly Average (\u00b0C)",
-  airtemp_lag1   = "Air Temperature Weekly Average \u00b0C (Lag 1 wk)",
-  airtemp_lag2   = "Air Temperature Weekly Average \u00b0C (Lag 2 wk)",
-  WindSpeed_Avg  = "Wind Speed Weekly Average (m/s)",
-  wind_lag1      = "Wind Speed Weekly Average m/s (Lag 1 wk)",
-  wind_lag2      = "Wind Speed Weekly Average m/s (Lag 2 wk)"
+  precip_week_sum   = "Precipitation 7-day Sum (mm)",
+  air_temp_week_avg = "Air Temperature 7-day Average (\u00b0C)",
+  wind_week_avg     = "Wind Speed 7-day Average (m/s)"
 )
 
 #### Read in CSVs without re-downloading ####
