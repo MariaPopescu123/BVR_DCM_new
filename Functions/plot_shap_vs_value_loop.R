@@ -6,7 +6,7 @@ plot_shap_vs_value_loop <- function(shap_df,
                                     var_labels = NULL,
                                     width = 6,
                                     height = 4,
-                                    dpi = 900,
+                                    dpi = 1200,
                                     panel_ncol = 3,
                                     panel_width = NULL,
                                     panel_height = NULL) {
@@ -51,12 +51,12 @@ plot_shap_vs_value_loop <- function(shap_df,
     }
     
     panel_idx <- panel_idx + 1
-    panel_letter <- LETTERS[panel_idx]
-    
+    panel_letter <- letters[panel_idx]
+
     v_pretty <- pretty_label(v)
 
     p <- ggplot2::ggplot(df_v, ggplot2::aes(x = value_num, y = shap, color = value_z)) +
-      ggplot2::geom_point(alpha = 0.75, size = 1.5) +
+      ggplot2::geom_point(alpha = 0.75, size = 1.2) +
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
       ggplot2::scale_color_viridis_c(
         option = "H",
@@ -70,15 +70,17 @@ plot_shap_vs_value_loop <- function(shap_df,
         y = "SHAP value",
         color = "z-scaled\nvalue"
       ) +
-      ggplot2::theme_classic(base_size = 13) +
+      ggplot2::theme_classic(base_size = 10) +
       ggplot2::theme(
-        plot.title = ggplot2::element_text(face = "bold", size = 13),
-        plot.tag = ggplot2::element_text(size = 16, face = "bold"),
+        plot.title = ggplot2::element_text(face = "bold", size = 9),
+        plot.tag = ggplot2::element_text(size = 10, face = "bold"),
         plot.tag.position = c(0.02, 0.98),
+        axis.text  = ggplot2::element_text(size = 8),
+        axis.title = ggplot2::element_text(size = 9),
         legend.position = "right",
-        legend.title = ggplot2::element_text(size = 12),
-        legend.text  = ggplot2::element_text(size = 11),
-        legend.key.height = ggplot2::unit(1.2, "cm")
+        legend.title = ggplot2::element_text(size = 8),
+        legend.text  = ggplot2::element_text(size = 8),
+        legend.key.height = ggplot2::unit(0.6, "cm")
       )
     
     plot_list[[v]] <- p
@@ -120,7 +122,7 @@ plot_shap_vs_value_loop <- function(shap_df,
       patchwork::plot_annotation(
         title = analysis_label,
         theme = ggplot2::theme(
-          plot.title = ggplot2::element_text(size = 16, face = "bold", hjust = 0.5)
+          plot.title = ggplot2::element_text(size = 10, face = "bold", hjust = 0.5)
         )
       )
     

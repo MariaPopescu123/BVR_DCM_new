@@ -1,17 +1,22 @@
 #This script:
-# 1. Visualizes the variables going into the analysis
+# 1. Visualizes the variables going into the analysis with seasonal overlap for Figure S2
 # 2. Calculates statistics for the variables
+# 3. Visualizes the statistics for the variables for Figure S1
+
 #
 # Inputs:
-# - full_data, final_metdata, final_photic_thermo, final_schmidt
+# - full_met, final_photic_thermo, therm_for_plot, final_schmidt
 #   (created by upstream data-wrangling scripts)
+# - Source CSVs in CSVs/ (final_phytos, water_level, final_buoyancy,
+#   final_metals, final_chem) read directly so each variable keeps its full
+#   observation record rather than being subset to phyto-cast dates.
 # - variable_labels (created in 01_DataDownload.R)
 # Output figure: Figs/all_variables_visualized.png
 
 # packages loaded in 01_DataDownload.R
 # variable_labels defined in 01_DataDownload.R
 
-required_objects <- c("full_data", "final_metdata", "final_photic_thermo", "final_schmidt", "variable_labels")
+required_objects <- c("full_met", "final_photic_thermo", "final_schmidt", "therm_for_plot", "variable_labels")
 missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
 if (length(missing_objects) > 0) {
   stop("Missing required objects for 11_Visualize_final_chosen_variables.R: ",
@@ -21,16 +26,14 @@ if (length(missing_objects) > 0) {
 
 ####compute statistics####
 
-# Helper: standard date parsing, seasonal filter, and shared week/year fields.
+# Helper: standard date parsing, seasonal filter, and shared year/DOY fields.
 prep_for_plot <- function(df, date_col = "Date") {
   df %>%
     mutate(
-      Date       = as.Date(.data[[date_col]]),
-      Week       = week(Date),
-      Year       = factor(year(Date)),
-      DOY        = yday(Date),
-      Leap       = leap_year(year(Date)),
-      DOY_season = (Week - 1) * 7 + 4
+      Date = as.Date(.data[[date_col]]),
+      Year = factor(year(Date)),
+      DOY  = yday(Date),
+      Leap = leap_year(year(Date))
     ) %>%
     filter(year(Date) > 2014, year(Date) < 2025) %>%
     filter(DOY >= 133, DOY <= 286)
@@ -52,18 +55,29 @@ make_long <- function(df, vars) {
 }
 
 # ---- 1. Met variables ----
+# 7-day trailing rolled aggregates computed from full_met (every calendar
+# day), not from the cast-day-only series in final_metdata.
 met_vars <- c("precip_week_sum", "air_temp_week_avg", "wind_week_avg")
 
-met_long <- final_metdata %>%
+met_long <- full_met %>%
+  arrange(Date) %>%
+  mutate(
+    precip_week_sum   = zoo::rollapplyr(precip_daily,                 7, sum,  fill = NA, na.rm = TRUE),
+    air_temp_week_avg = zoo::rollapplyr(daily_airtempavg,             7, mean, fill = NA, na.rm = TRUE),
+    wind_week_avg     = zoo::rollapplyr(WindSpeed_daily_Average_m_s,  7, mean, fill = NA, na.rm = TRUE)
+  ) %>%
   prep_for_plot() %>%
   make_long(met_vars) %>%
   mutate(max_conc = NA_real_)
 
 # ---- 2. Photic zone & thermocline ----
+# Thermocline pulled directly from therm_for_plot (script 04) instead of
+# final_photic_thermo, so we don't carry the daily-grid NA padding.
 photic_vars <- c("PZ", "thermocline_depth")
 
 photic_long <- final_photic_thermo %>%
-  mutate(Date = ISOweek2date(paste0(Year, "-W", sprintf("%02d", Week), "-1"))) %>%
+  select(-thermocline_depth) %>%
+  full_join(therm_for_plot, by = "Date") %>%
   prep_for_plot() %>%
   make_long(photic_vars) %>%
   mutate(max_conc = NA_real_)
@@ -72,7 +86,6 @@ photic_long <- final_photic_thermo %>%
 schmidt_vars <- c("schmidt_stability")
 
 schmidt_long <- final_schmidt %>%
-  mutate(Date = ISOweek2date(paste0(Year, "-W", sprintf("%02d", Week), "-1"))) %>%
   prep_for_plot() %>%
   make_long(schmidt_vars) %>%
   mutate(max_conc = NA_real_)
@@ -86,14 +99,45 @@ sampling_vars <- c(
   "depth_NO3NO2_ugL_max"
 )
 
-sampling_base <- full_data %>% prep_for_plot()
+# Build sampling_base by full_join across each variable's source CSV so every
+# observation is retained. Using full_data here would subset everything to
+# phyto-cast dates and lose the daily WaterLevel_m record.
+sampling_base <- read.csv("CSVs/final_phytos.csv") %>%
+  mutate(Date = as.Date(Date)) %>%
+  select(Date, DCM_depth, max_conc) %>%
+  full_join(
+    read.csv("CSVs/water_level.csv") %>%
+      mutate(Date = as.Date(Date)) %>%
+      group_by(Date) %>%
+      summarise(WaterLevel_m = mean(WaterLevel_m, na.rm = TRUE), .groups = "drop"),
+    by = "Date"
+  ) %>%
+  full_join(
+    read.csv("CSVs/final_buoyancy.csv") %>% mutate(Date = as.Date(Date)),
+    by = "Date"
+  ) %>%
+  full_join(
+    read.csv("CSVs/final_metals.csv") %>%
+      mutate(Date = as.Date(Date)) %>%
+      select(Date, SFe_mgL_at_DCM, depth_SFe_mgL_max),
+    by = "Date"
+  ) %>%
+  full_join(
+    read.csv("CSVs/final_chem.csv") %>%
+      mutate(Date = as.Date(Date)) %>%
+      select(Date,
+             SRP_ugL_at_DCM, NH4_ugL_at_DCM, NO3NO2_ugL_at_DCM,
+             depth_SRP_ugL_max, depth_NH4_ugL_max, depth_NO3NO2_ugL_max),
+    by = "Date"
+  ) %>%
+  prep_for_plot()
 
 sampling_long <- sampling_base %>% make_long(sampling_vars)
 
 # max_conc as its own panel
 max_conc_rows <- sampling_base %>%
   transmute(
-    Date, Year, DOY, Leap, DOY_season, max_conc,
+    Date, Year, DOY, Leap, max_conc,
     Variable = "max_conc",
     Value = max_conc,
     Variable_label = factor("DCM Magnitude (µg/L)")
@@ -116,6 +160,14 @@ rev_labels <- c(
   "Depth of Max NO₃⁻/NO₂⁻ (m)"
 )
 
+# Panels that keep raw observation points overlaid on the smoother.
+nutrient_labels <- c(
+  "Depth of Max NO₃⁻/NO₂⁻ (m)", "Depth of Max Soluble Fe (m)",
+  "Depth of Max SRP (m)",       "Depth of Max NH₄⁺ (m)",
+  "NO₃⁻/NO₂⁻ (µg/L) at DCM",    "SFe (mg/L) at DCM",
+  "SRP (µg/L) at DCM",          "NH₄⁺ (µg/L) at DCM"
+)
+
 one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE, panel_letter = NULL) {
   d <- variables_plot_long %>%
     filter(Variable_label == label_text)
@@ -124,8 +176,18 @@ one_panel <- function(label_text, reverse_y = FALSE, show_legend = FALSE, panel_
     d <- d %>% filter(max_conc > 20)
   }
 
-  p <- ggplot(d, aes(DOY_season, Value, color = Year, group = Year)) +
-    geom_line(linewidth = 0.7, alpha = 0.9) +
+  d <- d %>%
+    filter(!is.na(Value)) %>%
+    arrange(Year, DOY)
+
+  p <- ggplot(d, aes(DOY, Value, color = Year, group = Year)) +
+    geom_line(linewidth = 0.5, alpha = 0.9)
+
+  if (label_text %in% nutrient_labels) {
+    p <- p + geom_point(size = 0.7, alpha = 0.7)
+  }
+
+  p <- p +
     scale_x_continuous(
       limits = c(133, 286),
       expand = expansion(mult = c(0.01, 0.01))
@@ -180,7 +242,7 @@ row4 <- (
 p_final <- (row1 / row2 / row3 / row4) +
   plot_layout(guides = "collect") +
   plot_annotation(
-    title = "Seasonal Overlap (DOY 133 - 286) of Environmental and Depth Metrics",
+    title = "Daily Values by Day of Year for Environmental and Depth Metrics",
     theme = theme(
       legend.position = "right",
       legend.text = element_text(size = 16),
@@ -210,29 +272,41 @@ stats_spine <- expand.grid(Year = 2015:2024, Week = 1:53) %>%
   select(Year, Week)
 
 # ── Read source CSVs ──
+# Source CSVs are now Date-keyed (no Year/Week columns), so derive Year+Week
+# from Date and collapse to weekly means.
+weeklyize <- function(df, value_cols) {
+  df %>%
+    mutate(Date = as.Date(Date),
+           Year = year(Date),
+           Week = isoweek(Date)) %>%
+    group_by(Year, Week) %>%
+    summarise(across(all_of(value_cols), ~ mean(.x, na.rm = TRUE)),
+              .groups = "drop")
+}
+
 stats_waterlevel <- read.csv("CSVs/water_level.csv") %>%
-  group_by(Year, Week) %>%
-  slice(1) %>%
-  ungroup() %>%
-  select(Year, Week, WaterLevel_m)
+  weeklyize("WaterLevel_m")
 
 stats_photic  <- read.csv("CSVs/final_photic_thermo.csv") %>%
-  select(Year, Week, PZ, thermocline_depth)
+  weeklyize(c("PZ", "thermocline_depth"))
 
 stats_buoyancy <- read.csv("CSVs/final_buoyancy.csv") %>%
-  select(-any_of("Date"))
+  weeklyize("N_at_DCM")
 
 stats_chem    <- read.csv("CSVs/final_chem.csv") %>%
-  select(-any_of("Date"))
+  weeklyize(c("depth_SRP_ugL_max", "SRP_ugL_at_DCM",
+              "depth_NH4_ugL_max", "NH4_ugL_at_DCM",
+              "depth_NO3NO2_ugL_max", "NO3NO2_ugL_at_DCM"))
 
 stats_metals  <- read.csv("CSVs/final_metals.csv") %>%
-  select(-any_of("Date"))
+  weeklyize(c("depth_SFe_mgL_max", "SFe_mgL_at_DCM"))
 
 stats_schmidt <- read.csv("CSVs/final_schmidt.csv") %>%
-  select(-any_of("Date"))
+  weeklyize("schmidt_stability")
 
 stats_metdata <- read.csv("CSVs/full_met.csv") %>%
   mutate(Date = as.Date(Date),
+         Year = year(Date),
          Week = isoweek(Date)) %>%
   group_by(Year, Week) %>%
   summarise(
@@ -243,7 +317,7 @@ stats_metdata <- read.csv("CSVs/full_met.csv") %>%
   )
 
 stats_phytos  <- read.csv("CSVs/final_phytos.csv") %>%
-  select(Year, Week, DCM_depth, max_conc)
+  weeklyize(c("DCM_depth", "max_conc"))
 
 # ── Join everything to full spine ──
 full_stats_data <- stats_spine %>%

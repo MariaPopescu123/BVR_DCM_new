@@ -1,7 +1,7 @@
 #Maria Popescu
 
 #This script:
-# 1. plots FluoroProbe data availability (produces figure 2)
+# 1. plots FluoroProbe data availability (produces Figure S4)
 # 2. plots cast profiles for QAQC purposes to remove erroneous casts
 # 3. Calculate DCM depth and magnitude
 # 4. visualizes DCM metrics to ensure quality
@@ -370,10 +370,7 @@ final_DCM_metrics<- DCM_metrics_depth2|>
   filter(!(CastID == 1087))|> #no real peak
   filter(Year <2025) 
 
-
-
-
-#COMMUNITY COMP AT DCM####
+#community comp at DCM visualization, not for publication####
 plot_prep_depth <- final_DCM_metrics|>
   group_by(Date)|>
   summarise(DCM_depth = mean(DCM_depth))|>
@@ -451,10 +448,26 @@ ggsave("Figs/Phytos_viz/comp_at_DCM.png", comp,
 
 
 
-#5. Reproduce boxplots for Figure 5####
+#5. Reproduce boxplots for Figure 4####
+
+# Compact letter display (CLD) helper:
+# years that share a letter are NOT significantly different (BH-adjusted pairwise Wilcoxon, alpha = 0.05).
+cld_by_year <- function(df, response_col, alpha = 0.05) {
+  df <- df %>%
+    mutate(Year = factor(as.character(Year), levels = sort(unique(as.character(Year)))))
+  pw <- pairwise.wilcox.test(df[[response_col]], df$Year,
+                             p.adjust.method = "BH", exact = FALSE)
+  m <- pw$p.value
+  pv <- numeric(0)
+  for (i in rownames(m)) for (j in colnames(m)) {
+    if (!is.na(m[i, j])) pv[paste(i, j, sep = "-")] <- m[i, j]
+  }
+  letters_out <- multcompView::multcompLetters(pv, threshold = alpha)$Letters
+  tibble(Year = as.integer(names(letters_out)), Letter = unname(letters_out))
+}
 
 ####boxplots depth of DCM
-#filtering so that max_conc is greater than 20 because otherwise we can't call it a deep chlorophyll maxima 
+#filtering so that max_conc is greater than 20 because otherwise we can't call it a deep chlorophyll maxima
 boxplot_Data <- final_DCM_metrics |>
   mutate(
     DayOfYear = yday(Date),
@@ -478,7 +491,8 @@ boxplot_Data <- final_DCM_metrics |>
 
 label_data <- boxplot_Data %>%
   group_by(Year) %>%
-  summarise(n = n())  # Calculate the number of data points per year
+  summarise(n = n(), .groups = "drop") %>%
+  left_join(cld_by_year(boxplot_Data, "DCM_depth"), by = "Year")
 
 # Plot with labels for the number of data points
 depth_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
@@ -492,28 +506,30 @@ depth_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = DCM_depth)) +
     colours = c("blue","cyan", "green","yellow", "red", "red3"),
     values = scales::rescale(c(0,40, 75, 100, 200, 380)),
     na.value = "gray",
-    limits = c(0, 380), 
+    limits = c(0, 380),
     breaks = c(20, 100, 200, 300, 380)
   ) +
   scale_y_reverse(
     name = "DCM Depth (m)",
-    limits = c(10, 0)
+    limits = c(10, -1.4)
   ) +
-  ggtitle("A   Deep Chlorophyll Maximum (DCM) Depth") +
+  ggtitle("a   Deep Chlorophyll Maximum (DCM) Depth") +
   labs(x = "Year", color = "Total Chl (µg/L)") +
   geom_text(
     data = label_data,
-    aes(x = factor(Year), y = 0.5, label = paste0("n = ", n)),
-    vjust = -0.5,
-    size = 3.6
+    aes(x = factor(Year), y = -0.4, label = paste0("n = ", n, "\n", Letter)),
+    vjust = 0.5,
+    size = 2.8,
+    lineheight = 0.95
   ) +
-  theme_classic(base_size = 14) +   
+  theme_classic(base_size = 10) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    plot.title = element_text(size = 16, face = "bold"),
-    axis.title = element_text(size = 14),
-    legend.title = element_text(size = 13),
-    legend.text = element_text(size = 12)
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(size = 10, face = "bold"),
+    axis.title = element_text(size = 9),
+    legend.title = element_text(size = 9),
+    legend.text = element_text(size = 8)
   )
 
 ####boxplots magnitude of DCM
@@ -531,7 +547,8 @@ boxplot_Data <- final_DCM_metrics |>
 # Count points per year
 label_data <- boxplot_Data |>
   group_by(Year) |>
-  summarise(n = n(), .groups = "drop")
+  summarise(n = n(), .groups = "drop") |>
+  left_join(cld_by_year(boxplot_Data, "max_conc"), by = "Year")
 
 mag_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
   geom_boxplot(outlier.shape = NA) +
@@ -547,26 +564,28 @@ mag_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
     limits = c(0, 380),
     breaks = c(20, 100, 200, 300, 380)
   ) +
-  ggtitle("B   Deep Chlorophyll Maximum (DCM) Magnitude") +
+  ggtitle("b   Deep Chlorophyll Maximum (DCM) Magnitude") +
   scale_y_continuous(
-    name = "Peak Chlorophyll (µg/L)",
-    limits = c(0, 385)
+    name = "Chlorophyll (µg/L)",
+    limits = c(0, 440)
   ) +
   labs(x = "Year", color = "Total Chl (µg/L)") +
   geom_text(
     data = label_data,
-    aes(x = factor(Year), y = 380, label = paste0("n = ", n)),
-    vjust = -0.4,
-    size = 3.6,
+    aes(x = factor(Year), y = 415, label = paste0("n = ", n, "\n", Letter)),
+    vjust = 0.5,
+    size = 2.8,
+    lineheight = 0.95,
     inherit.aes = FALSE
   ) +
-  theme_classic(base_size = 14) +   
+  theme_classic(base_size = 10) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    plot.title = element_text(size = 16, face = "bold"),
-    axis.title = element_text(size = 14),
-    legend.title = element_text(size = 13),
-    legend.text = element_text(size = 12)
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(size = 10, face = "bold"),
+    axis.title = element_text(size = 9),
+    legend.title = element_text(size = 9),
+    legend.text = element_text(size = 8)
   )
 
 #two panels
@@ -577,8 +596,8 @@ ggsave(
   filename = "boxplots_paneled.png",
   plot = panel_plot,
   path = "Figs/Phytos_viz",
-  width = 10,   # width in inches
-  height = 10,   # height in inches
+  width = 7,    # width in inches
+  height = 7,   # height in inches
   dpi = 600     # optional: high resolution
 )
 

@@ -414,6 +414,46 @@ just_thermocline <- temp_depths_interp |>
   ungroup() |>
   mutate(Year = year(Date))
 
+####diagnostic check####
+therm_for_plot <- just_thermocline |>
+  mutate(
+    Year = year(Date),
+    Week = week(Date)
+  ) |>
+  group_by(Year, Week) |>
+  summarise(
+    thermocline_depth = mean(thermocline_depth, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    Date = ymd(paste(Year, "01", "01", sep = "-")) + weeks(Week - 1),
+    DOY = yday(Date)
+  )
+
+
+therm_by_year <- ggplot(therm_for_plot, aes(x = DOY, y = thermocline_depth, color = factor(year(Date)))) +
+  geom_line(size = 1) +  
+  labs(
+    title = "Thermocline 2015-2024",
+    x = "Week of Year",
+    y = "THermocline (m)",
+    color = "Year"
+  ) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.title = element_text(size = 25, hjust = .5),  
+    plot.title.position = "plot",  
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 20),
+    legend.text = element_text(size = 18),
+    legend.title = element_text(size = 18),
+    axis.line = element_line(color = "black"), 
+  )
+
+print(therm_by_year)
+
+
 #####diagnostic: thermocline overlaid on profiles####
 thermocline_and_depth_profiles <- temp_depths_interp|>
   left_join(just_thermocline, by = c("Date"))|>

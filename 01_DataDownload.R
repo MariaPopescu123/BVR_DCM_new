@@ -26,13 +26,14 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                gridExtra, grid, colorRamps, RColorBrewer, rLakeAnalyzer,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr,
                forecast, ggthemes, splines, readr, ggbeeswarm,
-               knitr, fastshap, here, ISOweek, ragg, scales, rlang, randomForest)
+               knitr, fastshap, here, ISOweek, ragg, scales, rlang, randomForest,
+               multcompView,viridis)
 
 
 source("Functions/interpolate_variable.R")
 source("Functions/data_availability_function.R")
 source("Functions/date_sum_variables.R")
-source("Functions/new_var_importance_shap_plots.R") #function for running RandomForest and visualizing variable importance and shap values
+source("Functions/new_var_importance_shap_plots.R") 
 source("Functions/jackknife.R")
 source("Functions/final_data_availability_plot.R")
 source("Functions/plot_shap_vs_value_loop.R")
@@ -135,7 +136,7 @@ variable_labels <- c(
   SFe_mgL_at_DCM = "SFe (mg/L) at DCM",
   SRP_ugL_at_DCM = "SRP (\u00b5g/L) at DCM",
   NH4_ugL_at_DCM = "NH\u2084\u207a (\u00b5g/L) at DCM",
-  NO3NO2_ugL_at_DCM = "NO\u2083\u207b/NO\u2082\u207b at DCM",
+  NO3NO2_ugL_at_DCM = "NO\u2083\u207b/NO\u2082\u207b (\u00b5g/L) at DCM",
   depth_SFe_mgL_max = "Depth of Max Soluble Fe (m)",
   depth_SRP_ugL_max = "Depth of Max SRP (m)",
   depth_NH4_ugL_max = "Depth of Max NH\u2084\u207a (m)",

@@ -1,10 +1,14 @@
 #RF variable importance (%IncMSE) and SHAP value plots for a given response variable.
 
-axis_only_theme <- theme_classic(base_size = 12) +
+axis_only_theme <- theme_classic(base_size = 10) +
   theme(
     panel.border = element_blank(),
     axis.line    = element_line(color = "black", linewidth = 0.4),
-    axis.ticks   = element_line(color = "black")
+    axis.ticks   = element_line(color = "black"),
+    axis.text    = element_text(size = 8),
+    axis.title   = element_text(size = 9),
+    legend.title = element_text(size = 8),
+    legend.text  = element_text(size = 8)
   )
 
 var_importance_shap_plots <- function(Xdataframe,
@@ -149,36 +153,34 @@ var_importance_shap_plots <- function(Xdataframe,
   rmse_oob <- sqrt(mse_oob)
   meta_subtitle <- sprintf("%s | OOB R²=%.3f | OOB RMSE=%.2f | n=%d | ntree=%d | mtry=%d | nodesize=%d",
                            response_label, r2_oob, rmse_oob, nrow(rf_df), best$Trees, best$mtry, best$NodeSize)
-  
+
   #%IncMSE importance plot
   imp_df <- as.data.frame(importance(final_rf)) %>%
     rownames_to_column("Variable") %>%
     filter(!is.na(`%IncMSE`), `%IncMSE` > 0)
-  
+
   ordered_vars   <- imp_df %>% arrange(desc(`%IncMSE`)) %>% pull(Variable)
   reversed_vars  <- rev(ordered_vars)
-  
+
   p_imp <- ggplot(
     imp_df,
     aes(x = `%IncMSE`, y = factor(Variable, levels = reversed_vars))
   ) +
-    geom_point(size = 3) +
+    geom_point(size = 1.2) +
     geom_text(
       aes(label = sprintf("%.2f", `%IncMSE`)),
       hjust = -0.5,
-      size = 4.0
+      size = 2.8
     ) +
     labs(
-      title = paste0(save_dir, " Variable Importance (%IncMSE) ", XYear, "-", XYear2),
-      subtitle = meta_subtitle,
+      title = paste0(save_dir, " Variable Importance"),
       x = "% IncMSE",
       y = "Variables"
     ) +
     scale_y_discrete(labels = pretty_lab) +
     axis_only_theme +
     theme(
-      plot.title = element_text(hjust = 0.5, face = "bold"),
-      plot.subtitle = element_text(size = 11)
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 10)
     )+
   scale_x_continuous(expand = expansion(mult = c(0.02, 0.15)))
   
@@ -224,28 +226,26 @@ var_importance_shap_plots <- function(Xdataframe,
     mutate(nv = scale(value_num)) %>%
     ungroup() %>%
     ggplot(aes(x = shap, y = var, color = nv)) +
-    geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3) +
+    geom_quasirandom(groupOnX = FALSE, dodge.width = 0.3, size = 0.8) +
     scale_color_viridis_c(option = "H", limits = c(-3, 3), oob = scales::oob_squish) +
     labs(
-      title  = paste0(save_dir, " SHAP value distribution ",
-                      XYear, "-", XYear2, "  ", whichvars),
-      subtitle = response_label,
+      title  = paste0(save_dir, " SHAP value distribution"),
       y = "",
       color = "z-scaled\nvalues"
     ) +
     scale_y_discrete(labels = pretty_lab) +
     axis_only_theme +
     theme(
-      plot.title = element_text(hjust = 0.5, face = "bold")
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 10)
     )
-  
+
   combined_plot <- p_imp + p_shap + plot_layout(ncol = 2)
   
   ggsave(
     filename = here::here("Figs", "MachineLearning", save_dir,
                           paste0(XYear, "-", XYear2, "_", whichvars, "_Combined.png")),
     plot = combined_plot,
-    width = 12, height = 5, dpi = 600, bg = "white"
+    width = 12, height = 5, dpi = 1200, bg = "white"
   )
   
   # added this so I can make SHAP interaction plots 

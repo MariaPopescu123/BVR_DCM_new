@@ -1,7 +1,7 @@
 # #this script:
 # 1) creates labels for ML figures
 # 2) makes correlation matrix
-# 3) summarizes statistics for Table S2 and Table S3
+# 3) summarizes statistics for reporting
 #
 # Inputs:
 # - CSVs/full_data.csv (created by 09_join_all_frames.R)

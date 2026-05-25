@@ -4,6 +4,9 @@
 #1. Makes heatmaps for phytoplankton 2014-2024 (Figure 2)
 #2. Makes figures displaying the profiles for the day of maximum 
 # phytoplankton concentration of each year (Figure 3)
+#3. Makes Profile Casts visualization with all spectral groups for the day of maximum 
+# phytoplankton concentration of each year SI Figure S3
+
 #
 # Inputs:
 # - water_level (created in 01_water_level.R)
@@ -149,18 +152,21 @@ flora_heatmap <- function(
       expand = FALSE,
       clip = "on"
     ) +
-    theme_bw(base_size = 14) +  # all text slightly bigger
+    theme_bw(base_size = 10) +
     theme(
-      legend.text = element_text(size = 10),
-      legend.title = element_text(size = 12),
-      legend.key.size = unit(0.6, "cm"),
+      axis.text  = element_text(size = 8),
+      axis.title = element_text(size = 9),
+      plot.title = element_text(size = 9),
+      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 9),
+      legend.key.size = unit(0.4, "cm"),
       panel.background = element_rect(fill = "grey90", colour = NA),
       plot.background  = element_rect(fill = "white",  colour = NA)
     )
-  
+
   if (!show_legend) p <- p + theme(legend.position = "none") #so I can optionally show a legend and only have one figure legend
   if (!have_z) p <- p + annotate("text", x = doy_min + 5, y = 0.5 * ymax_plot,
-                                 label = "(no data)", hjust = 0, size = 5)
+                                 label = "(no data)", hjust = 0, size = 3)
   
   p
 }
@@ -180,18 +186,18 @@ plots <- list(
   flora_heatmap(phytos_heatmaps, 2024, 50, "TotalConc_ugL", "ug/L", global_max_val, TRUE)   # only this keeps legend
 )
 
-# Combine with patchwork, collect only that one legend
+# Combine with patchwork, collect legend and shared x/y axis titles
 final_with_legend <-
   (plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + plots[[5]] +
      plots[[6]] + plots[[7]] + plots[[8]] + plots[[9]] + plots[[10]]) +
-  plot_layout(ncol = 5, guides = "collect") +
+  plot_layout(ncol = 5, guides = "collect", axis_titles = "collect") +
   plot_annotation(theme = theme(legend.position = "right"))
 
 ggsave(
   filename = "Figs/Phytos_viz/final_phytos_heatmap_plot.png",
   plot = final_with_legend,
-  width = 20, height = 7, dpi = 900, bg = "white",
-  device = ragg::agg_png   
+  width = 9, height = 3.15, dpi = 900, bg = "white",
+  device = ragg::agg_png
 )
 
 #2. Profile Casts for Figure 3####
@@ -273,28 +279,30 @@ plot_casts <- ggplot(plot_dat, aes(x = ugL, y = Depth_m, group = var)) +
     ),
     guide = "none"
   ) +
-  theme_minimal(base_size = 16) +
+  scale_x_continuous(expand = expansion(mult = c(0.04, 0.10))) +
+  theme_minimal(base_size = 10) +
   theme(
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16, face = "bold"),
-    strip.text = element_text(size = 15, face = "bold"),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 15, face = "bold"),
+    axis.text = element_text(size = 8),
+    axis.text.x = element_text(margin = ggplot2::margin(t = 2)),
+    axis.title = element_text(size = 9, face = "bold"),
+    strip.text = element_text(size = 9, face = "bold"),
+    legend.position = "none",
     panel.grid.major = element_line(color = "grey80", linewidth = .2),
     panel.grid.minor = element_line(color = "grey90", linewidth = .1),
-    panel.spacing = unit(1, "cm")
+    panel.spacing = unit(0.6, "cm"),
+    plot.margin = ggplot2::margin(t = 5, r = 25, b = 8, l = 5)
   )
 
 plot_casts
 
 ggsave("Figs/Phytos_viz/FP_casts_2025_just_totals.png",
        plot = plot_casts,
-       width = 13, height = 7, units = "in",
+       width = 9, height = 4.85, units = "in",
        dpi = 900)  # high-res
 
 
 
-#3. Profile Casts with all algal groups for SI Figure 3####
+#3. Profile Casts with all spectral groups for SI Figure S3####
 # Reuses the same max-cast selection from section 2 but includes all pigment groups
 
 plot_dat_all <- phytos %>%

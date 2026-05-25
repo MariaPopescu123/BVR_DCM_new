@@ -116,24 +116,57 @@ magnitude_jackknife <- jackknife_incMSE_heatmap(
 #res$plot
 #res$summary %>% as.data.frame() %>% head()
 
-tag_theme <- theme(
-  plot.tag = element_text(size = 10, face = "bold"),
-  plot.tag.position = c(0.05, .98)
+####Figure 5 — 2-panel layout: SHAP swarm + (%IncMSE) score column for each response####
+# Built locally from RF helper outputs (does not modify new_var_importance_shap_plots.R).
+# Layout per row: [SHAP value distribution]  [text column of %IncMSE scores]
+# One shared z-scaled colour legend collected to the right.
+
+pretty_lab_fn <- function(v) {
+  if (is.null(variable_labels)) return(v)
+  out <- unname(variable_labels[as.character(v)])
+  out[is.na(out)] <- v[is.na(out)]
+  out
+}
+
+build_score_col <- function(rf_result) {
+  reversed_vars <- rev(rf_result$var_order)
+  score_df <- rf_result$importance_table |>
+    dplyr::filter(Variable %in% reversed_vars) |>
+    dplyr::mutate(Variable = factor(Variable, levels = reversed_vars))
+
+  ggplot(score_df, aes(x = 1, y = Variable,
+                       label = sprintf("%.2f", `%IncMSE`))) +
+    geom_text(size = 2.8) +
+    scale_x_continuous(limits = c(0.5, 1.5)) +
+    scale_y_discrete(drop = FALSE) +
+    labs(x = "(%IncMSE)", y = NULL) +
+    theme_classic(base_size = 10) +
+    theme(
+      panel.border    = element_blank(),
+      axis.line.x     = element_blank(),
+      axis.line.y     = element_line(colour = "grey50", linewidth = 0.4),
+      axis.ticks      = element_blank(),
+      axis.text.y     = element_blank(),
+      axis.text.x     = element_text(colour = "transparent", size = 8),
+      axis.title.x    = element_text(size = 9),
+      axis.title.y    = element_blank(),
+      plot.margin     = ggplot2::margin(5, 5, 5, 6)
+    )
+}
+
+tag_style <- theme(
+  plot.tag          = element_text(size = 11, face = "bold"),
+  plot.tag.position = c(0.02, 0.99)
 )
 
-other_theme <- theme(
-  plot.tag = element_text(size = 10, face = "bold"),
-  plot.tag.position = c(0.05, .98)
-)
-
-p1 <- finaldepthRF_over20$plots$importance + labs(tag = "a") + tag_theme
-p2 <- finaldepthRF_over20$plots$shap + labs(tag = "b") + other_theme
-p3 <- finalmagnitudeRF$plots$importance + labs(tag = "c") + tag_theme
-p4 <- finalmagnitudeRF$plots$shap + labs(tag = "d") + other_theme
+shap_depth  <- finaldepthRF_over20$plots$shap + labs(tag = "a") + tag_style
+shap_mag    <- finalmagnitudeRF$plots$shap   + labs(tag = "b") + tag_style
+score_depth <- build_score_col(finaldepthRF_over20)
+score_mag   <- build_score_col(finalmagnitudeRF)
 
 make_rf_caption <- function(label, md) {
-  sprintf("%s: OOB R² = %.3f | OOB RMSE = %.2f | n = %d | ntree = %d | mtry = %d | nodesize = %d",
-          label, md$oob_r2, md$oob_rmse, md$n,
+  sprintf("%s: OOB R² = %.3f | n = %d | ntree = %d | mtry = %d | nodesize = %d",
+          label, md$oob_r2, md$n,
           md$best_params$ntree, md$best_params$mtry, md$best_params$nodesize)
 }
 fig5_caption <- paste(
@@ -142,16 +175,23 @@ fig5_caption <- paste(
   sep = "\n"
 )
 
-combined_RF_panels <- (p1 + p2) / (p3 + p4) +
+fig5_new <- (patchwork::wrap_plots(
+  shap_depth, score_depth,
+  shap_mag,   score_mag,
+  ncol   = 2,
+  widths = c(5, 1),
+  guides = "collect"
+) +
   plot_annotation(
     caption = fig5_caption,
-    theme = theme(plot.caption = element_text(size = 8, hjust = 0, lineheight = 1.1))
-  )
+    theme   = theme(plot.caption = element_text(size = 8, hjust = 0, lineheight = 1.1))
+  )) &
+  theme(legend.position = "right", legend.justification = "center")
 
 ggsave(
   filename = here::here("Figs", "MachineLearning", "FinalCombined_Depth_Magnitude_RF.png"),
-  plot = combined_RF_panels,
-  width = 9, height = 5, dpi = 900, bg = "white"
+  plot     = fig5_new,
+  width    = 5, height = 6, dpi = 900, bg = "white"
 )
 
 print(magnitude_jackknife$plot)

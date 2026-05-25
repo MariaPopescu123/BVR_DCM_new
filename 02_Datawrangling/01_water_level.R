@@ -68,7 +68,7 @@ wtrlvl2_interpolated <- DOY_year_ref %>%
 #now for past 2020 
 #Add DOY and Year columns to wtrlvl2, then join with DOY_year_ref
 BVRplatform2 <- BVRplatform |>
-  filter(Flag_LvlPressure_psi_13 != 5)|>#filter flags, questionable value but left in the dataset
+  filter(Flag_LvlPressure_psi_13 != 5)|>#filter flags
   mutate(Date = as.Date(DateTime))|>
   mutate(Year = year(Date), DOY = yday(Date))
 
@@ -136,36 +136,17 @@ wtrlvl_by_year <- ggplot(water_levelscoalesced, aes(x = DOY, y = WaterLevel_m, c
   theme(
     panel.background = element_rect(fill = "white", color = NA),
     plot.background = element_rect(fill = "white", color = NA),
-    plot.title = element_text(size = 25, hjust = .5),  # Left-align title
-    plot.title.position = "plot",  # Positions the title relative to the entire plot area
+    plot.title = element_text(size = 25, hjust = .5),  
+    plot.title.position = "plot",  
     axis.title = element_text(size = 18),
     axis.text = element_text(size = 20),
-    legend.text = element_text(size = 18),     # <-- Increase legend text size
+    legend.text = element_text(size = 18),
     legend.title = element_text(size = 18),
-    axis.line = element_line(color = "black"),  # both x and y axes
+    axis.line = element_line(color = "black"), 
   )
 
 print(wtrlvl_by_year)
 
 #final csvs
 write.csv(water_level, "CSVs/water_level.csv", row.names = FALSE)
-
-
-#additional stats for paper
-#water level ranges before and after 2022
-wl_by_date <- water_level |> distinct(Date, Year, WaterLevel_m)
-before2022 <- wl_by_date %>%
-  filter(Year < 2022)
-after2022 <- wl_by_date %>%
-  filter(Year >= 2022)
-before2022 %>%
-  summarise(
-    min_waterlevel = min(WaterLevel_m, na.rm = TRUE),
-    max_waterlevel = max(WaterLevel_m, na.rm = TRUE)
-  )
-after2022 %>%
-  summarise(
-    min_waterlevel = min(WaterLevel_m, na.rm = TRUE),
-    max_waterlevel = max(WaterLevel_m, na.rm = TRUE)
-  )
 
