@@ -1,4 +1,30 @@
-# code to calculate weekly buoyancy_freq at the DCM from 2014-2024
+#Maria Popescu
+
+#This script:
+# 1. Calculates daily buoyancy frequency profiles from temp_depths_interp
+# 2. Matches each phyto-cast Date to the nearest buoyancy Date (within 7 days)
+# 3. Extracts buoyancy frequency at the DCM depth for each phyto cast
+# 4. Exports final_buoyancy for the joined RF dataset
+#
+# Inputs:
+# - temp_depths_interp (created in 04_photic_temp_thermo.R)
+# - final_phytos (created in 02_Phytos_dataframe.R)
+#
+# Outputs:
+# - CSV: CSVs/final_buoyancy.csv
+#
+# Dependencies:
+# - Run after 01_DataDownload.R, 02_Phytos_dataframe.R, and 04_photic_temp_thermo.R
+#   in the same R session.
+
+required_objects <- c("temp_depths_interp", "final_phytos")
+missing_objects <- required_objects[!vapply(required_objects, exists, logical(1), inherits = TRUE)]
+if (length(missing_objects) > 0) {
+  stop("Missing required objects for 05_buoyancy_freq.R: ",
+       paste(missing_objects, collapse = ", "),
+       ". Run 01_DataDownload.R, 02_Phytos_dataframe.R, and 04_photic_temp_thermo.R first.")
+}
+
 library(data.table)
 
 ####Buoyancy Frequency ####
@@ -41,5 +67,5 @@ final_buoyancy <- phytos_with_buoy_date |>
   select(Year, Date, DCM_depth, N_at_DCM = buoyancy_freq, date_gap)|>
   filter(date_gap < 7)|>
   select(Date, N_at_DCM)
-  
+
 write.csv(final_buoyancy, "CSVs/final_buoyancy.csv", row.names = FALSE)

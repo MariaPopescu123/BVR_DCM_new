@@ -293,8 +293,14 @@ variables <- c("Temp_C")
 temp_depths_interp <- interpolate_variable(temp_depths_cleaned2, variables)
 
 #recheck after interpolation. temp_depths_interp is now daily, so restrict the
-#diagnostic facets to Dates with an actual cast.
+#diagnostic facets to Dates with an actual cast. Write to a separate dir so
+#these post-interpolation plots don't overwrite the pre-interpolation plots
+#saved just above.
 cast_dates <- temp_depths_cleaned2 |> distinct(Date) |> pull(Date)
+
+if (!dir.exists("Figs/Daily_interp_Casts_postinterp")) {
+  dir.create("Figs/Daily_interp_Casts_postinterp", recursive = TRUE)
+}
 
 for (yr in years) {
   test <- temp_depths_interp |> filter(year(Date) == yr, Date %in% cast_dates)
@@ -310,9 +316,9 @@ for (yr in years) {
     facet_wrap(vars(Date)) +
     xlab("Temp") +
     ylab("Depth (m)") +
-    ggtitle(paste(yr, "Temp Profiles"))
+    ggtitle(paste(yr, "Temp Profiles (post-interp)"))
 
-  ggsave(filename = paste0("Figs/Daily_interp_Casts/", yr, "_raw_casts.png"),
+  ggsave(filename = paste0("Figs/Daily_interp_Casts_postinterp/", yr, "_interp_casts.png"),
          plot = plot_casts, width = 12, height = 10, dpi = 300)
 }
 

@@ -34,11 +34,11 @@ Scripts and helper functions used to download the raw datasets required for this
 
 ### `02_Datawrangling/`
 
-This folder contains a sequence of 11 scripts that build the core analysis datasets and manuscript figures. The scripts within are described below.
+This folder contains a numbered sequence of scripts that build the core analysis datasets and manuscript figures, plus a `00_run_all.R` driver and one standalone presentation-only script (`02_alternate_phyto_heatmap.R`). The scripts are described below.
 
 #### `00_run_all.R`
 
-Sources and runs all scripts within the DataWrangling directory.
+Sources and runs the numbered DataWrangling scripts in order (does not source `02_alternate_phyto_heatmap.R`).
 
 #### `01_water_level.R`
 
@@ -49,6 +49,10 @@ Generates a time-series plot colored by year, saves a cleaned CSV, and computes 
 
 Cleans and filters FluoroProbe phytoplankton depth profiles (casts), removes questionable casts, and computes deep chlorophyll maximum (DCM) metrics (peak depth and peak concentration) for each cast and week.\
 Produces QC plots, annual boxplots and summaries, pairwise year-to-year significance tests, and exports weekly-aggregated DCM depth and magnitude datasets for downstream analyses (e.g., random forest modeling).
+
+#### `02_alternate_phyto_heatmap.R`
+
+Optional presentation-only script. Produces a depth-capped (0–10 m), water-level-free variant of the phytoplankton heatmap from `03_Phytos_heatmaps_profiles.R`. Not part of the manuscript pipeline and not sourced by `00_run_all.R`.
 
 #### `03_Phytos_heatmaps_profiles.R`
 
@@ -103,13 +107,21 @@ Reusable functions that support data processing and figure creation. These funct
 
 This function is for QAQC purposes and was developed so anyone can see the data availability of any monitoring variable within any dataframe (not to produce publication-ready figures!). It produces a figure that displays which days within each year that we have available observations.
 
+#### `date_sum_variables.R`
+
+Summarizes one or more water-quality variables by Date from a depth profile dataset (typically the daily-interpolated output of `interpolate_variable()`). Returns max/min values, depths of those extremes, and the value at the DCM for each Date. Used by `06_nutrients.R` to build the chemistry and metals summaries that feed the joined RF dataset.
+
 #### `final_data_availability_plot.R`
 
 This function produces the final FluoroProbe Data Availability plot for the supplementary information.
 
+#### `find_depths.R`
+
+Reads BVR platform sensor data (pressure transducer + thermistor string) together with a depth-offset table and assigns a calibrated depth to each sensor reading. Used by `04_photic_temp_thermo.R` to derive 2021 sensorstring temperature profiles when CTD/YSI data are not available.
+
 #### `interpolate_variable.R`
 
-This function interpolates missing values for a list of water quality variables across both depth and weeks in a reservoir. It first summarizes the raw data by date, depth, and week, then linearly interpolates values within observed depth and week ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete weekly-depth grid for each variable, ready for further analysis or modeling.
+This function interpolates missing values for a list of water quality variables across both depth and time in a reservoir. It first summarizes the raw data by date and depth, then linearly interpolates values within observed depth and day-of-year ranges, filling gaps while avoiding extrapolation beyond measured data. The result is a complete daily depth grid for each variable, ready for further analysis or modeling.
 
 #### `jackknife.R`
 
@@ -125,4 +137,4 @@ For each variable in vars_to_plot, this function creates a scatterplot of SHAP v
 
 #### `weekly_sum_variables.R`
 
-This script summarizes one or more water-quality variables by week (Year + Week) from a depth profile dataset, returns max/min values, depths of extremes, and values at the DCM (Deep Chlorophyll Maximum).
+Weekly (Year + Week) variant of `date_sum_variables.R`: same max/min/depth-at-extreme/value-at-DCM summaries but aggregated to weekly resolution. Not used by the current manuscript pipeline; retained as a utility for weekly-resolution exploration.

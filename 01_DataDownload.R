@@ -91,8 +91,7 @@ write.csv(chemistry, "CSVs/chemistry.csv", row.names = FALSE)
 #meteorological data from FCR https://portal.edirepository.org/nis/codeGeneration?packageId=edi.389.10&statisticalFileType=r
 options(timeout = 9999999)
 metdata <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
-EDImet <- metdata
-EDImetC <- EDImet %>%
+EDImetC <- metdata %>%
   select(
     Reservoir,
     Site,
@@ -147,17 +146,20 @@ variable_labels <- c(
 )
 
 #### Read in CSVs without re-downloading ####
-# Run this section if you want to load data from saved CSVs
-# after having already downloaded and saved above
-# instead of re-downloading from EDI
-
-wtrlvl <- read_csv("CSVs/wtrlvl.csv")
-BVRplatform <- read_csv("CSVs/BVRplatform.csv")
-CTD <- read_csv("CSVs/CTD.csv")
-phytos_df <- read_csv("CSVs/phytos_df.csv")
-metalsdf <- read_csv("CSVs/metalsdf.csv")
-secchiframe <- read_csv("CSVs/secchiframe.csv")
-ysi_profiles <- read_csv("CSVs/ysi_profiles.csv")
-chemistry <- read_csv("CSVs/chemistry.csv")
-EDImetC <- read_csv("CSVs/EDImetC.csv")
-bath <- read_csv("CSVs/BVRbath.csv")
+# Set reload_from_csv <- TRUE (or run the inside of this block manually) to skip
+# the EDI downloads above and load from CSVs/ instead. Off by default so a
+# top-to-bottom run of this script doesn't re-read every file from disk
+# immediately after downloading it.
+reload_from_csv <- FALSE
+if (reload_from_csv) {
+  wtrlvl       <- read_csv("CSVs/wtrlvl.csv")
+  BVRplatform  <- read_csv("CSVs/BVRplatform.csv")
+  CTD          <- read_csv("CSVs/CTD.csv")
+  phytos_df    <- read_csv("CSVs/phytos_df.csv")
+  metalsdf     <- read_csv("CSVs/metalsdf.csv")
+  secchiframe  <- read_csv("CSVs/secchiframe.csv")
+  ysi_profiles <- read_csv("CSVs/ysi_profiles.csv")
+  chemistry    <- read_csv("CSVs/chemistry.csv")
+  EDImetC      <- read_csv("CSVs/EDImetC.csv")
+  bath         <- read_csv("CSVs/BVRbath.csv")
+}

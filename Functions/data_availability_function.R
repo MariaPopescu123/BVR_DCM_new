@@ -1,12 +1,6 @@
-#function for plotting data availability
-#dataframe must have Date column (not)
+#QAQC plot of data availability (not publication-ready).
+#dataframe must have a Date column and the named variables.
 
-library(ggplot2)
-library(dplyr)
-library(patchwork)  # For combining plots
-
-# Define the function to handle multiple variables
-#takes dataframe and list of variables
 data_availability <- function(dataframe, variables) {
   # Generate plots for each variable
   plot_list <- lapply(variables, function(var) {

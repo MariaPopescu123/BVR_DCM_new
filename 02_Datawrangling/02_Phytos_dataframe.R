@@ -324,12 +324,13 @@ DCM_metrics_depth2 <- DCM_metrics_depth1 %>%
 # Pigments to visualize (columns that have *_DCM_depth already computed)
 pigment_vars <- c("TotalConc_ugL") #, "GreenAlgae_ugL", "Bluegreens_ugL", "BrownAlgae_ugL", "MixedAlgae_ugL"
 
-# Ensure output dir exists
-dir.create("Figs/raw_flora_casts", recursive = TRUE, showWarnings = FALSE)
+# Separate output dir so these DCM-overlay plots don't overwrite the
+# raw-cast plots written above to Figs/raw_flora_casts/.
+dir.create("Figs/raw_flora_casts_with_DCM", recursive = TRUE, showWarnings = FALSE)
 
 for (var in pigment_vars) {
   dcm_col <- paste0(var, "_DCM_depth")
-  
+
   for (yr in years) {
     test <- DCM_metrics_depth2 |> filter(year(Date) == yr)
     if (nrow(test) == 0) next
@@ -351,10 +352,10 @@ for (var in pigment_vars) {
       facet_wrap(vars(CastID)) +
       xlab("micrograms per liter") +
       ylab("Depth (m)") +
-      ggtitle(paste(yr, "-", var, "raw casts"))
-    
+      ggtitle(paste(yr, "-", var, "casts with DCM"))
+
     ggsave(
-      filename = paste0("Figs/raw_flora_casts/", var, "_", yr, "_raw_casts.png"),
+      filename = paste0("Figs/raw_flora_casts_with_DCM/", var, "_", yr, "_casts.png"),
       plot = plot_casts,
       width = 12,
       height = 10,

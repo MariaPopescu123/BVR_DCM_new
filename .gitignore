@@ -23,3 +23,4 @@ ysi_profiles.csv
 *.png
 *.csv
 phytos_for_heatmaps
+rf_output.txt
