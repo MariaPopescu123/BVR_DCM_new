@@ -147,7 +147,7 @@ variable_labels <- c(
 
 #### Read in CSVs without re-downloading ####
 # Set reload_from_csv <- TRUE (or run the inside of this block manually) to skip
-# the EDI downloads above and load from CSVs/ instead. Off by default so a
+# the EDI downloads above and load from CSVs/ instead (if already downloaded and saved locally). Off by default so a
 # top-to-bottom run of this script doesn't re-read every file from disk
 # immediately after downloading it.
 reload_from_csv <- FALSE

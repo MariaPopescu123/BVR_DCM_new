@@ -101,11 +101,13 @@ flora_heatmap <- function(
     have_z <- nrow(base_clean) && any(is.finite(base_clean[[z]]))
     
     if (have_z) {
-      io <- akima::interp(
-        x = base_clean$DOY,
-        y = base_clean$Depth_m,
-        z = base_clean[[z]],
-        duplicate = "mean", nx = 200, ny = 200
+      io <- suppressWarnings(
+        akima::interp(
+          x = base_clean$DOY,
+          y = base_clean$Depth_m,
+          z = base_clean[[z]],
+          duplicate = "mean", nx = 200, ny = 200
+        )
       )
       interp <- expand.grid(x = io$x, y = io$y)
       interp$z <- as.vector(io$z)
@@ -171,7 +173,6 @@ flora_heatmap <- function(
   p
 }
 
-# build all plots
 # Build all plots but only the last one keeps its legend
 plots <- list(
   flora_heatmap(phytos_heatmaps, 2015, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE),
@@ -193,11 +194,13 @@ final_with_legend <-
   plot_layout(ncol = 5, guides = "collect", axis_titles = "collect") +
   plot_annotation(theme = theme(legend.position = "right"))
 
-ggsave(
-  filename = "Figs/Phytos_viz/final_phytos_heatmap_plot.png",
-  plot = final_with_legend,
-  width = 9, height = 3.15, dpi = 900, bg = "white",
-  device = ragg::agg_png
+suppressWarnings(
+  ggsave(
+    filename = "Figs/Phytos_viz/final_phytos_heatmap_plot.png",
+    plot = final_with_legend,
+    width = 9, height = 3.15, dpi = 900, bg = "white",
+    device = ragg::agg_png
+  )
 )
 
 #2. Profile Casts for Figure 3####

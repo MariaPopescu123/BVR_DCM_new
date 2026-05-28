@@ -75,6 +75,13 @@ BVRplatform2 <- BVRplatform |>
 #join and interpolate WaterLevel_m for each DOY in each year
 BVRplatform2_interpolated <- DOY_year_ref |>
   left_join(BVRplatform2, by = c("Year" = "Year", "DOY" = "DOY")) |>
+  group_by(Year, DOY) |>  
+  summarise(
+    LvlDepth_m_13 = mean(LvlDepth_m_13, na.rm = TRUE),
+    DateTime = first(DateTime),
+    Site = first(Site),
+    .groups = "drop"
+  ) |>
   group_by(Year) |>
   mutate(
     LvlDepth_m_13 = zoo::na.spline(LvlDepth_m_13, x = DOY, na.rm = FALSE)
@@ -125,8 +132,10 @@ water_level <- expanded_dates|>
   filter(!is.na(WaterLevel_m))
 
 #not used in manuscript, just used for diagnostics
-wtrlvl_by_year <- ggplot(water_levelscoalesced, aes(x = DOY, y = WaterLevel_m, color = factor(Year))) +
-  geom_line(size = 1) +  
+wtrlvl_by_year <- water_levelscoalesced|>
+  filter(!is.na(WaterLevel_m)) |>
+  ggplot(aes(x = DOY, y = WaterLevel_m, color = factor(Year))) +
+  geom_line(linewidth = 1)+  
   labs(
     title = "Water Level 2015-2024",
     x = "Week of Year",

@@ -59,7 +59,7 @@ phytos_with_buoy_date <- buoy_dates_dt[phytos_dt, on = "Date", roll = "nearest"]
 # Pull all buoyancy measurements for the matched dates, then within each
 # (phyto Date, buoyancy_Date) pair, pick the depth closest to DCM_depth
 final_buoyancy <- phytos_with_buoy_date |>
-  left_join(buoyancy_frame, by = c("buoyancy_Date" = "Date")) |>
+  left_join(buoyancy_frame, by = c("buoyancy_Date" = "Date"), relationship = "many-to-many")|>
   group_by(Date) |>     # group by phyto Date — one final row per phyto observation
   slice_min(abs(Depth_m - DCM_depth), n = 1, with_ties = FALSE) |>
   ungroup() |>

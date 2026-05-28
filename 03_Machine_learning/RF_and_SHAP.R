@@ -62,7 +62,7 @@ finaldepthRF_over20 <- var_importance_shap_plots(
 )
 
 #####Jackknife#####
-#this is for viewing to see how robust the model is across years
+#this is for viewing to see how robust the model is across years Fig. S8
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = depth_analysis_over20,
   year_min       = 2015,

@@ -30,7 +30,7 @@ data_availability <- function(dataframe, variables) {
                 vjust = 1.5, hjust = 0.5, color = "black", size = 3) +
       theme_bw() +
       labs(x = "Day of Year", y = "Year", title = paste("Data Availability:", var)) +
-      scale_x_continuous(breaks = seq(1, 365, by = 30), limits = c(1, 365)) +
+      scale_x_continuous(breaks = seq(1, 365, by = 30), limits = c(1, 366)) +
       theme(panel.grid.minor = element_blank()) +
       geom_vline(xintercept = 133, linetype = "dashed", color = "red") +
       geom_vline(xintercept = 286, linetype = "dashed", color = "red")
@@ -39,7 +39,7 @@ data_availability <- function(dataframe, variables) {
   })
   
   # Combine all plots into one panel figure
-  final_plot <- wrap_plots(plot_list, ncol = 3)  # Adjust number of columns as needed
+  final_plot <- wrap_plots(plot_list, ncol = 3) 
   return(final_plot)
 }
 

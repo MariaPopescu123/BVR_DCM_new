@@ -266,7 +266,9 @@ cleaned <- temp_depths_cleaned |>
 
 #diagnostic: plot daily casts
 for (yr in years) {
-  test <- cleaned |> filter(year(Date) == yr)
+  test <- cleaned |>
+    filter(year(Date) == yr)|>
+    filter(!is.na(Temp_C), !is.na(Depth_m))
   if (nrow(test) == 0) next
 
   plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
@@ -303,7 +305,9 @@ if (!dir.exists("Figs/Daily_interp_Casts_postinterp")) {
 }
 
 for (yr in years) {
-  test <- temp_depths_interp |> filter(year(Date) == yr, Date %in% cast_dates)
+  test <- temp_depths_interp |>
+    filter(year(Date) == yr, Date %in% cast_dates)|>
+    filter(!is.na(Temp_C), !is.na(Depth_m))
   if (nrow(test) == 0) next
 
   plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
@@ -438,7 +442,7 @@ therm_for_plot <- just_thermocline |>
 
 
 therm_by_year <- ggplot(therm_for_plot, aes(x = DOY, y = thermocline_depth, color = factor(year(Date)))) +
-  geom_line(size = 1) +  
+  geom_line(linewidth = 1) +  
   labs(
     title = "Thermocline 2015-2024",
     x = "Week of Year",
@@ -470,7 +474,8 @@ thermocline_and_depth_profiles <- temp_depths_interp|>
 
 for (yr in years) {
   test <- thermocline_and_depth_profiles |>
-    filter(year(Date) == yr, Date %in% cast_dates)
+    filter(year(Date) == yr, Date %in% cast_dates)|>
+    filter(!is.na(Temp_C), !is.na(Depth_m))
   if (nrow(test) == 0) next
 
   plot_casts <- ggplot(test, aes(x = Temp_C, y = Depth_m)) +
@@ -532,9 +537,12 @@ final_photic_thermo <- photic_zone_frame |>
   select(-Secchi_m, -sec_K_d) |>
   filter(if_any(-Date, ~ !is.na(.x)))
 
+#just for checking
 ggplot(final_photic_thermo, aes(x = Date)) +
-  geom_line(aes(y = WaterLevel_m), color = "blue") +
-  geom_line(aes(y = PZ), color = "red")
+  geom_line(data = ~ filter(.x, !is.na(WaterLevel_m)),
+            aes(y = WaterLevel_m), color = "blue") +
+  geom_line(data = ~ filter(.x, !is.na(PZ)),
+            aes(y = PZ), color = "red")
 
 write.csv(final_photic_thermo, "CSVs/final_photic_thermo.csv", row.names = FALSE)
 

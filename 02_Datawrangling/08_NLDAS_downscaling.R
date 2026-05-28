@@ -278,20 +278,23 @@ if (!dir.exists("Figs/metdata")) {
 
 
 ####8. Plot all years for each variable just for QAQC check####
-# 1. Precipitation plot
-p1 <- ggplot(full_met, aes(x = Date, y = precip_daily, color = factor(Year), group = Year)) +
+p1 <- full_met |>
+  filter(!is.na(precip_daily)) |>
+  ggplot(aes(x = Date, y = precip_daily, color = factor(Year), group = Year)) +
   geom_line() +
   labs(title = "daily Precipitation", y = "Precipitation (mm)", color = "Year") +
   theme_minimal()
 
-# 2. daily Air Temperature plot
-p2 <- ggplot(full_met, aes(x = Date, y = daily_airtempavg, color = factor(Year), group = Year)) +
+p2 <- full_met |>
+  filter(!is.na(daily_airtempavg)) |>
+  ggplot(aes(x = Date, y = daily_airtempavg, color = factor(Year), group = Year)) +
   geom_line() +
   labs(title = "daily Air Temperature", y = "Air Temp (°C)", color = "Year") +
   theme_minimal()
 
-# 3. Wind Speed daily Average plot
-p3 <- ggplot(full_met, aes(x = Date, y = WindSpeed_daily_Average_m_s, color = factor(Year), group = Year)) +
+p3 <- full_met |>
+  filter(!is.na(WindSpeed_daily_Average_m_s)) |>
+  ggplot(aes(x = Date, y = WindSpeed_daily_Average_m_s, color = factor(Year), group = Year)) +
   geom_line() +
   labs(title = "daily Wind Speed Average", y = "Wind Speed (m/s)", color = "Year") +
   theme_minimal()
@@ -302,8 +305,9 @@ ggsave("Figs/metdata/NLDAS.png", combined_plot, width = 12, height = 8, dpi = 30
 
 #checking to make sure I have full coverage for the time frame we are looking at 
 variables <- c("precip_daily","daily_airtempavg","WindSpeed_daily_Average_m_s")
-data_availability(full_met, variables)
-
+suppressWarnings(
+  data_availability(full_met, variables)
+)
 
 ####9. Export as CSV####
 write.csv(phytos_met, "CSVs/final_metdata.csv", row.names = FALSE)

@@ -51,10 +51,10 @@ jackknife_incMSE_heatmap <- function(
       for (ns in grid_nodes) {
         for (mt in grid_mtry) {
           set.seed(seed + nt*1e6 + ns*1e3 + mt)
-          fit <- randomForest::randomForest(
+          fit <- suppressWarnings(randomForest::randomForest(
             as.formula(paste(response_var, "~ .")),
             data = df_fit, ntree = nt, mtry = mt, nodesize = ns, importance = TRUE
-          )
+          ))
           rsq <- fit$rsq[length(fit$rsq)]
           mse <- fit$mse[length(fit$mse)]
           results[[idx]] <- data.frame(Trees = nt, NodeSize = ns, mtry = mt, OOB_R2 = rsq, OOB_MSE = mse)
@@ -85,10 +85,10 @@ jackknife_incMSE_heatmap <- function(
     
     if (n_y < 5) {
       set.seed(seed_base + yy*1000)
-      fit <- randomForest::randomForest(
+      fit <- suppressWarnings(randomForest::randomForest(
         as.formula(paste(response_var, "~ .")),
         data = df_y, ntree = best$ntree, mtry = best$mtry, nodesize = best$nodesize, importance = TRUE
-      )
+      ))
       all_imp_long[[as.character(yy)]] <- .imp_df(fit) %>% mutate(Year = yy, jack_idx = 1L)
       next
     }
@@ -96,11 +96,11 @@ jackknife_incMSE_heatmap <- function(
     imp_stack <- vector("list", n_y)
     for (i in seq_len(n_y)) {
       set.seed(seed_base + yy*1000 + i)
-      fit_i <- randomForest::randomForest(
+      fit_i <- suppressWarnings(randomForest::randomForest(
         as.formula(paste(response_var, "~ .")),
         data = df_y[-i, , drop = FALSE],
         ntree = best$ntree, mtry = best$mtry, nodesize = best$nodesize, importance = TRUE
-      )
+      ))
       imp_stack[[i]] <- .imp_df(fit_i) %>% mutate(Year = yy, jack_idx = i)
     }
     all_imp_long[[as.character(yy)]] <- bind_rows(imp_stack)
@@ -117,20 +117,20 @@ jackknife_incMSE_heatmap <- function(
     imp_stack_all <- vector("list", n_all)
     for (i in seq_len(n_all)) {
       set.seed(seed_base + 9999*1000 + i)
-      fit_i <- randomForest::randomForest(
+      fit_i <- suppressWarnings(randomForest::randomForest(
         as.formula(paste(response_var, "~ .")),
         data = df_all[-i, , drop = FALSE],
         ntree = best_all$ntree, mtry = best_all$mtry, nodesize = best_all$nodesize, importance = TRUE
-      )
+      ))
       imp_stack_all[[i]] <- .imp_df(fit_i) %>% mutate(Year = 9999L, jack_idx = i)
     }
     all_imp_long[["ALL"]] <- bind_rows(imp_stack_all)
   } else {
     set.seed(seed_base + 9999*1000)
-    fit_all <- randomForest::randomForest(
+    fit_all <- suppressWarnings(randomForest::randomForest(
       as.formula(paste(response_var, "~ .")),
       data = df_all, ntree = best_all$ntree, mtry = best_all$mtry, nodesize = best_all$nodesize, importance = TRUE
-    )
+    ))
     all_imp_long[["ALL"]] <- .imp_df(fit_all) %>% mutate(Year = 9999L, jack_idx = 1L)
   }
   

@@ -19,7 +19,7 @@ interpolate_variable <- function(data, variable_list) {
   ) |>
     mutate(
       Year = year(Date),
-      Week = week(Date),
+      Week = lubridate::week(Date),
       DOY  = yday(Date)
     )
 
@@ -27,7 +27,7 @@ interpolate_variable <- function(data, variable_list) {
     filter(Reservoir == "BVR", Site == 50) %>%
     { if (!"Date" %in% names(.)) mutate(., Date = as_date(DateTime)) else . } %>%
     mutate(
-      Week = week(Date),
+      Week = lubridate::week(Date),
       Year = year(Date),
       DOY  = yday(Date)
     )
