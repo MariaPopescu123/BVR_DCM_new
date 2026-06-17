@@ -63,6 +63,7 @@ finaldepthRF_over20 <- var_importance_shap_plots(
 
 #####Jackknife#####
 #this is for viewing to see how robust the model is across years Fig. S8
+#### Supplemental Figure S8a (DCM depth jackknife heatmap) ####
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = depth_analysis_over20,
   year_min       = 2015,
@@ -71,10 +72,14 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   var_order = finaldepthRF_over20$var_order,
   response_var   = "DCM_depth",
   whichvars_label= "",
-  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20.png"), 
-  variable_labels = variable_labels, 
+  save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20.png"),
+  variable_labels = variable_labels,
   panel_label = "A"
 )
+# copy to curated submission folder
+ggsave(here::here("Figs","Supplemental Figures","Figure S8a.png"),
+       plot = depth_jackknife_over20$plot,
+       width = 12, height = 8, dpi = 400, bg = "white")
 
 print(depth_jackknife_over20$plot)
 print(depth_jackknife_over20$imp_summary)
@@ -100,6 +105,7 @@ finalmagnitudeRF <- var_importance_shap_plots(
 )
 
 
+#### Supplemental Figure S8b (DCM magnitude jackknife heatmap) ####
 magnitude_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = magnitude_analysis,
   year_min       = 2015,
@@ -108,10 +114,14 @@ magnitude_jackknife <- jackknife_incMSE_heatmap(
   var_order = finalmagnitudeRF$var_order,
   response_var   = "max_conc",
   whichvars_label= "",
-  save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png"), 
-  variable_labels = variable_labels, 
+  save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png"),
+  variable_labels = variable_labels,
   panel_label = "B"
 )
+# copy to curated submission folder
+ggsave(here::here("Figs","Supplemental Figures","Figure S8b.png"),
+       plot = magnitude_jackknife$plot,
+       width = 12, height = 8, dpi = 400, bg = "white")
 #if you want to view
 #res$plot
 #res$summary %>% as.data.frame() %>% head()
@@ -132,7 +142,7 @@ p3 <- finalmagnitudeRF$plots$importance + labs(tag = "c") + tag_theme
 p4 <- finalmagnitudeRF$plots$shap + labs(tag = "d") + other_theme
 
 make_rf_caption <- function(label, md) {
-  sprintf("%s: OOB R² = %.3f | OOB RMSE = %.2f | n = %d | ntree = %d | mtry = %d | nodesize = %d",
+  sprintf("%s: OOB R² = %.2f | OOB RMSE = %.2f | n = %d | ntree = %d | mtry = %d | nodesize = %d",
           label, md$oob_r2, md$oob_rmse, md$n,
           md$best_params$ntree, md$best_params$mtry, md$best_params$nodesize)
 }
@@ -145,11 +155,18 @@ fig5_caption <- paste(
 combined_RF_panels <- (p1 + p2) / (p3 + p4) +
   plot_annotation(
     caption = fig5_caption,
-    theme = theme(plot.caption = element_text(size = 8, hjust = 0, lineheight = 1.1))
+    theme = theme(plot.caption = element_text(size = 10, hjust = 0, lineheight = 1.1))
   )
 
+#### Main Manuscript Figure 5 ####
 ggsave(
-  filename = here::here("Figs", "MachineLearning", "FinalCombined_Depth_Magnitude_RF.png"),
+  filename = here::here("Figs", "MachineLearning", "Fig5_FinalCombined_Depth_Magnitude_RF.png"),
+  plot = combined_RF_panels,
+  width = 9, height = 5, dpi = 900, bg = "white"
+)
+# copy to curated submission folder
+ggsave(
+  filename = here::here("Figs", "Main Manuscript", "Figure5.png"),
   plot = combined_RF_panels,
   width = 9, height = 5, dpi = 900, bg = "white"
 )
@@ -189,11 +206,12 @@ cat("Magnitude OOB R2 observations:", finalmagnitudeRF$model_details$n, "\n")
 
 ####----depth####
 #for main manuscript figure 6----
+#### Main Manuscript Figure 6 ####
 depthshap <- finaldepthRF_over20$shap_long
 vars_to_plot <- head(finaldepthRF_over20$var_order, 6)
 
 
-plot_shap_vs_value_loop(
+fig6 <- plot_shap_vs_value_loop(
   shap_df = depthshap,
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Depth"),
@@ -204,11 +222,16 @@ plot_shap_vs_value_loop(
   panel_width = 9,
   panel_height = 5
 )
+# copy to curated submission folder
+ggsave(here::here("Figs","Main Manuscript","Figure6.png"),
+       plot = fig6$panel_plot,
+       width = 9, height = 5, dpi = 1200, bg = "white")
 
 #for supplemental figure (all variables) S9----
+#### Supplemental Figure S9 ####
 vars_to_plot <- finaldepthRF_over20$var_order
 
-plot_shap_vs_value_loop(
+figS9 <- plot_shap_vs_value_loop(
   shap_df = depthshap,
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Depth"),
@@ -217,14 +240,19 @@ plot_shap_vs_value_loop(
   panel_ncol = 4,
   var_labels = variable_labels
 )
+# copy to curated submission folder
+ggsave(here::here("Figs","Supplemental Figures","Figure S9.png"),
+       plot = figS9$panel_plot,
+       width = 24, height = 12, dpi = 1200, bg = "white")
 
 
 #----magnitude----
 #for main manuscript figure 7----
+#### Main Manuscript Figure 7 ####
 magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- head(finalmagnitudeRF$var_order, 6)
 
-plot_shap_vs_value_loop(
+fig7 <- plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Magnitude"),
@@ -235,14 +263,18 @@ plot_shap_vs_value_loop(
   panel_width = 9,
   panel_height = 5
 )
+# copy to curated submission folder
+ggsave(here::here("Figs","Main Manuscript","Figure7.png"),
+       plot = fig7$panel_plot,
+       width = 9, height = 5, dpi = 1200, bg = "white")
 
 #for all variables figure S10----
-
+#### Supplemental Figure S10 ####
 magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- finalmagnitudeRF$var_order
 
 
-plot_shap_vs_value_loop(
+figS10 <- plot_shap_vs_value_loop(
   shap_df = magnitudeshap,
   vars_to_plot = vars_to_plot,
   out_dir = here::here("Figs/MachineLearning/SHAP_interaction/Magnitude"),
@@ -251,3 +283,7 @@ plot_shap_vs_value_loop(
   var_labels = variable_labels,
   panel_ncol = 4
 )
+# copy to curated submission folder
+ggsave(here::here("Figs","Supplemental Figures","Figure S10.png"),
+       plot = figS10$panel_plot,
+       width = 24, height = 12, dpi = 1200, bg = "white")

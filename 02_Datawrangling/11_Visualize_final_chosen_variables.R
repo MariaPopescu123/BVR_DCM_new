@@ -242,18 +242,23 @@ row4 <- (
 p_final <- (row1 / row2 / row3 / row4) +
   plot_layout(guides = "collect") +
   plot_annotation(
-    title = "Daily Values by Day of Year for Environmental and Depth Metrics",
     theme = theme(
       legend.position = "right",
       legend.text = element_text(size = 16),
       legend.title = element_text(size = 18),
-      legend.key.size = unit(1.5, "lines"),
-      plot.title = element_text(face = "bold", size = 18, hjust = 0.5)
+      legend.key.size = unit(1.5, "lines")
     )
   )
 
+#### Supplemental Figure S2 ####
 ggsave(
   filename = "Figs/all_variables_visualized.png",
+  plot = p_final,
+  width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
+)
+# copy to curated submission folder
+ggsave(
+  filename = "Figs/Supplemental Figures/Figure S2.png",
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
@@ -507,18 +512,23 @@ yrow4 <- (
 p_yearly <- (yrow1 / yrow2 / yrow3 / yrow4) +
   plot_layout(guides = "collect") +
   plot_annotation(
-    title = "Yearly Median and Mean \u00b1 SD (DOY 133\u2013286)",
     theme = theme(
       legend.position = "right",
       legend.text = element_text(size = 16),
       legend.title = element_text(size = 18),
-      legend.key.size = unit(1.5, "lines"),
-      plot.title = element_text(face = "bold", size = 18, hjust = 0.5)
+      legend.key.size = unit(1.5, "lines")
     )
   )
 
+#### Supplemental Figure S1 ####
 ggsave(
   filename = "Figs/all_variables_yearly_stats.png",
+  plot = p_yearly,
+  width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
+)
+# copy to curated submission folder
+ggsave(
+  filename = "Figs/Supplemental Figures/Figure S1.png",
   plot = p_yearly,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )

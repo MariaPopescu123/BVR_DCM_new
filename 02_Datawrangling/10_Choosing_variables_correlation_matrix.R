@@ -114,13 +114,17 @@ full_data <- full_data|>
     "depth_SFe_mgL_max", "SFe_mgL_at_DCM",
      "precip_week_sum", "air_temp_week_avg", "wind_week_avg")
 
+#### Supplemental Figure S5 ####
 check <- plot_correlation_matrix(
   full_data,
   "Figs/correlations/full_corr_Matrix.png",
-  title = "Correlation Matrix Heatmap for Variable Selection", 
+  title = NULL,
   variable_labels = variable_labels,
 )
 # check$correlations  # uncomment to view interactively
+# copy to curated submission folder
+ggsave("Figs/Supplemental Figures/Figure S5.png", plot = check$plot,
+       width = 23, height = 20, units = "in", dpi = 300, bg = "white")
 
 # Checking collinear metrics
 # Buoyancy Frequency, Schmidt Stability, surface temp, and temperature at DCM are

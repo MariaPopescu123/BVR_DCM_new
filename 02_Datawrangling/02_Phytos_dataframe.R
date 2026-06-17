@@ -164,8 +164,7 @@ phytosplot <- ggplot(plot_dat, aes(x = DayOfYear, y = as.factor(Year), group = Y
   theme_bw() +
   labs(
     x = "Day of Year",
-    y = "Year",
-    title = "Fluoroprobe Data Availability 2015-2024"
+    y = "Year"
   ) +
   scale_x_continuous(
     breaks = seq(1, 365, by = 30),
@@ -181,13 +180,24 @@ phytosplot <- ggplot(plot_dat, aes(x = DayOfYear, y = as.factor(Year), group = Y
 # Ensure output dir exists
 dir.create("Figs/Data_availability", recursive = TRUE, showWarnings = FALSE)
 
-ggsave(
+# suppressWarnings(): years with a single sampling day have no line to draw,
+# producing a harmless "geom_path: each group consists of only one observation".
+#### Supplemental Figure S4 ####
+suppressWarnings(ggsave(
   "Figs/Data_availability/TotalPhytos2025pub.png",
   phytosplot,
   width = 8,
   height = 6,
   dpi = 400
-)
+))
+# copy to curated submission folder
+suppressWarnings(ggsave(
+  "Figs/Supplemental Figures/Figure S4.png",
+  phytosplot,
+  width = 8,
+  height = 6,
+  dpi = 400
+))
 #see that the data is dispersed at random intervals
 #-------choosing casts and calculating peaks
 #- Look at every cast for every year and remove casts that do not make sense
@@ -253,13 +263,16 @@ for (type in types) {
       ylab("Depth (m)") +
       ggtitle(paste(yr, type, "raw casts"))
 
-    ggsave(
+    # suppressWarnings(): casts with a single depth reading have no path to
+    # draw, producing a harmless "geom_path: each group consists of only one
+    # observation".
+    suppressWarnings(ggsave(
       filename = paste0("Figs/raw_flora_casts/", type, "_", yr, "_raw_casts.png"),
       plot = plot_casts,
       width = 12,
       height = 10,
       dpi = 300
-    )
+    ))
   }
 }
 
@@ -354,13 +367,16 @@ for (var in pigment_vars) {
       ylab("Depth (m)") +
       ggtitle(paste(yr, "-", var, "casts with DCM"))
 
-    ggsave(
+    # suppressWarnings(): casts with a single depth reading have no path to
+    # draw, producing a harmless "geom_path: each group consists of only one
+    # observation".
+    suppressWarnings(ggsave(
       filename = paste0("Figs/raw_flora_casts_with_DCM/", var, "_", yr, "_casts.png"),
       plot = plot_casts,
       width = 12,
       height = 10,
       dpi = 300
-    )
+    ))
   }
 }
 
@@ -593,6 +609,7 @@ mag_plot <- ggplot(boxplot_Data, aes(x = factor(Year), y = max_conc)) +
 panel_plot <- depth_plot / mag_plot  
 panel_plot
 
+#### Main Manuscript Figure 4 ####
 ggsave(
   filename = "boxplots_paneled.png",
   plot = panel_plot,
@@ -600,6 +617,15 @@ ggsave(
   width = 7,    # width in inches
   height = 7,   # height in inches
   dpi = 600     # optional: high resolution
+)
+# copy to curated submission folder
+ggsave(
+  filename = "Figure4.png",
+  plot = panel_plot,
+  path = "Figs/Main Manuscript",
+  width = 7,
+  height = 7,
+  dpi = 600
 )
 
 #6. Create the final_phytos dataframe that will be used for RF analysis####
@@ -740,24 +766,24 @@ final_phytos_over20 <- final_phytos %>%
 
 p_depth <- sig_grid_upper_fn(
   final_phytos_over20, "DCM_depth",
-  "A   Pairwise Differences by Year - DCM Depth"
+  "a   Pairwise Differences by Year - DCM Depth"
 )
 
 p_mag <- sig_grid_upper_fn(
   final_phytos, "max_conc",
-  "B   Pairwise Differences by Year - DCM Magnitude"
+  "b   Pairwise Differences by Year - DCM Magnitude"
 )
 
 p_mag_nolegend <- p_mag + theme(legend.position = "none")
 
 sig_both <- p_depth / p_mag_nolegend +
-  plot_layout(guides = "collect") +
-  plot_annotation(
-    title = "Year-wise Pairwise Significance (BH-adjusted)",
-    theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
-  )
+  plot_layout(guides = "collect")
 
+#### Supplemental Figure S7 ####
 ggsave("Figs/Phytos_viz/kruskal-wallis.png",
+       sig_both, width = 10, height = 12, dpi = 600, bg = "white")
+# copy to curated submission folder
+ggsave("Figs/Supplemental Figures/Figure S7.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 
 #8. Plotting statistics for DCM depth and DCM magnitude for Figure S6 -----####
@@ -857,4 +883,7 @@ combined_plot <- d/p_no_legend+
   plot_layout(guides = "collect")
 
 # Save the plot to a file
+#### Supplemental Figure S6 ####
 ggsave("Figs/Phytos_viz/phytoplankton_summary.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
+# copy to curated submission folder
+ggsave("Figs/Supplemental Figures/Figure S6.png", plot = combined_plot, width = 8, height = 10, dpi = 600)

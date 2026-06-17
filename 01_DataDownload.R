@@ -19,6 +19,33 @@ if (!requireNamespace("pacman", quietly = TRUE)) {
 
 dir.create("CSVs", showWarnings = FALSE, recursive = TRUE)
 dir.create("Figs", showWarnings = FALSE, recursive = TRUE)
+dir.create("Figs/Main Manuscript", showWarnings = FALSE, recursive = TRUE)
+dir.create("Figs/Supplemental Figures", showWarnings = FALSE, recursive = TRUE)
+
+
+
+if (!requireNamespace("fastshap", quietly = TRUE)) {
+  # 1) Prebuilt binary: author's r-universe has an R 4.6 Win/Linux build
+  #    even while CRAN's binary is still being rebuilt. No compiler needed.
+  try(install.packages(
+    "fastshap",
+    repos = c("https://bgreenwell.r-universe.dev",
+              "https://cloud.r-project.org")
+  ), silent = TRUE)
+  
+  # 2) Fallback: compile from source (e.g. macOS on R 4.6 until its binary lands).
+  #    Needs Rtools45 (Windows) or Xcode CLT (macOS).
+  if (!requireNamespace("fastshap", quietly = TRUE)) {
+    message("No fastshap binary for this platform/R yet; building from source...")
+    try(install.packages("fastshap", type = "source"), silent = TRUE)
+  }
+  
+  if (!requireNamespace("fastshap", quietly = TRUE)) {
+    stop("Could not install 'fastshap'. Install build tools (Windows: Rtools45; ",
+         "macOS: xcode-select --install) and rerun, or wait for the CRAN binary.")
+  }
+}
+
 
 # Downloading data and functions here
 
@@ -27,7 +54,39 @@ pacman::p_load(tidyverse, patchwork, lubridate, akima, reshape2, pracma,
                reader, cowplot, dplyr, tidyr, ggplot2, zoo, purrr, beepr,
                forecast, ggthemes, splines, readr, ggbeeswarm,
                knitr, fastshap, here, ISOweek, ragg, scales, rlang, randomForest,
-               multcompView,viridis)
+               multcompView, viridis, httr)
+
+
+# --- Resilient downloads ----------------------------------------------------
+# Some networks (corporate proxies, antivirus, or VPNs) intercept HTTPS traffic
+# and present their own self-signed certificate, which makes downloads fail with:
+#   "SSL certificate problem: self signed certificate"
+# These helpers first try the normal, secure connection and only fall back to
+# disabling SSL verification if that fails. This way the script works for anyone
+# who runs it without per-machine setup, while keeping full verification for
+# users who don't need the workaround. EDI/LTER is a trusted public data
+# repository and we only read published data, so the fallback is low risk.
+
+read_csv_resilient <- function(url, ...) {
+  resp <- tryCatch(httr::GET(url), error = function(e) NULL)
+  if (is.null(resp) || httr::http_error(resp)) {
+    message("Secure connection failed for:\n  ", url,
+            "\n  Retrying with SSL verification disabled.")
+    resp <- httr::GET(url, httr::config(ssl_verifypeer = FALSE))
+  }
+  readr::read_csv(httr::content(resp, as = "raw"), ...)
+}
+
+download_resilient <- function(url, destfile) {
+  resp <- tryCatch(httr::GET(url), error = function(e) NULL)
+  if (is.null(resp) || httr::http_error(resp)) {
+    message("Secure connection failed for:\n  ", url,
+            "\n  Retrying with SSL verification disabled.")
+    resp <- httr::GET(url, httr::config(ssl_verifypeer = FALSE))
+  }
+  writeBin(httr::content(resp, as = "raw"), destfile)
+  invisible(destfile)
+}
 
 
 source("Functions/interpolate_variable.R")
@@ -46,11 +105,11 @@ source("Functions/find_depths.R")
 #Updated to include 2024
 #waterlevel data using the pressure sensor (platform data) https://portal.edirepository.org/nis/codeGeneration?packageId=edi.725.5&statisticalFileType=r
 #BVR water level from the staff gauge and converted to reservoir depth
-wtrlvl <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1")
+wtrlvl <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/725/4/43476abff348c81ef37f5803986ee6e1")
 write.csv(wtrlvl, "CSVs/wtrlvl.csv", row.names = FALSE)
 
 #water level data for years post-2020 using pressure sensors
-BVRplatform <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
+BVRplatform <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/725/5/f649de0e8a468922b40dcfa34285055e")
 write.csv(BVRplatform, "CSVs/BVRplatform.csv", row.names = FALSE)
 
 #ctd data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.200.15&statisticalFileType=r
@@ -59,38 +118,38 @@ options(timeout = 999999)
 url  <- "https://pasta.lternet.edu/package/data/eml/edi/200/15/9d741c9cced69cfd609c473ada2812b1"
 dest <- "CSVs/CTD.csv"
 dir.create("CSVs", showWarnings = FALSE)
-download.file(url, dest, mode = "wb")
+download_resilient(url, dest)
 CTD <- read_csv(dest)
 
 #flora data https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.10
 #published 2026
-phytos_df <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/272/10/6d7576cc758ca378fe004ad0ac9eed85")
+phytos_df <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/272/10/6d7576cc758ca378fe004ad0ac9eed85")
 write.csv(phytos_df, "CSVs/phytos_df.csv", row.names = FALSE)
 
 # metals data https://portal.edirepository.org/nis/codeGeneration?packageId=edi.455.9&statisticalFileType=r
 #updated 2025
-metalsdf <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
+metalsdf <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/455/9/9a072c4e4af39f96f60954fc4f7d8be5")
 write.csv(metalsdf, "CSVs/metalsdf.csv", row.names = FALSE)
 #removed flags for 68, per the data creator (Cece Wood)'s recommendation
 
 #secchi data https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
-secchiframe <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/3ee0ddb9f2183ad4d8c955d50d1b8fba")
+secchiframe <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/198/13/3ee0ddb9f2183ad4d8c955d50d1b8fba")
 write.csv(secchiframe, "CSVs/secchiframe.csv", row.names = FALSE)
 
 #ysi https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=198&revision=13
 #updated 2025
-ysi_profiles <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
+ysi_profiles <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/198/13/e50a50d062ee73f4d85e4f20b360ce4f")
 write.csv(ysi_profiles, "CSVs/ysi_profiles.csv", row.names = FALSE)
 
 ##chemistry: https://portal.edirepository.org/nis/codeGeneration?packageId=edi.199.13&statisticalFileType=r
 #updated 2025
-chemistry <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081") 
+chemistry <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/199/13/3f09a3d23b7b5dd32ed7d28e9bc1b081")
 write.csv(chemistry, "CSVs/chemistry.csv", row.names = FALSE)
 
 #meteorological data from FCR https://portal.edirepository.org/nis/codeGeneration?packageId=edi.389.10&statisticalFileType=r
 options(timeout = 9999999)
-metdata <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
+metdata <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
 EDImetC <- metdata %>%
   select(
     Reservoir,
@@ -107,7 +166,7 @@ write.csv(EDImetC, "CSVs/EDImetC.csv", row.names = FALSE)
 
 
 #bathymetry data for BVR https://portal.edirepository.org/nis/metadataviewer?packageid=edi.1254.1
-bath <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")
+bath <- read_csv_resilient("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")
 bath<- bath|>
   filter(Reservoir == "BVR")
 
@@ -115,7 +174,7 @@ write.csv(bath, "CSVs/BVRbath.csv", row.names = FALSE)
 
 
 #BVR depth offsets (used in 04_photic_temp_thermo.R)
-download.file(
+download_resilient(
   "https://raw.githubusercontent.com/FLARE-forecast/BVRE-data/bvre-platform-data-qaqc/BVR_Depth_offsets.csv",
   destfile = "BVR_Depth_offsets.csv"
 )

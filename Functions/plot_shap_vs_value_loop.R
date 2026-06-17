@@ -118,13 +118,7 @@ plot_shap_vs_value_loop <- function(shap_df,
       ggplot2::theme(legend.position = "right")
     
     panel_plot <- patchwork::wrap_plots(plot_list_collected, ncol = panel_ncol) +
-      patchwork::plot_layout(guides = "collect") +
-      patchwork::plot_annotation(
-        title = analysis_label,
-        theme = ggplot2::theme(
-          plot.title = ggplot2::element_text(size = 10, face = "bold", hjust = 0.5)
-        )
-      )
+      patchwork::plot_layout(guides = "collect")
     
     panel_file <- paste0(prefix, "_", safe_name(analysis_label),
                          "_PANEL_", panel_ncol, "col_", n_panels, "plots.png")
