@@ -114,7 +114,7 @@ full_data <- full_data|>
     "depth_SFe_mgL_max", "SFe_mgL_at_DCM",
      "precip_week_sum", "air_temp_week_avg", "wind_week_avg")
 
-#### Supplemental Figure S5 ####
+#### Supporting Information Figure S5 ####
 check <- plot_correlation_matrix(
   full_data,
   "Figs/correlations/full_corr_Matrix.png",
@@ -123,7 +123,7 @@ check <- plot_correlation_matrix(
 )
 # check$correlations  # uncomment to view interactively
 # copy to curated submission folder
-ggsave("Figs/Supplemental Figures/Figure S5.png", plot = check$plot,
+ggsave("Figs/Supporting Information/Figure S5.png", plot = check$plot,
        width = 23, height = 20, units = "in", dpi = 300, bg = "white")
 
 # Checking collinear metrics

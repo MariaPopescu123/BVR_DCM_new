@@ -6,7 +6,7 @@
 # It creates:
 # - variable-importance with SHAP score plots (Fig. 5)
 # - jackknife robustness heatmaps (Fig. S8)
-# - SHAP-vs-value interaction panels for manuscript + supplement (Fig. 6, Fig. 7, Fig. S9, Fig. S10)
+# - SHAP-vs-value interaction panels for manuscript + Supporting Information (Fig. 6, Fig. 7, Fig. S9, Fig. S10)
 #
 # Inputs expected in the workspace from prior scripts:
 # - full_data, variable_labels
@@ -63,7 +63,7 @@ finaldepthRF_over20 <- var_importance_shap_plots(
 
 #####Jackknife#####
 #this is for viewing to see how robust the model is across years Fig. S8
-#### Supplemental Figure S8a (DCM depth jackknife heatmap) ####
+#### Supporting Information Figure S8a (DCM depth jackknife heatmap) ####
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = depth_analysis_over20,
   year_min       = 2015,
@@ -74,10 +74,10 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   whichvars_label= "",
   save_path      = here::here("Figs","MachineLearning","Depth","Jackknife_Heatmap_over20.png"),
   variable_labels = variable_labels,
-  panel_label = "A"
+  panel_label = "a"
 )
 # copy to curated submission folder
-ggsave(here::here("Figs","Supplemental Figures","Figure S8a.png"),
+ggsave(here::here("Figs","Supporting Information","Figure S8a.png"),
        plot = depth_jackknife_over20$plot,
        width = 12, height = 8, dpi = 400, bg = "white")
 
@@ -105,7 +105,7 @@ finalmagnitudeRF <- var_importance_shap_plots(
 )
 
 
-#### Supplemental Figure S8b (DCM magnitude jackknife heatmap) ####
+#### Supporting Information Figure S8b (DCM magnitude jackknife heatmap) ####
 magnitude_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = magnitude_analysis,
   year_min       = 2015,
@@ -116,10 +116,10 @@ magnitude_jackknife <- jackknife_incMSE_heatmap(
   whichvars_label= "",
   save_path      = here::here("Figs","MachineLearning","Magnitude","MagnitudeJackknife_Heatmap.png"),
   variable_labels = variable_labels,
-  panel_label = "B"
+  panel_label = "b"
 )
 # copy to curated submission folder
-ggsave(here::here("Figs","Supplemental Figures","Figure S8b.png"),
+ggsave(here::here("Figs","Supporting Information","Figure S8b.png"),
        plot = magnitude_jackknife$plot,
        width = 12, height = 8, dpi = 400, bg = "white")
 #if you want to view
@@ -227,8 +227,8 @@ ggsave(here::here("Figs","Main Manuscript","Figure6.png"),
        plot = fig6$panel_plot,
        width = 9, height = 5, dpi = 1200, bg = "white")
 
-#for supplemental figure (all variables) S9----
-#### Supplemental Figure S9 ####
+#for Supporting Information figure (all variables) S9----
+#### Supporting Information Figure S9 ####
 vars_to_plot <- finaldepthRF_over20$var_order
 
 figS9 <- plot_shap_vs_value_loop(
@@ -238,12 +238,18 @@ figS9 <- plot_shap_vs_value_loop(
   prefix = "SIdepth",
   analysis_label = "Predictor Effects on DCM Depth Prediction",
   panel_ncol = 4,
-  var_labels = variable_labels
+  var_labels = variable_labels,
+  # Save near print size so native font size ~= on-page size; text_scale lifts
+  # the smallest fonts to ~9 pt so they render >= 8 pt in the manuscript.
+  # Larger canvas gives each panel more room so the titles don't overlap.
+  panel_width = 13,
+  panel_height = 7,
+  text_scale = 1.15
 )
 # copy to curated submission folder
-ggsave(here::here("Figs","Supplemental Figures","Figure S9.png"),
+ggsave(here::here("Figs","Supporting Information","Figure S9.png"),
        plot = figS9$panel_plot,
-       width = 24, height = 12, dpi = 1200, bg = "white")
+       width = 13, height = 7, dpi = 1200, bg = "white")
 
 
 #----magnitude----
@@ -269,7 +275,7 @@ ggsave(here::here("Figs","Main Manuscript","Figure7.png"),
        width = 9, height = 5, dpi = 1200, bg = "white")
 
 #for all variables figure S10----
-#### Supplemental Figure S10 ####
+#### Supporting Information Figure S10 ####
 magnitudeshap <- finalmagnitudeRF$shap_long
 vars_to_plot <- finalmagnitudeRF$var_order
 
@@ -281,9 +287,15 @@ figS10 <- plot_shap_vs_value_loop(
   prefix = "SImagnitude",
   analysis_label = "Predictor Effects on DCM Magnitude Prediction",
   var_labels = variable_labels,
-  panel_ncol = 4
+  panel_ncol = 4,
+  # Save near print size so native font size ~= on-page size; text_scale lifts
+  # the smallest fonts to ~9 pt so they render >= 8 pt in the manuscript.
+  # Larger canvas gives each panel more room so the titles don't overlap.
+  panel_width = 13,
+  panel_height = 7,
+  text_scale = 1.15
 )
 # copy to curated submission folder
-ggsave(here::here("Figs","Supplemental Figures","Figure S10.png"),
+ggsave(here::here("Figs","Supporting Information","Figure S10.png"),
        plot = figS10$panel_plot,
-       width = 24, height = 12, dpi = 1200, bg = "white")
+       width = 13, height = 7, dpi = 1200, bg = "white")

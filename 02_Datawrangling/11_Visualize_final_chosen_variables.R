@@ -250,7 +250,7 @@ p_final <- (row1 / row2 / row3 / row4) +
     )
   )
 
-#### Supplemental Figure S2 ####
+#### Supporting Information Figure S2 ####
 ggsave(
   filename = "Figs/all_variables_visualized.png",
   plot = p_final,
@@ -258,7 +258,7 @@ ggsave(
 )
 # copy to curated submission folder
 ggsave(
-  filename = "Figs/Supplemental Figures/Figure S2.png",
+  filename = "Figs/Supporting Information/Figure S2.png",
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
@@ -520,7 +520,7 @@ p_yearly <- (yrow1 / yrow2 / yrow3 / yrow4) +
     )
   )
 
-#### Supplemental Figure S1 ####
+#### Supporting Information Figure S1 ####
 ggsave(
   filename = "Figs/all_variables_yearly_stats.png",
   plot = p_yearly,
@@ -528,7 +528,7 @@ ggsave(
 )
 # copy to curated submission folder
 ggsave(
-  filename = "Figs/Supplemental Figures/Figure S1.png",
+  filename = "Figs/Supporting Information/Figure S1.png",
   plot = p_yearly,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )

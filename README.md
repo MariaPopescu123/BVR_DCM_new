@@ -14,7 +14,17 @@ This repository includes all workflows needed to reproduce the analyses and figu
 
 3.  Run `03_Machine_learning/RF_and_SHAP.R`
 
-All outputs (CSVs and figures) are written to the `CSVs/` and `Figs/` directories.
+All outputs are written to the `CSVs/` (data products) and `Figs/` (figures) directories. These directories are created automatically by `01_DataDownload.R` if they do not already exist.
+
+### Where figures are saved
+
+Figures are organized into subfolders of `Figs/` by purpose:
+
+- **`Figs/Main Manuscript/`** — the final, curated figures used in the manuscript (`Figure2.png`–`Figure7.png`). Figure 1 is a conceptual/site figure made outside this repository.
+- **`Figs/Supporting Information/`** — the final, curated figures used in the Supporting Information (`Figure S1.png`–`Figure S10.png`, including `Figure S8a.png` and `Figure S8b.png`).
+- **All other `Figs/` subfolders** (e.g. `Phytos_viz/`, `Data_availability/`, `correlations/`, `Thermocline/`, `metdata/`, `MachineLearning/`, `Daily_interp_Casts/`, `raw_flora_casts/`) — working and diagnostic figures generated along the way. Several of the manuscript and Supporting Information figures are also saved to one of these working folders in addition to the curated `Main Manuscript/` or `Supporting Information/` folder.
+
+The per-script descriptions below list which figures each script produces and where they are written.
 
 ###  Notes
 
@@ -30,7 +40,9 @@ All outputs (CSVs and figures) are written to the `CSVs/` and `Figs/` directorie
 
 ### `01_DataDownload.R`
 
-Scripts and helper functions used to download the raw datasets required for this project.
+Scripts and helper functions used to download the raw datasets required for this project. Also creates the output directory tree (`CSVs/`, `Figs/`, `Figs/Main Manuscript/`, `Figs/Supporting Information/`).
+
+*Figures:* none (other scripts populate the figure folders).
 
 ### `02_Datawrangling/`
 
@@ -45,10 +57,19 @@ Sources and runs the numbered DataWrangling scripts in order (does not source `0
 Downloads Beaverdam Reservoir water-level data (2014–2024) from EDI, merges pressure-sensor and historical water level data sources, interpolates the data, and aggregates the time series to weekly water levels.\
 Generates a time-series plot colored by year, saves a cleaned CSV, and computes summary statistics on within- and across-year variability (including pre- vs. post-2022 comparisons).
 
+*Figures:* the water-level time-series plot is drawn to the plotting window only (not written to disk).
+
 #### `02_Phytos_dataframe.R`
 
 Cleans and filters FluoroProbe phytoplankton depth profiles (casts), removes questionable casts, and computes deep chlorophyll maximum (DCM) metrics (peak depth and peak concentration) for each cast and week.\
 Produces QC plots, annual boxplots and summaries, pairwise year-to-year significance tests, and exports weekly-aggregated DCM depth and magnitude datasets for downstream analyses (e.g., random forest modeling).
+
+*Figures:*
+- **Manuscript Figure 4** (paneled DCM depth/magnitude boxplots) → `Figs/Main Manuscript/Figure4.png` (also `Figs/Phytos_viz/boxplots_paneled.png`).
+- **Supporting Information Figure S4** (FluoroProbe data availability) → `Figs/Supporting Information/Figure S4.png`.
+- **Supporting Information Figure S6** (phytoplankton summary) → `Figs/Supporting Information/Figure S6.png` (also `Figs/Phytos_viz/phytoplankton_summary.png`).
+- **Supporting Information Figure S7** (Kruskal–Wallis year comparisons) → `Figs/Supporting Information/Figure S7.png` (also `Figs/Phytos_viz/kruskal-wallis.png`).
+- Working/QC figures: group composition plots → `Figs/Phytos_viz/` (`comp.png`, `comp_at_DCM.png`); per-year raw casts → `Figs/raw_flora_casts/`; per-year casts with DCM marked → `Figs/raw_flora_casts_with_DCM/`; total-phytos availability → `Figs/Data_availability/`.
 
 #### `02_alternate_phyto_heatmap.R`
 
@@ -113,7 +134,7 @@ Summarizes one or more water-quality variables by Date from a depth profile data
 
 #### `final_data_availability_plot.R`
 
-This function produces the final FluoroProbe Data Availability plot for the supplementary information.
+This function produces the final FluoroProbe Data Availability plot for the Supporting Information.
 
 #### `find_depths.R`
 

@@ -1,4 +1,4 @@
-#Final FluoroProbe data availability plot for the supplementary information.
+#Final FluoroProbe data availability plot for the Supporting Information.
 #dataframe must have a Date column.
 
 final_data_availability_plot <- function(dataframe, variables) {

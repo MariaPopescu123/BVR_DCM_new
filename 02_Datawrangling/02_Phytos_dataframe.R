@@ -182,7 +182,7 @@ dir.create("Figs/Data_availability", recursive = TRUE, showWarnings = FALSE)
 
 # suppressWarnings(): years with a single sampling day have no line to draw,
 # producing a harmless "geom_path: each group consists of only one observation".
-#### Supplemental Figure S4 ####
+#### Supporting Information Figure S4 ####
 suppressWarnings(ggsave(
   "Figs/Data_availability/TotalPhytos2025pub.png",
   phytosplot,
@@ -192,7 +192,7 @@ suppressWarnings(ggsave(
 ))
 # copy to curated submission folder
 suppressWarnings(ggsave(
-  "Figs/Supplemental Figures/Figure S4.png",
+  "Figs/Supporting Information/Figure S4.png",
   phytosplot,
   width = 8,
   height = 6,
@@ -779,11 +779,11 @@ p_mag_nolegend <- p_mag + theme(legend.position = "none")
 sig_both <- p_depth / p_mag_nolegend +
   plot_layout(guides = "collect")
 
-#### Supplemental Figure S7 ####
+#### Supporting Information Figure S7 ####
 ggsave("Figs/Phytos_viz/kruskal-wallis.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 # copy to curated submission folder
-ggsave("Figs/Supplemental Figures/Figure S7.png",
+ggsave("Figs/Supporting Information/Figure S7.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 
 #8. Plotting statistics for DCM depth and DCM magnitude for Figure S6 -----####
@@ -827,7 +827,7 @@ d <- ggplot(summary_df, aes(x = factor(Year))) +
   labs(
     y = "DCM depth (m)",
     x = "Year",
-    title = "A   DCM Depth Median and Mean ± SE by Year"
+    title = "b   DCM Depth Median and Mean ± SE by Year"
   ) +
   theme_classic(base_size = 13) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -872,7 +872,7 @@ p <- ggplot(summary_df, aes(x = factor(Year))) +
   labs(
     y = "Max phytoplankton concentration",
     x = "Year",
-    title = "B   DCM Magnitude Median and Mean ± SE by Year"
+    title = "b   DCM Magnitude Median and Mean ± SE by Year"
   ) +
   theme_classic(base_size = 13) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -883,7 +883,7 @@ combined_plot <- d/p_no_legend+
   plot_layout(guides = "collect")
 
 # Save the plot to a file
-#### Supplemental Figure S6 ####
+#### Supporting Information Figure S6 ####
 ggsave("Figs/Phytos_viz/phytoplankton_summary.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
 # copy to curated submission folder
-ggsave("Figs/Supplemental Figures/Figure S6.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
+ggsave("Figs/Supporting Information/Figure S6.png", plot = combined_plot, width = 8, height = 10, dpi = 600)

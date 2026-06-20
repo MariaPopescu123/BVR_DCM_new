@@ -409,7 +409,7 @@ plot_casts_all <- ggplot(plot_dat_all, aes(x = ugL, y = Depth_m, group = var)) +
 
 suppressWarnings(print(plot_casts_all))
 
-#### Supplemental Figure S3 ####
+#### Supporting Information Figure S3 ####
 suppressWarnings(
   ggsave("Figs/Phytos_viz/FP_casts_2025.png",
          plot = plot_casts_all,
@@ -418,7 +418,7 @@ suppressWarnings(
 )
 # copy to curated submission folder
 suppressWarnings(
-  ggsave("Figs/Supplemental Figures/Figure S3.png",
+  ggsave("Figs/Supporting Information/Figure S3.png",
          plot = plot_casts_all,
          width = 13, height = 7, units = "in",
          dpi = 900)

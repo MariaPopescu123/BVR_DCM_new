@@ -20,7 +20,7 @@ if (!requireNamespace("pacman", quietly = TRUE)) {
 dir.create("CSVs", showWarnings = FALSE, recursive = TRUE)
 dir.create("Figs", showWarnings = FALSE, recursive = TRUE)
 dir.create("Figs/Main Manuscript", showWarnings = FALSE, recursive = TRUE)
-dir.create("Figs/Supplemental Figures", showWarnings = FALSE, recursive = TRUE)
+dir.create("Figs/Supporting Information", showWarnings = FALSE, recursive = TRUE)
 
 
 

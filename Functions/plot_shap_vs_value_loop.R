@@ -9,7 +9,8 @@ plot_shap_vs_value_loop <- function(shap_df,
                                     dpi = 1200,
                                     panel_ncol = 3,
                                     panel_width = NULL,
-                                    panel_height = NULL) {
+                                    panel_height = NULL,
+                                    text_scale = 1) {
   stopifnot(is.data.frame(shap_df))
   
   required_cols <- c("var", "value_num", "shap")
@@ -70,16 +71,16 @@ plot_shap_vs_value_loop <- function(shap_df,
         y = "SHAP value",
         color = "z-scaled\nvalue"
       ) +
-      ggplot2::theme_classic(base_size = 10) +
+      ggplot2::theme_classic(base_size = 10 * text_scale) +
       ggplot2::theme(
-        plot.title = ggplot2::element_text(face = "bold", size = 9),
-        plot.tag = ggplot2::element_text(size = 10, face = "bold"),
+        plot.title = ggplot2::element_text(face = "bold", size = 9 * text_scale),
+        plot.tag = ggplot2::element_text(size = 10 * text_scale, face = "bold"),
         plot.tag.position = c(0.02, 0.98),
-        axis.text  = ggplot2::element_text(size = 8),
-        axis.title = ggplot2::element_text(size = 9),
+        axis.text  = ggplot2::element_text(size = 8 * text_scale),
+        axis.title = ggplot2::element_text(size = 9 * text_scale),
         legend.position = "right",
-        legend.title = ggplot2::element_text(size = 8),
-        legend.text  = ggplot2::element_text(size = 8),
+        legend.title = ggplot2::element_text(size = 8 * text_scale),
+        legend.text  = ggplot2::element_text(size = 8 * text_scale),
         legend.key.height = ggplot2::unit(0.6, "cm")
       )
     
