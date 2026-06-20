@@ -50,14 +50,14 @@ This folder contains a numbered sequence of scripts that build the core analysis
 
 #### `00_run_all.R`
 
-Sources and runs the numbered DataWrangling scripts in order (does not source `02_alternate_phyto_heatmap.R`).
+Sources and runs the numbered DataWrangling scripts in order.
 
 #### `01_water_level.R`
 
 Downloads Beaverdam Reservoir water-level data (2014–2024) from EDI, merges pressure-sensor and historical water level data sources, interpolates the data, and aggregates the time series to weekly water levels.\
 Generates a time-series plot colored by year, saves a cleaned CSV, and computes summary statistics on within- and across-year variability (including pre- vs. post-2022 comparisons).
 
-*Figures:* the water-level time-series plot is drawn to the plotting window only (not written to disk).
+*Figures:* the water-level time-series plot is created for a check but not saved
 
 #### `02_Phytos_dataframe.R`
 
