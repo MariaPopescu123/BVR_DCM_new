@@ -76,7 +76,7 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   variable_labels = variable_labels,
   panel_label = "a"
 )
-# copy to curated submission folder
+# copy to Corresponding Figure folder
 ggsave(here::here("Figs","Supporting Information","Figure S8a.png"),
        plot = depth_jackknife_over20$plot,
        width = 12, height = 8, dpi = 400, bg = "white")
@@ -118,7 +118,7 @@ magnitude_jackknife <- jackknife_incMSE_heatmap(
   variable_labels = variable_labels,
   panel_label = "b"
 )
-# copy to curated submission folder
+# copy to Corresponding Figure folder
 ggsave(here::here("Figs","Supporting Information","Figure S8b.png"),
        plot = magnitude_jackknife$plot,
        width = 12, height = 8, dpi = 400, bg = "white")
@@ -164,7 +164,7 @@ ggsave(
   plot = combined_RF_panels,
   width = 9, height = 5, dpi = 900, bg = "white"
 )
-# copy to curated submission folder
+# copy to Corresponding Figure folder
 ggsave(
   filename = here::here("Figs", "Main Manuscript", "Figure5.png"),
   plot = combined_RF_panels,
@@ -222,7 +222,7 @@ fig6 <- plot_shap_vs_value_loop(
   panel_width = 9,
   panel_height = 5
 )
-# copy to curated submission folder
+# copy to Corresponding Figure folder
 ggsave(here::here("Figs","Main Manuscript","Figure6.png"),
        plot = fig6$panel_plot,
        width = 9, height = 5, dpi = 1200, bg = "white")
@@ -246,7 +246,7 @@ figS9 <- plot_shap_vs_value_loop(
   panel_height = 7,
   text_scale = 1.15
 )
-# copy to curated submission folder
+# copy to Corresponding Figure folder
 ggsave(here::here("Figs","Supporting Information","Figure S9.png"),
        plot = figS9$panel_plot,
        width = 13, height = 7, dpi = 1200, bg = "white")
@@ -269,7 +269,7 @@ fig7 <- plot_shap_vs_value_loop(
   panel_width = 9,
   panel_height = 5
 )
-# copy to curated submission folder
+# copy to Corresponding Figure folder
 ggsave(here::here("Figs","Main Manuscript","Figure7.png"),
        plot = fig7$panel_plot,
        width = 9, height = 5, dpi = 1200, bg = "white")
@@ -288,14 +288,11 @@ figS10 <- plot_shap_vs_value_loop(
   analysis_label = "Predictor Effects on DCM Magnitude Prediction",
   var_labels = variable_labels,
   panel_ncol = 4,
-  # Save near print size so native font size ~= on-page size; text_scale lifts
-  # the smallest fonts to ~9 pt so they render >= 8 pt in the manuscript.
-  # Larger canvas gives each panel more room so the titles don't overlap.
   panel_width = 13,
   panel_height = 7,
   text_scale = 1.15
 )
-# copy to curated submission folder
+# copy to Supporting Information folder
 ggsave(here::here("Figs","Supporting Information","Figure S10.png"),
        plot = figS10$panel_plot,
        width = 13, height = 7, dpi = 1200, bg = "white")

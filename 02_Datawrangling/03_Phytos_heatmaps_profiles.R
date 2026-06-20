@@ -213,7 +213,7 @@ suppressWarnings(
     device = ragg::agg_png
   )
 )
-# copy to curated submission folder
+# copy to corresponding figure folder
 suppressWarnings(
   ggsave(
     filename = "Figs/Main Manuscript/Figure2.png",
@@ -326,7 +326,7 @@ suppressWarnings(
          width = 9, height = 4.85, units = "in",
          dpi = 900)  # high-res
 )
-# copy to curated submission folder
+# copy to corresponding figure folder
 suppressWarnings(
   ggsave("Figs/Main Manuscript/Figure3.png",
          plot = plot_casts,
@@ -416,7 +416,7 @@ suppressWarnings(
          width = 13, height = 7, units = "in",
          dpi = 900)
 )
-# copy to curated submission folder
+# copy to corresponding figure folder
 suppressWarnings(
   ggsave("Figs/Supporting Information/Figure S3.png",
          plot = plot_casts_all,

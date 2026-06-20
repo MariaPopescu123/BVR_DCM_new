@@ -122,7 +122,7 @@ check <- plot_correlation_matrix(
   variable_labels = variable_labels,
 )
 # check$correlations  # uncomment to view interactively
-# copy to curated submission folder
+# copy to corresponding figure folder
 ggsave("Figs/Supporting Information/Figure S5.png", plot = check$plot,
        width = 23, height = 20, units = "in", dpi = 300, bg = "white")
 

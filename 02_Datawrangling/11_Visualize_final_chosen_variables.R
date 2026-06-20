@@ -256,7 +256,7 @@ ggsave(
   plot = p_final,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
-# copy to curated submission folder
+# copy to corresponding figure folder
 ggsave(
   filename = "Figs/Supporting Information/Figure S2.png",
   plot = p_final,
@@ -526,7 +526,7 @@ ggsave(
   plot = p_yearly,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
-# copy to curated submission folder
+# copy to corresponding figure folder
 ggsave(
   filename = "Figs/Supporting Information/Figure S1.png",
   plot = p_yearly,

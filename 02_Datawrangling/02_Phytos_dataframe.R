@@ -190,7 +190,7 @@ suppressWarnings(ggsave(
   height = 6,
   dpi = 400
 ))
-# copy to curated submission folder
+# copy to corresponding figure folder
 suppressWarnings(ggsave(
   "Figs/Supporting Information/Figure S4.png",
   phytosplot,
@@ -618,7 +618,7 @@ ggsave(
   height = 7,   # height in inches
   dpi = 600     # optional: high resolution
 )
-# copy to curated submission folder
+# copy to corresponding figure folder
 ggsave(
   filename = "Figure4.png",
   plot = panel_plot,
@@ -782,7 +782,7 @@ sig_both <- p_depth / p_mag_nolegend +
 #### Supporting Information Figure S7 ####
 ggsave("Figs/Phytos_viz/kruskal-wallis.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
-# copy to curated submission folder
+# copy to corresponding figure folder
 ggsave("Figs/Supporting Information/Figure S7.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 
@@ -885,5 +885,5 @@ combined_plot <- d/p_no_legend+
 # Save the plot to a file
 #### Supporting Information Figure S6 ####
 ggsave("Figs/Phytos_viz/phytoplankton_summary.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
-# copy to curated submission folder
+# copy to corresponding figure folder
 ggsave("Figs/Supporting Information/Figure S6.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
