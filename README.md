@@ -2,7 +2,7 @@
 
 ## About This Repository
 
-This repository includes all workflows needed to reproduce the analyses and figures of deep chlorophyll maxima (DCM) in Beaverdam Reservoir, Vinton, Virginia, USA for the project called: > *Drivers of Deep Chlorophyll Maxima in Beaverdam Reservoir*
+This repository includes all workflows needed to reproduce the analyses and figures for the publication "Ten years of monitoring data and explainable AI reveal a persistent deep-water phytoplankton bloom driven by physical and biogeochemical processes in a eutrophic reservoir"
 
 ------------------------------------------------------------------------
 
