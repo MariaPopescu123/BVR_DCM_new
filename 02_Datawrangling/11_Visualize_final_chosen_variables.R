@@ -424,7 +424,7 @@ write.csv(yearly_stats, "CSVs/yearly_variable_stats.csv", row.names = FALSE)
 # Same layout as all_variables_visualized but:
 #   - DCM Depth    replaced by Depth of Max NO3/NO2
 #   - DCM Magnitude replaced by NO3/NO2 at DCM
-# Style matches Figure S6: median + IQR ribbon + mean +/- SE, by year
+# Style matches Figure S7: median + IQR ribbon + mean +/- SE, by year
 
 yearly_stats_rev_labels <- c(
   "Photic Zone Depth (m)",
@@ -520,16 +520,23 @@ p_yearly <- (yrow1 / yrow2 / yrow3 / yrow4) +
     )
   )
 
+# Individual panels use x = NULL (no per-panel axis title); add a single shared
+# "Year" x-axis title centered beneath the bottom row for the whole figure.
+p_yearly_labeled <- gridExtra::arrangeGrob(
+  patchwork::patchworkGrob(p_yearly),
+  bottom = grid::textGrob("Year", gp = grid::gpar(fontsize = 18))
+)
+
 #### Supporting Information Figure S1 ####
 ggsave(
   filename = "Figs/all_variables_yearly_stats.png",
-  plot = p_yearly,
+  plot = p_yearly_labeled,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
 # copy to corresponding figure folder
 ggsave(
   filename = "Figs/Supporting Information/Figure S1.png",
-  plot = p_yearly,
+  plot = p_yearly_labeled,
   width = 20, height = 14, units = "in", dpi = 1200, bg = "white"
 )
 

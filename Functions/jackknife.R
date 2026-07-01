@@ -215,9 +215,9 @@ jackknife_incMSE_heatmap <- function(
     scale_y_discrete(labels = y_lab_fun) +
     labs(
       tag = panel_label,
-      title = paste0(metric," Average variable importance based on %IncMSE (", year_min, " - ", year_max, ")"),
+      title = paste0(metric," average variable importance based on %IncMSE (", year_min, " - ", year_max, ")"),
       subtitle = whichvars_label,
-      x = "Year (n after cleaning)",
+      x = "Year",
       y = "Variables (ordered by overall mean %IncMSE)"
     ) +
     theme_minimal(base_size = 13) +

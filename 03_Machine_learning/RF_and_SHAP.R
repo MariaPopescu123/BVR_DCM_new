@@ -5,7 +5,7 @@
 #
 # It creates:
 # - variable-importance with SHAP score plots (Fig. 5)
-# - jackknife robustness heatmaps (Fig. S8)
+# - jackknife robustness heatmaps (Fig. S6)
 # - SHAP-vs-value interaction panels for manuscript + Supporting Information (Fig. 6, Fig. 7, Fig. S9, Fig. S10)
 #
 # Inputs expected in the workspace from prior scripts:
@@ -62,8 +62,8 @@ finaldepthRF_over20 <- var_importance_shap_plots(
 )
 
 #####Jackknife#####
-#this is for viewing to see how robust the model is across years Fig. S8
-#### Supporting Information Figure S8a (DCM depth jackknife heatmap) ####
+#this is for viewing to see how robust the model is across years Fig. S6
+#### Supporting Information Figure S6a (DCM depth jackknife heatmap) ####
 depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   Xdataframe     = depth_analysis_over20,
   year_min       = 2015,
@@ -77,7 +77,7 @@ depth_jackknife_over20 <- jackknife_incMSE_heatmap(
   panel_label = "a"
 )
 # copy to Corresponding Figure folder
-ggsave(here::here("Figs","Supporting Information","Figure S8a.png"),
+ggsave(here::here("Figs","Supporting Information","Figure S6a.png"),
        plot = depth_jackknife_over20$plot,
        width = 12, height = 8, dpi = 400, bg = "white")
 
@@ -105,7 +105,7 @@ finalmagnitudeRF <- var_importance_shap_plots(
 )
 
 
-#### Supporting Information Figure S8b (DCM magnitude jackknife heatmap) ####
+#### Supporting Information Figure S6b (DCM magnitude jackknife heatmap) ####
 magnitude_jackknife <- jackknife_incMSE_heatmap(
   Xdataframe     = magnitude_analysis,
   year_min       = 2015,
@@ -119,7 +119,7 @@ magnitude_jackknife <- jackknife_incMSE_heatmap(
   panel_label = "b"
 )
 # copy to Corresponding Figure folder
-ggsave(here::here("Figs","Supporting Information","Figure S8b.png"),
+ggsave(here::here("Figs","Supporting Information","Figure S6b.png"),
        plot = magnitude_jackknife$plot,
        width = 12, height = 8, dpi = 400, bg = "white")
 #if you want to view

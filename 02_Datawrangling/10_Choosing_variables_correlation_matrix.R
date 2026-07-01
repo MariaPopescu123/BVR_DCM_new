@@ -65,13 +65,9 @@ plot_correlation_matrix <- function(df, file_name, cutoff = 0.6,
   legend_key_height <- unit(legend_height / 5, "lines")
   legend_key_width <- unit(legend_height / 8, "lines")
   
-  # Subset for "X" marks where abs(correlation) >= cutoff
-  cor_x <- cor_long %>% filter(abs(Correlation) >= cutoff)
-  
   # Build plot
   p <- ggplot(cor_long, aes(x = Var1, y = Var2, fill = Correlation, size = abs(Correlation))) +
     geom_tile(color = NA) +
-    geom_point(data = cor_x, aes(x = Var1, y = Var2), shape = 4, color = "black", size = 6 * scale_factor, stroke = 1.2) +
     scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0,
                          limits = c(-1, 1), name = "Correlation") +
     scale_size(range = c(2 * scale_factor, 12 * scale_factor), guide = "none") +

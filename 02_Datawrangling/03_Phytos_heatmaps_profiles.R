@@ -185,16 +185,16 @@ flora_heatmap <- function(
 # Grid is row-major, ncol = 5:  row 1 = 2015-2019 (top), row 2 = 2020-2024 (bottom).
 # y tick labels only on the left column (2015, 2020); x tick labels only on the bottom row (2020-2024).
 plots <- list(
-  flora_heatmap(phytos_heatmaps, 2015, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = TRUE),
-  flora_heatmap(phytos_heatmaps, 2016, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2017, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2018, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2019, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2020, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = TRUE),
-  flora_heatmap(phytos_heatmaps, 2021, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2022, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2023, 50, "TotalConc_ugL", "ug/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = FALSE),
-  flora_heatmap(phytos_heatmaps, 2024, 50, "TotalConc_ugL", "ug/L", global_max_val, TRUE,  show_x_text = TRUE,  show_y_text = FALSE)   # only this keeps legend
+  flora_heatmap(phytos_heatmaps, 2015, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = TRUE),
+  flora_heatmap(phytos_heatmaps, 2016, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2017, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2018, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2019, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = FALSE, show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2020, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = TRUE),
+  flora_heatmap(phytos_heatmaps, 2021, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2022, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2023, 50, "TotalConc_ugL", "µg/L", global_max_val, FALSE, show_x_text = TRUE,  show_y_text = FALSE),
+  flora_heatmap(phytos_heatmaps, 2024, 50, "TotalConc_ugL", "µg/L", global_max_val, TRUE,  show_x_text = TRUE,  show_y_text = FALSE)   # only this keeps legend
 )
 
 # Combine with patchwork, collect legend and shared x/y axis titles

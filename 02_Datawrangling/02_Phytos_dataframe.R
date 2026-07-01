@@ -7,8 +7,8 @@
 # 4. visualizes DCM metrics to ensure quality
 # 5. reproduces boxplots for Figure 5
 # 6. creates the final_phytos dataframe that will be used for RF analysis
-# 7. performs a Kruskal Wallis test for Figure S7
-# 8. calculates and plots phytoplankton statistics for Figure S6
+# 7. performs a Kruskal Wallis test for Figure S8
+# 8. calculates and plots phytoplankton statistics for Figure S7
 #
 # Inputs:
 # - phytos_df (loaded in 01_DataDownload.R)
@@ -649,10 +649,10 @@ write.csv(final_phytos, "CSVs/final_phytos.csv", row.names = FALSE)
 #metrics for each variable that needs to be calculated 
 
 
-#7. Kruskal Wallis test for Figure S7 ----
+#7. Kruskal Wallis test for Figure S8 ----
 
 
-#this function runs the KW test and also creates the figures for Figure S7
+#this function runs the KW test and also creates the figures for Figure S8
 sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) {
   df <- data %>%
     mutate(Year_num = as.integer(as.character(Year))) %>%
@@ -743,7 +743,7 @@ sig_grid_upper_fn <- function(data, response_col, title_label, year_min = 2015) 
     scale_x_discrete(position = "top") +
     labs(
       title = title_label,
-      subtitle = paste0("    Kruskal - Wallis p = ", signif(kw$p.value, 3)),
+      subtitle = paste0("    Kruskal - Wallis p = ", signif(kw$p.value, 2)),
       x = NULL, y = NULL
     ) +
     theme_minimal(base_size = 12) +
@@ -779,14 +779,14 @@ p_mag_nolegend <- p_mag + theme(legend.position = "none")
 sig_both <- p_depth / p_mag_nolegend +
   plot_layout(guides = "collect")
 
-#### Supporting Information Figure S7 ####
+#### Supporting Information Figure S8 ####
 ggsave("Figs/Phytos_viz/kruskal-wallis.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 # copy to corresponding figure folder
-ggsave("Figs/Supporting Information/Figure S7.png",
+ggsave("Figs/Supporting Information/Figure S8.png",
        sig_both, width = 10, height = 12, dpi = 600, bg = "white")
 
-#8. Plotting statistics for DCM depth and DCM magnitude for Figure S6 -----####
+#8. Plotting statistics for DCM depth and DCM magnitude for Figure S7 -----####
 
 #depth----
 final_phytos_over20 %>%
@@ -883,7 +883,7 @@ combined_plot <- d/p_no_legend+
   plot_layout(guides = "collect")
 
 # Save the plot to a file
-#### Supporting Information Figure S6 ####
+#### Supporting Information Figure S7 ####
 ggsave("Figs/Phytos_viz/phytoplankton_summary.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
 # copy to corresponding figure folder
-ggsave("Figs/Supporting Information/Figure S6.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
+ggsave("Figs/Supporting Information/Figure S7.png", plot = combined_plot, width = 8, height = 10, dpi = 600)
